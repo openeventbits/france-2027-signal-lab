@@ -359,6 +359,7 @@ class FetchResult:
     new_candidate_ids: tuple[str, ...]
     name_changes: tuple[tuple[str, str, str], ...]
     semantic_changed: bool
+    reviewed_identity_repairs: tuple[dict[str, Any], ...] = ()
 
 
 @dataclass
@@ -508,8 +509,64 @@ def _direct_elements(node: _HtmlNode, tags: set[str]) -> list[_HtmlNode]:
     ]
 
 
+def _table_identity_presentation(cell: _HtmlNode) -> _HtmlNode:
+    """Keep the leading inline identity, excluding subordinate metadata.
+
+    Only call this after establishing ownership of the candidate column.
+    One leading break remains supported; a second makes the identity empty,
+    just as in the original br-based presentation contract.
+    """
+    block_tags = {
+        "p", "div", "ul", "ol", "dl", "table", "figure", "blockquote",
+        "hr", "h1", "h2", "h3", "h4", "h5", "h6",
+    }
+    stopped = False
+    saw_text = False
+    leading_break = False
+
+    def trim(value: _HtmlNode | str) -> _HtmlNode | str | None:
+        nonlocal stopped, saw_text, leading_break
+        if stopped:
+            return None
+        if isinstance(value, str):
+            saw_text = saw_text or bool(value.strip())
+            return value
+        if _skip_text_node(value):
+            return None
+        if value.tag in block_tags:
+            stopped = True
+            return None
+        if value.tag == "br":
+            stopped = saw_text or leading_break
+            leading_break = True
+            return value
+        children = []
+        for child in value.children:
+            kept = trim(child)
+            if kept is not None:
+                children.append(kept)
+        return _HtmlNode(value.tag, value.attrs, children)
+
+    children = []
+    for child in cell.children:
+        kept = trim(child)
+        if kept is not None:
+            children.append(kept)
+    return _HtmlNode(cell.tag, cell.attrs, children)
+
+
 def _candidate_name_from_table_cell(cell: _HtmlNode) -> str:
-    raw_name = _AGE_SUFFIX.sub("", _text_before_break(cell)).strip(" ,;:-")
+    presentation = _table_identity_presentation(cell)
+    raw_name = _AGE_SUFFIX.sub("", _text_before_break(presentation)).strip(" ,;:-")
+    identity_links = [
+        link for link in _descendants(presentation, "a") if _text_content(link)
+    ]
+    if len(identity_links) > 1 or (
+        identity_links
+        and _AGE_SUFFIX.sub("", _text_content(identity_links[0])).strip(" ,;:-")
+        != raw_name
+    ):
+        _fail(f"candidate table contains an ambiguous identity presentation: {raw_name!r}")
     try:
         return canonical_candidate_name(raw_name)
     except CandidateIdentityError as error:
@@ -539,7 +596,7 @@ def _personal_article_title(
     for link in _descendants(node, "a"):
         href = link.attrs.get("href", "")
         parsed_href = urlsplit(href)
-        if not parsed_href.path.startswith("/wiki/"):
+        if "new" in _classes(link) or not parsed_href.path.startswith("/wiki/"):
             continue
         raw_title = unquote(parsed_href.path.removeprefix("/wiki/"))
         requested_title = raw_title.replace("_", " ").strip()
@@ -574,50 +631,123 @@ def _table_rows(table: _HtmlNode) -> list[_HtmlNode]:
     return rows
 
 
+@dataclass(frozen=True)
+class _TableCellPlacement:
+    cell: _HtmlNode
+    row_index: int
+    column_index: int
+    rowspan: int
+    colspan: int
+
+
+def _table_grid(table: _HtmlNode) -> list[dict[int, _TableCellPlacement]]:
+    """Map physical cells to logical columns, retaining their originating row.
+
+    Candidate tables must form a rectangular grid. A cell cannot cross an
+    inherited rowspan, overrun the header width, or extend beyond the table.
+    Spans outside this bounded source format fail closed instead of guessing.
+    """
+    rows = _table_rows(table)
+    grid: list[dict[int, _TableCellPlacement]] = []
+    active: dict[int, _TableCellPlacement] = {}
+    width: int | None = None
+    for row_index, row in enumerate(rows):
+        occupied = {
+            column: placement for column, placement in active.items()
+            if placement.row_index + placement.rowspan > row_index
+        }
+        column = 0
+        for cell in _direct_elements(row, {"th", "td"}):
+            spans = {}
+            for attribute in ("rowspan", "colspan"):
+                value = cell.attrs.get(attribute, "1")
+                if re.fullmatch(r"[1-9][0-9]*", value) is None or len(value) > 5:
+                    _fail(f"candidate table row {row_index} has invalid {attribute}: {value!r}")
+                spans[attribute] = int(value)
+            rowspan, colspan = spans["rowspan"], spans["colspan"]
+            if row_index + rowspan > len(rows) or colspan > 64:
+                _fail(f"candidate table row {row_index} has a span outside the supported grid")
+            while column in occupied:
+                column += 1
+            columns = range(column, column + colspan)
+            if any(index in occupied for index in columns):
+                _fail(f"candidate table row {row_index} has overlapping spans")
+            if column + colspan > (width if width is not None else 64):
+                _fail(f"candidate table row {row_index} exceeds its logical column width")
+            placement = _TableCellPlacement(cell, row_index, column, rowspan, colspan)
+            for index in columns:
+                occupied[index] = placement
+            column += colspan
+        if occupied:
+            if width is None:
+                width = max(occupied) + 1
+            if set(occupied) != set(range(width)):
+                _fail(f"candidate table row {row_index} has incomplete logical occupancy")
+        grid.append(occupied)
+        active = occupied
+    return grid
+
+
 def _extract_candidate_table(
     table: _HtmlNode,
     section_title: str,
     source_page_title: str,
 ) -> list[ExtractedCandidate]:
     rows = _table_rows(table)
+    # Ignore noncandidate tables before imposing the candidate-grid contract.
+    if not any(
+        re.match(r"^Candidat(?:e|s)?\b", _text_content(cell), re.IGNORECASE)
+        for row in rows for cell in _direct_elements(row, {"th", "td"})
+    ):
+        return []
+    grid = _table_grid(table)
     candidate_column: int | None = None
     header_index: int | None = None
-    for index, row in enumerate(rows):
-        cells = _direct_elements(row, {"th", "td"})
-        for cell_index, cell in enumerate(cells):
-            header = _text_content(cell)
+    for index, logical_row in enumerate(grid):
+        headers = []
+        for column, placement in logical_row.items():
+            if placement.row_index != index or placement.column_index != column:
+                continue
+            header = _text_content(placement.cell)
             if re.match(r"^Candidat(?:e|s)?\b", header, re.IGNORECASE):
-                candidate_column = cell_index
-                header_index = index
-                break
-        if candidate_column is not None:
+                headers.append(column)
+        if len(headers) > 1:
+            _fail(f"candidate table in {section_title!r} has ambiguous candidate headers")
+        if headers:
+            candidate_column = headers[0]
+            header_index = index
             break
     if candidate_column is None or header_index is None:
         return []
 
     extracted: list[ExtractedCandidate] = []
-    for row in rows[header_index + 1 :]:
-        cells = _direct_elements(row, {"th", "td"})
-        if not cells:
+    for row_index in range(header_index + 1, len(grid)):
+        logical_row = grid[row_index]
+        if not logical_row:
             continue
-        if candidate_column >= len(cells):
+        placement = logical_row.get(candidate_column)
+        if placement is None:
             _fail(
                 f"candidate table row in {section_title!r} is missing "
                 "its candidate cell"
             )
-        cell = cells[candidate_column]
+        if placement.row_index != row_index:
+            continue  # This row continues the identity owned by an earlier row.
+        cell = placement.cell
         if re.match(
             r"^Candidat(?:e|s)?\b",
             _text_content(cell),
             re.IGNORECASE,
         ):
             continue
+        if placement.column_index != candidate_column or placement.colspan != 1:
+            _fail(f"candidate table row {row_index} has ambiguous identity-column ownership")
         candidate_name = _candidate_name_from_table_cell(cell)
         extracted.append(
             ExtractedCandidate(
                 candidate_name,
                 section_title,
-                _personal_article_title(cell, candidate_name),
+                _personal_article_title(_table_identity_presentation(cell), candidate_name),
                 source_page_title=source_page_title,
             )
         )
@@ -1386,6 +1516,96 @@ def _sorted_previous_names(
     return sorted(names, key=lambda name: (name.casefold(), name))
 
 
+_REVIEWED_PARSER_REVISION = 240211682
+_REVIEWED_PARSER_TIMESTAMP = "2026-10-09T11:10:48Z"
+_REVIEWED_FALSE_IDENTITIES = {
+    "gilles-platret-53-ans-les-republicains": "Gilles Platret (53 ans) Les Républicains",
+    "il-annonce-se-presente-le-8-octobre-2026": "Il annonce se présente le 8 octobre 2026",
+}
+
+
+def _reviewed_false_addition_recovery(
+    revision: RevisionSnapshot,
+    extracted: list[ExtractedCandidate],
+    previous_registry: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, tuple[dict[str, Any], ...]]:
+    """Remove only the reviewed parser artifacts after their source reversion.
+
+    This is not an alias or a withdrawal. Validate the original registry and
+    require all other previously-present identities to reconcile normally.
+    The normal anomaly guard then runs unchanged on the legitimate baseline.
+    """
+    if previous_registry is None:
+        return previous_registry, ()
+    try:
+        validate_candidate_candidacy_status(previous_registry)
+    except CandidateCandidacyStatusError as error:
+        raise CandidateCandidacyFetchError(f"previous registry is invalid: {error}") from error
+    if previous_registry.get("schema_version") != "2.0":
+        return previous_registry, ()
+    source = previous_registry["source"]
+    if (
+        revision.page_title != PAGE_TITLE
+        or source["page_title"] != PAGE_TITLE
+        or source["revision_id"] != _REVIEWED_PARSER_REVISION
+        or source["revision_timestamp"] != _REVIEWED_PARSER_TIMESTAMP
+        or revision.revision_id <= _REVIEWED_PARSER_REVISION
+        or revision.revision_timestamp <= _REVIEWED_PARSER_TIMESTAMP
+    ):
+        return previous_registry, ()
+
+    def related(identifier: str, names: list[str]) -> bool:
+        return (
+            identifier.startswith("gilles-platret")
+            or identifier.startswith("il-annonce-se-presente-le-8-octobre-2026")
+            or any("platret" in normalized_candidate_key(name).split() for name in names)
+        )
+
+    previous_by_id = {row["candidate_id"]: row for row in previous_registry["candidates"]}
+    related_previous = {
+        row["candidate_id"] for row in previous_registry["candidates"]
+        if related(row["candidate_id"], [row["candidate_name"], *row["previous_names"]])
+    }
+    if related_previous != set(_REVIEWED_FALSE_IDENTITIES):
+        return previous_registry, ()
+    reviewed_revision = RevisionSnapshot(_REVIEWED_PARSER_REVISION, _REVIEWED_PARSER_TIMESTAMP)
+    evidence = _status_source_fields(reviewed_revision, SECTION_RULES["Candidats déclarés"])
+    for identifier, name in _REVIEWED_FALSE_IDENTITIES.items():
+        expected = {
+            "candidate_id": identifier, "candidate_name": name,
+            "status": "declared", "display_tier": "main",
+            "upstream_presence": "present", "wikipedia_article": None,
+            "previous_names": [], **evidence,
+        }
+        if previous_by_id[identifier] != expected:
+            return previous_registry, ()
+    if any(
+        related(candidate_id(candidate.candidate_name), [candidate.candidate_name])
+        for candidate in extracted
+    ):
+        return previous_registry, ()
+    matches, _, _ = reconcile_candidate_identities(extracted, previous_registry)
+    matched_ids = {row["candidate_id"] for row in matches.values() if row is not None}
+    if any(
+        row["candidate_id"] not in matched_ids
+        for row in previous_registry["candidates"]
+        if row["candidate_id"] not in _REVIEWED_FALSE_IDENTITIES
+        and row["upstream_presence"] == "present"
+    ):
+        return previous_registry, ()
+    repaired = copy.deepcopy(previous_registry)
+    repaired["candidates"] = [
+        row for row in repaired["candidates"]
+        if row["candidate_id"] not in _REVIEWED_FALSE_IDENTITIES
+    ]
+    return repaired, ({
+        "type": "remove_parser_artifacts",
+        "previous_source_revision": _REVIEWED_PARSER_REVISION,
+        "removed_candidate_ids": sorted(_REVIEWED_FALSE_IDENTITIES),
+        "replacement_candidate_id": None,
+    },)
+
+
 def _build_payload_details(
     revision: RevisionSnapshot,
     parsed_html: str,
@@ -1402,6 +1622,7 @@ def _build_payload_details(
     tuple[str, ...],
     tuple[str, ...],
     tuple[tuple[str, str, str], ...],
+    tuple[dict[str, Any], ...],
 ]:
     extracted = extract_candidates(parsed_html)
     if supplemental_candidates:
@@ -1426,6 +1647,9 @@ def _build_payload_details(
             for candidate in extracted
         ]
 
+    previous_registry, reviewed_repairs = _reviewed_false_addition_recovery(
+        revision, extracted, previous_registry,
+    )
     (
         matches,
         _matched_present,
@@ -1604,6 +1828,7 @@ def _build_payload_details(
         preserved,
         tuple(sorted(new_ids)),
         tuple(sorted(name_changes)),
+        reviewed_repairs,
     )
 
 
@@ -1618,7 +1843,7 @@ def build_payload(
 ) -> tuple[dict[str, Any], tuple[ExtractedCandidate, ...]]:
     """Build and validate one deterministic schema-v2 registry payload."""
 
-    payload, extracted, _preserved, _new_ids, _name_changes = (
+    payload, extracted, _preserved, _new_ids, _name_changes, _reviewed_repairs = (
         _build_payload_details(
             revision,
             parsed_html,
@@ -1676,7 +1901,7 @@ def fetch_candidate_candidacy_status(
             f"Wikipedia revision {revision.revision_id} "
             f"({revision.revision_timestamp}): {error}"
         ) from error
-    payload, candidates, preserved, new_ids, name_changes = details
+    payload, candidates, preserved, new_ids, name_changes, reviewed_repairs = details
     semantic_changed = (
         previous_registry is None
         or semantic_sha256(payload) != semantic_sha256(previous_registry)
@@ -1690,6 +1915,7 @@ def fetch_candidate_candidacy_status(
         new_candidate_ids=new_ids,
         name_changes=name_changes,
         semantic_changed=semantic_changed,
+        reviewed_identity_repairs=reviewed_repairs,
     )
 
 
@@ -1827,6 +2053,7 @@ def main(argv: list[str] | None = None) -> int:
                     in result.name_changes
                 ],
                 "semantic_changed": result.semantic_changed,
+                "reviewed_identity_repairs": list(result.reviewed_identity_repairs),
                 "semantic_sha256": semantic_sha256(result.payload),
                 "output": str(args.output),
             },
