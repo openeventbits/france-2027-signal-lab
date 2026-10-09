@@ -1230,65 +1230,101 @@ def _reviewed_ineligible_first_round_table(table: object) -> bool:
         "https://www.commission-des-sondages.fr/notices/files/notices/"
         "2026/octobre/10292-pres-vote-blanc-ifop-6-octobre.pdf"
     )
+
+    def text(cell: object) -> str:
+        # Include hidden descendants: they must not conceal changed evidence.
+        return re.sub(r"\s+", " ", cell.text_content()).strip()
+
+    def span(cell: object, attribute: str) -> int:
+        value = cell.get(attribute, "1")
+        if not re.fullmatch(r"[1-9]\d*", value):
+            raise ValueError("invalid reviewed companion span")
+        return int(value)
+
     try:
-        frames = pd.read_html(
-            io.StringIO(lxml_html.tostring(table, encoding="unicode")),
-            extract_links="all",
-            displayed_only=False,
-        )
-        if len(frames) != 1:
+        # XPath unions retain DOM order, unlike concatenating each section's rows.
+        # These are physical source rows, never pandas' implied continuation rows.
+        rows = table.xpath("./thead/tr | ./tbody/tr | ./tr | ./tfoot/tr")
+        if len(rows) != 4 or table.xpath(".//tr") != rows:
             return False
-        frame = frames[0]
-        _validate_french_core_columns(
-            frame, table_label="reviewed blank companion", candidate_count=11,
-        )
-        if _header_value(frame.columns[-1]) != ("Vote blanc", None):
-            return False
-        headers = [_header_candidate(column) for column in frame.columns[3:-1]]
-        if any(generic or name not in expected for name, generic in headers):
-            return False
-        groups = _matching_candidate_colspan_groups(table)
-        substantive_rows = 0
-        for row_index, row in frame.iterrows():
-            values = [cell_text(value) for value in row]
-            if not any(values[3:]):
-                # Color strip or pandas' trailing row implied by source rowspans.
-                if any(values[:3]) and (
-                    values[:3] != ["Ifop", "9-11 septembre 2026", "1 548"]
-                    or cell_link(row.iloc[0]) != source_url
-                ):
-                    return False
-                continue
-            substantive_rows += 1
-            if (
-                substantive_rows != 1
-                or values[0] != "Ifop"
-                or cell_link(row.iloc[0]) != source_url
-                or parse_sample_size(values[2]) != 1548
-                or parse_french_fieldwork(values[1], default_year=None)
-                != ("2026-09-09", "2026-09-11")
-                or any(not re.fullmatch(r"\d+(?:[.,]\d+)?", value)
-                       for value in values[3:])
-                or _parse_french_score(row.iloc[-1]) != 6
+        for container in [table, *table.xpath("./thead | ./tbody | ./tfoot")]:
+            if (container.text or "").strip() or any(
+                (child.tail or "").strip() for child in container
             ):
                 return False
-            scores: dict[str, float] = {}
-            candidate_groups = {}
-            for column_index, (name, generic) in enumerate(headers, start=3):
-                if _row_candidate(row.iloc[column_index], name, generic) != name:
+        for child in table:
+            if not isinstance(child.tag, str):
+                continue
+            if child.tag == "caption":
+                if text(child) or child.xpath(".//a"):
                     return False
-                score = _parse_french_score(row.iloc[column_index])
-                group = groups.get((row_index, column_index))
-                if name in scores and (
-                    group is None or group != candidate_groups[name]
-                    or score != scores[name]
-                ):
+            elif child.tag in {"thead", "tbody", "tfoot"}:
+                if any(isinstance(node.tag, str) and node.tag != "tr"
+                       for node in child):
                     return False
-                scores[name] = score
-                candidate_groups[name] = group
-            if scores != expected:
+            elif child.tag != "tr":
                 return False
-        return substantive_rows == 1
+
+        cells = [row.xpath("./th | ./td") for row in rows]
+        widths = [2 if name == "Raphaël Glucksmann" else 1 for name in expected]
+        contracts = (
+            ("th", [1, 1, 1, *widths, 1], [3, 3, 3, *([1] * 11), 2]),
+            ("th", widths, [1] * 11),
+            ("td", [*widths, 1], [1] * 12),
+            ("td", [1, 1, 1, *widths, 1], [2, 2, 2, *([1] * 12)]),
+        )
+        for row, row_cells, (tag, colspans, rowspans) in zip(rows, cells, contracts):
+            if len(row_cells) != len(colspans):
+                return False
+            if (row.text or "").strip() or any(
+                (cell.tail or "").strip() for cell in row
+            ):
+                return False
+            if any(isinstance(cell.tag, str) and cell.tag not in {"th", "td"}
+                   for cell in row):
+                return False
+            for cell, width, height in zip(row_cells, colspans, rowspans):
+                if (cell.tag != tag or span(cell, "colspan") != width
+                        or span(cell, "rowspan") != height):
+                    return False
+        if table.xpath(".//th | .//td") != [cell for row in cells for cell in row]:
+            return False
+
+        metadata, names, decorative, polling = cells
+        if tuple(normalize_identity(text(cell)) for cell in metadata[:3]) != (
+            "sondeur", "dates", "echantillon",
+        ) or any(cell.xpath(".//a") for cell in metadata[:3]):
+            return False
+        if (normalize_identity(text(metadata[-1])) != "vote blanc"
+                or metadata[-1].xpath(".//a")):
+            return False
+        for cell in metadata[3:-1]:
+            if text(cell) or any(not link.startswith("/wiki/Fichier:")
+                                 for link in cell.xpath(".//a/@href")):
+                return False
+        for cell, expected_name in zip(names, expected):
+            links = cell.xpath(".//a/@href")
+            if (not links or _candidate_from_link(links[0]) != expected_name
+                    or reviewed_candidate_name(text(cell)) != expected_name
+                    or any(name not in {None, expected_name}
+                           for name in map(_candidate_from_link, links))):
+                return False
+        if any(text(cell) or cell.xpath(".//a") for cell in decorative):
+            return False
+
+        if (text(polling[0]) != "Ifop"
+                or polling[0].xpath(".//a/@href") != [source_url]
+                or any(cell.xpath(".//a") for cell in polling[1:])
+                or parse_sample_size(text(polling[2])) != 1548
+                or parse_french_fieldwork(text(polling[1]), default_year=None)
+                != ("2026-09-09", "2026-09-11")):
+            return False
+        for cell, score in zip(polling[3:], [*expected.values(), 6]):
+            raw = text(cell)
+            if (not re.fullmatch(r"\d+(?:[.,]\d+)?", raw)
+                    or parse_score(raw) != score):
+                return False
+        return True
     except (TypeError, ValueError, IndexError):
         return False
 

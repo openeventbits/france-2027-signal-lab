@@ -746,6 +746,130 @@ class FrozenFixtureTests(unittest.TestCase):
             cell.addnext(copy.deepcopy(cell))
         self.assert_autres_multiplicity(document)
 
+    def test_reviewed_companion_fingerprint_does_not_use_pandas(self) -> None:
+        document, ordinary = self.autres_document()
+        companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+        with patch("poll_migration.pd.read_html", side_effect=AssertionError("pandas called")):
+            self.assertTrue(_reviewed_ineligible_first_round_table(companion))
+
+    def test_reviewed_companion_dom_spans_fail_closed(self) -> None:
+        spans = (
+            *((0, index, "rowspan", "3") for index in range(3)),
+            *((3, index, "rowspan", "2") for index in range(3)),
+            (0, 14, "rowspan", "2"),
+            (1, 4, "colspan", "2"),
+            (3, 7, "colspan", "2"),
+            (0, 7, "colspan", "2"),
+            (2, 4, "colspan", "2"),
+        )
+        for row_index, cell_index, attribute, expected in spans:
+            for replacement in (None, "1", "4", "0", "-1", "invalid"):
+                with self.subTest(row=row_index, cell=cell_index,
+                                  attribute=attribute, replacement=replacement):
+                    document, ordinary = self.autres_document()
+                    companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+                    cell = companion.xpath("./tbody/tr")[row_index][cell_index]
+                    self.assertEqual(cell.get(attribute), expected)
+                    if replacement is None:
+                        del cell.attrib[attribute]
+                    else:
+                        cell.set(attribute, replacement)
+                    self.assertFalse(_reviewed_ineligible_first_round_table(companion))
+                    self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_dom_rows_and_cells_fail_closed(self) -> None:
+        mutations = (
+            "extra decorative cell", "decorative text", "hidden decorative text",
+            "decorative link", "empty fifth row", "hidden empty fifth row",
+            "candidate order", "score order", "extra header", "missing header",
+            "core header label", "core header order", "extra score", "missing score",
+            "candidate label", "unknown candidate link", "additional candidate link",
+            "span on another candidate", "unexpected row child", "text outside rows",
+            "unexpected section child", "section DOM order",
+        )
+        for mutation in mutations:
+            with self.subTest(mutation=mutation):
+                document, ordinary = self.autres_document()
+                companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+                rows = companion.xpath("./tbody/tr")
+                if mutation == "extra decorative cell":
+                    rows[2].append(lxml_html.Element("td"))
+                elif mutation == "decorative text":
+                    rows[2][0].text = "0,5"
+                elif mutation == "hidden decorative text":
+                    hidden = lxml_html.Element("span", style="display:none")
+                    hidden.text = "Ifop 1548"
+                    rows[2][0].append(hidden)
+                elif mutation == "decorative link":
+                    rows[2][0].append(lxml_html.Element("a", href="/wiki/Nathalie_Arthaud"))
+                elif mutation in {"empty fifth row", "hidden empty fifth row"}:
+                    row = lxml_html.Element("tr")
+                    if mutation == "hidden empty fifth row":
+                        row.set("style", "display:none")
+                    companion[0].append(row)
+                elif mutation == "candidate order":
+                    rows[1].insert(0, rows[1][1])
+                elif mutation == "score order":
+                    rows[3].insert(3, rows[3][4])
+                elif mutation == "extra header":
+                    rows[1].append(copy.deepcopy(rows[1][0]))
+                elif mutation == "missing header":
+                    rows[1].remove(rows[1][0])
+                elif mutation == "core header label":
+                    rows[0][1].text = "Date"
+                elif mutation == "core header order":
+                    rows[0].insert(0, rows[0][1])
+                elif mutation == "extra score":
+                    rows[3].append(copy.deepcopy(rows[3][-1]))
+                elif mutation == "missing score":
+                    rows[3].remove(rows[3][-1])
+                elif mutation == "candidate label":
+                    rows[1][0][0].text = "Philippe Poutou"
+                elif mutation == "unknown candidate link":
+                    rows[1][0][0].set("href", "/wiki/Unknown_candidate")
+                elif mutation == "additional candidate link":
+                    rows[1][0].append(lxml_html.Element("a", href="/wiki/Philippe_Poutou"))
+                elif mutation == "span on another candidate":
+                    rows[1][0].set("colspan", "2")
+                    rows[3][3].set("colspan", "2")
+                elif mutation == "unexpected row child":
+                    rows[2].append(lxml_html.Element("div"))
+                elif mutation == "text outside rows":
+                    companion[0].text = "extra result 6"
+                elif mutation == "unexpected section child":
+                    companion[0].append(lxml_html.Element("div"))
+                else:
+                    # DOM order must win over a header/body/footer concatenation.
+                    footer = lxml_html.Element("tfoot")
+                    footer.append(rows[3])
+                    companion.insert(0, footer)
+                self.assertFalse(_reviewed_ineligible_first_round_table(companion))
+                self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_dom_semantic_presentation_is_accepted(self) -> None:
+        document, ordinary = self.autres_document()
+        companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+        rows = companion.xpath("./tbody/tr")
+        rows[3][1].text = "du 9 au 11 septembre 2026"
+        rows[3][2].text = "1\xa0548"
+        rows[3][3].text = "0.5"
+        for cell in rows[1]:
+            name = cell[0].text
+            cell[0].text = name.split(" ", 1)[1]
+            party = lxml_html.Element("a", href="/wiki/Party")
+            party.text = "(Party)"
+            cell.append(party)
+        caption = lxml_html.Element("caption")
+        companion.insert(0, caption)
+        header = lxml_html.Element("thead")
+        header.extend(rows[:2])
+        companion.insert(1, header)
+        footer = lxml_html.Element("tfoot")
+        footer.append(rows[3])
+        companion.append(footer)
+        with patch("poll_migration.pd.read_html", side_effect=AssertionError("pandas called")):
+            self.assertTrue(_reviewed_ineligible_first_round_table(companion))
+
     def test_pandas_duplicate_linked_header_is_normalized(self) -> None:
         image_link = "/wiki/Fichier:Ensemble_2024_B.png"
         candidate_link = (
