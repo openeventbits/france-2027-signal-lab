@@ -29,10 +29,14 @@ from poll_migration import (
     FRENCH_FIXTURE,
     POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
     POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR,
+    _french_first_round_table_plan,
     _header_candidate,
     _header_value,
     _matching_candidate_colspan_groups,
     _row_candidate,
+    _reviewed_ineligible_first_round_table,
+    _preceding_heading,
+    _section_heading,
     _validate_first_round_candidate_headers,
     apply_wave_scoped_pollster_alias,
     candidate_identity,
@@ -498,6 +502,46 @@ def production_runoff(record: dict, *, pollster: str | None = None) -> dict:
     return event
 
 
+def reviewed_blank_companion_table() -> object:
+    """Compact rendered equivalent of the companion restored in 240197367.
+
+    Keep the reviewed colspan and trailing metadata rowspan, without portraits.
+    """
+
+    candidates = (
+        ("Nathalie Arthaud", "0,5"), ("Jean-Luc Mélenchon", "16"),
+        ("Fabien Roussel", "2"), ("Marine Tondelier", "2,5"),
+        ("Raphaël Glucksmann", "8"), ("Gabriel Attal", "6"),
+        ("Édouard Philippe", "13"), ("Bruno Retailleau", "6"),
+        ("Nicolas Dupont-Aignan", "2"), ("Marine Le Pen", "34"),
+        ("Éric Zemmour", "4"),
+    )
+    image_headers = []
+    name_headers = []
+    colors = []
+    scores = []
+    for name, score in candidates:
+        span = ' colspan="2"' if name == "Raphaël Glucksmann" else ""
+        image_headers.append(f"<th{span}></th>")
+        name_headers.append(
+            f'<th{span}><a href="/wiki/{name.replace(" ", "_")}">{name}</a></th>'
+        )
+        colors.append(f"<td{span}></td>")
+        scores.append(f"<td{span}>{score}</td>")
+    return lxml_html.fromstring(
+        '<table class="wikitable"><tbody><tr>'
+        '<th rowspan="3">Sondeur</th><th rowspan="3">Dates</th>'
+        '<th rowspan="3">Échantillon</th>'
+        + "".join(image_headers) + '<th rowspan="2">Vote blanc</th></tr><tr>'
+        + "".join(name_headers) + '</tr><tr>' + "".join(colors)
+        + '<td></td></tr><tr><td rowspan="2"><a href="https://www.commission-des-sondages.fr/'
+        'notices/files/notices/2026/octobre/10292-pres-vote-blanc-ifop-6-octobre.pdf">'
+        'Ifop</a></td><td rowspan="2">9-11 septembre 2026</td>'
+        '<td rowspan="2">1 548</td>' + "".join(scores)
+        + '<td>6</td></tr></tbody></table>'
+    )
+
+
 class FrozenFixtureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -514,6 +558,193 @@ class FrozenFixtureTests(unittest.TestCase):
         cls.en_first, cls.en_skipped = parse_english_frozen_first_round(cls.en)
         cls.en_second = parse_english_frozen_second_round(cls.en)
         cls.fr_parsed = parse_french_frozen_fixture(cls.fr)
+
+    def autres_document(self, *, companion: bool = True) -> tuple[object, object]:
+        document = lxml_html.fromstring(self.fr["text"])
+        ordinary = next(
+            table for table in document.xpath("//table")
+            if _section_heading(table) == "sondages concernant le premier tour"
+            and _preceding_heading(table) == "autres"
+        )
+        if companion:
+            wrapper = lxml_html.fromstring(
+                '<div class="NavFrame"><div class="NavHead">'
+                'Sondages comptant le vote blanc comme un vote exprimé</div>'
+                '<div class="NavContent"></div></div>'
+            )
+            wrapper[-1].append(reviewed_blank_companion_table())
+            ordinary.getparent().getparent().addprevious(wrapper)
+        return document, ordinary
+
+    def assert_autres_multiplicity(self, document: object) -> None:
+        with self.assertRaisesRegex(
+            ValueError, "French first-round context 'autres' exposes multiple tables",
+        ):
+            _french_first_round_table_plan(document.xpath("//table"))
+
+    def test_single_autres_table_and_reviewed_companion_have_identical_records(self) -> None:
+        document, ordinary = self.autres_document()
+        companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+        self.assertTrue(_reviewed_ineligible_first_round_table(companion))
+        planned = _french_first_round_table_plan(document.xpath("//table"))
+        self.assertIn(ordinary, planned)
+        self.assertNotIn(companion, planned)
+        parsed = {**self.fr, "text": lxml_html.tostring(document, encoding="unicode")}
+        actual = parse_french_frozen_fixture(parsed)
+        self.assertEqual(actual, self.fr_parsed)
+        self.assertFalse(any(
+            "10292-pres-vote-blanc" in row["source_url"]
+            for row in actual[FIRST_ROUND]
+        ))
+        events = rehearse_pre_cutover(parsed).first_round_events
+        self.assertFalse(any(
+            "10292-pres-vote-blanc" in event["source_url"] for event in events
+        ))
+
+    def test_reviewed_companion_preserves_ordinary_and_subsequent_locators(self) -> None:
+        document, ordinary = self.autres_document(companion=False)
+        wrapper = ordinary.getparent().getparent()
+        subsequent = copy.deepcopy(wrapper)
+        heading = lxml_html.Element("h3")
+        heading.text = "Année 2021"
+        wrapper.addnext(subsequent)
+        wrapper.addnext(heading)
+        baseline = parse_french_frozen_fixture({
+            **self.fr, "text": lxml_html.tostring(document, encoding="unicode"),
+        })
+        for placement in ("before", "after"):
+            with self.subTest(placement=placement):
+                added = lxml_html.Element("div", attrib={"class": "NavFrame"})
+                content = lxml_html.Element("div", attrib={"class": "NavContent"})
+                added.append(content)
+                content.append(reviewed_blank_companion_table())
+                if placement == "before":
+                    wrapper.addprevious(added)
+                else:
+                    wrapper.addnext(added)
+                actual = parse_french_frozen_fixture({
+                    **self.fr, "text": lxml_html.tostring(document, encoding="unicode"),
+                })
+                self.assertEqual(actual, baseline)
+                added.getparent().remove(added)
+
+    def test_reviewed_companion_changed_scores_fail_closed(self) -> None:
+        for index in range(3, 15):
+            with self.subTest(physical_column=index):
+                document, ordinary = self.autres_document()
+                companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+                companion.xpath("./tbody/tr")[-1][index].text = "7"
+                self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_changed_metadata_fails_closed(self) -> None:
+        for mutation in ("pollster", "date", "sample", "url"):
+            with self.subTest(mutation=mutation):
+                document, ordinary = self.autres_document()
+                companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+                row = companion.xpath("./tbody/tr")[-1]
+                if mutation == "pollster":
+                    row[0][0].text = "Ipsos"
+                elif mutation == "date":
+                    row[1].text = "9-12 septembre 2026"
+                elif mutation == "sample":
+                    row[2].text = "1 549"
+                else:
+                    row[0][0].set("href", "https://example.test/10292")
+                self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_changed_candidate_identity_fails_closed(self) -> None:
+        document, ordinary = self.autres_document()
+        companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+        companion.xpath("./tbody/tr")[1][0][0].set("href", "/wiki/Philippe_Poutou")
+        self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_changed_or_removed_blank_header_fails_closed(self) -> None:
+        for replacement in ("Autres", "", "Unknown response", None):
+            with self.subTest(replacement=replacement):
+                document, ordinary = self.autres_document()
+                companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+                row = companion.xpath("./tbody/tr")[0]
+                if replacement is None:
+                    row.remove(row[-1])
+                else:
+                    row[-1].text = replacement
+                self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_extra_column_fails_closed(self) -> None:
+        document, ordinary = self.autres_document()
+        companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+        column = lxml_html.Element("th", rowspan="3")
+        column.text = "Unknown response"
+        companion.xpath("./tbody/tr")[0].append(column)
+        value = lxml_html.Element("td")
+        value.text = "5"
+        companion.xpath("./tbody/tr")[-1].append(value)
+        self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_extra_substantive_row_fails_closed(self) -> None:
+        for hidden in (False, True):
+            with self.subTest(hidden=hidden):
+                document, ordinary = self.autres_document()
+                companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+                row = copy.deepcopy(companion.xpath("./tbody/tr")[-1])
+                for cell in row.xpath("./td[@rowspan]"):
+                    del cell.attrib["rowspan"]
+                if hidden:
+                    row.set("style", "display:none")
+                companion.xpath("./tbody")[0].append(row)
+                self.assert_autres_multiplicity(document)
+
+    def test_unknown_or_second_ordinary_autres_table_fails_closed(self) -> None:
+        for additional in ("unknown", "ordinary"):
+            with self.subTest(additional=additional):
+                document, ordinary = self.autres_document(companion=False)
+                table = (lxml_html.fromstring("<table><tr><td>Unknown</td></tr></table>")
+                         if additional == "unknown" else copy.deepcopy(ordinary))
+                ordinary.addprevious(table)
+                self.assert_autres_multiplicity(document)
+
+    def test_two_reviewed_companions_and_third_autres_table_fail_closed(self) -> None:
+        for retain_ordinary in (False, True):
+            with self.subTest(retain_ordinary=retain_ordinary):
+                document, ordinary = self.autres_document()
+                companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+                companion.addnext(copy.deepcopy(companion))
+                if not retain_ordinary:
+                    ordinary.getparent().remove(ordinary)
+                self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_under_other_context_fails_closed(self) -> None:
+        document, ordinary = self.autres_document()
+        heading = ordinary.xpath("preceding::h3[1]")[0]
+        heading.text = "Année 2021"
+        with self.assertRaisesRegex(
+            ValueError, "French first-round context 'annee 2021' exposes multiple tables",
+        ):
+            _french_first_round_table_plan(document.xpath("//table"))
+
+    def test_reviewed_companion_alone_remains_candidate_header_rejected(self) -> None:
+        document, ordinary = self.autres_document()
+        ordinary.getparent().remove(ordinary)
+        with self.assertRaisesRegex(ValueError, "unknown identity: 'Vote blanc'"):
+            parse_french_frozen_fixture({
+                **self.fr, "text": lxml_html.tostring(document, encoding="unicode"),
+            })
+
+    def test_reviewed_companion_nested_table_fails_closed(self) -> None:
+        document, ordinary = self.autres_document()
+        companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+        companion.xpath("./tbody/tr")[-1][-1].append(
+            lxml_html.fromstring("<table><tr><td>6</td></tr></table>")
+        )
+        self.assert_autres_multiplicity(document)
+
+    def test_reviewed_companion_unspanned_duplicate_candidate_fails_closed(self) -> None:
+        document, ordinary = self.autres_document()
+        companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
+        for cell in companion.xpath('.//*[@colspan="2"]'):
+            del cell.attrib["colspan"]
+            cell.addnext(copy.deepcopy(cell))
+        self.assert_autres_multiplicity(document)
 
     def test_pandas_duplicate_linked_header_is_normalized(self) -> None:
         image_link = "/wiki/Fichier:Ensemble_2024_B.png"
