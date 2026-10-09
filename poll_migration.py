@@ -1199,6 +1199,100 @@ def _section_heading(table: object) -> str:
     return normalize_identity(headings[-1].text_content()) if headings else ""
 
 
+def _reviewed_ineligible_first_round_table(table: object) -> bool:
+    """Recognize only the reviewed notice-10292 blank-inclusive companion.
+
+    This alternative measurement stays outside ordinary candidate-only ingestion.
+    Unknown or changed tables must still reach the context multiplicity guard.
+    """
+
+    if (
+        _section_heading(table) != FRENCH_FIRST_ROUND_SECTION
+        or _preceding_heading(table) != "autres"
+        or "wikitable" not in table.get("class", "").split()
+        or table.xpath("ancestor::table | .//table")
+    ):
+        return False
+    expected = {
+        "Nathalie Arthaud": 0.5,
+        "Jean-Luc Mélenchon": 16,
+        "Fabien Roussel": 2,
+        "Marine Tondelier": 2.5,
+        "Raphaël Glucksmann": 8,
+        "Gabriel Attal": 6,
+        "Édouard Philippe": 13,
+        "Bruno Retailleau": 6,
+        "Nicolas Dupont-Aignan": 2,
+        "Marine Le Pen": 34,
+        "Éric Zemmour": 4,
+    }
+    source_url = (
+        "https://www.commission-des-sondages.fr/notices/files/notices/"
+        "2026/octobre/10292-pres-vote-blanc-ifop-6-octobre.pdf"
+    )
+    try:
+        frames = pd.read_html(
+            io.StringIO(lxml_html.tostring(table, encoding="unicode")),
+            extract_links="all",
+            displayed_only=False,
+        )
+        if len(frames) != 1:
+            return False
+        frame = frames[0]
+        _validate_french_core_columns(
+            frame, table_label="reviewed blank companion", candidate_count=11,
+        )
+        if _header_value(frame.columns[-1]) != ("Vote blanc", None):
+            return False
+        headers = [_header_candidate(column) for column in frame.columns[3:-1]]
+        if any(generic or name not in expected for name, generic in headers):
+            return False
+        groups = _matching_candidate_colspan_groups(table)
+        substantive_rows = 0
+        for row_index, row in frame.iterrows():
+            values = [cell_text(value) for value in row]
+            if not any(values[3:]):
+                # Color strip or pandas' trailing row implied by source rowspans.
+                if any(values[:3]) and (
+                    values[:3] != ["Ifop", "9-11 septembre 2026", "1 548"]
+                    or cell_link(row.iloc[0]) != source_url
+                ):
+                    return False
+                continue
+            substantive_rows += 1
+            if (
+                substantive_rows != 1
+                or values[0] != "Ifop"
+                or cell_link(row.iloc[0]) != source_url
+                or parse_sample_size(values[2]) != 1548
+                or parse_french_fieldwork(values[1], default_year=None)
+                != ("2026-09-09", "2026-09-11")
+                or any(not re.fullmatch(r"\d+(?:[.,]\d+)?", value)
+                       for value in values[3:])
+                or _parse_french_score(row.iloc[-1]) != 6
+            ):
+                return False
+            scores: dict[str, float] = {}
+            candidate_groups = {}
+            for column_index, (name, generic) in enumerate(headers, start=3):
+                if _row_candidate(row.iloc[column_index], name, generic) != name:
+                    return False
+                score = _parse_french_score(row.iloc[column_index])
+                group = groups.get((row_index, column_index))
+                if name in scores and (
+                    group is None or group != candidate_groups[name]
+                    or score != scores[name]
+                ):
+                    return False
+                scores[name] = score
+                candidate_groups[name] = group
+            if scores != expected:
+                return False
+        return substantive_rows == 1
+    except (TypeError, ValueError, IndexError):
+        return False
+
+
 def _french_first_round_table_plan(tables: list[object]) -> list[object]:
     """Select first-round tables by section and validate their local context."""
 
@@ -1209,7 +1303,7 @@ def _french_first_round_table_plan(tables: list[object]) -> list[object]:
     ]
     if not selected:
         raise ValueError("French source lacks first-round tables")
-    seen_contexts: set[str] = set()
+    by_context: dict[str, list[object]] = {}
     for table in selected:
         context = _preceding_heading(table)
         if not (
@@ -1220,12 +1314,23 @@ def _french_first_round_table_plan(tables: list[object]) -> list[object]:
             raise ValueError(
                 f"French first-round table has invalid context {context!r}"
             )
-        if context in seen_contexts:
+        by_context.setdefault(context, []).append(table)
+    excluded = []
+    for context, context_tables in by_context.items():
+        if len(context_tables) == 1:
+            continue
+        reviewed = (
+            [table for table in context_tables
+             if _reviewed_ineligible_first_round_table(table)]
+            if context == "autres" and len(context_tables) == 2 else []
+        )
+        if len(reviewed) != 1:
             raise ValueError(
                 f"French first-round context {context!r} exposes multiple tables"
             )
-        seen_contexts.add(context)
-    return selected
+        excluded.extend(reviewed)
+    # Filter before enumeration: excluded evidence never consumes an FR-T index.
+    return [table for table in selected if table not in excluded]
 
 
 def _validate_french_core_columns(
