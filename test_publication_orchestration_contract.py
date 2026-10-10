@@ -195,6 +195,13 @@ class PublicationOrchestrationContractTests(unittest.TestCase):
         self.assertLess(search, search_check)
         self.assertLess(initial.index("build_candidate_reference.py"), route)
         self.assertLess(search_check, initial.index("build_sitemaps.py"))
+        final_route = initial.index("python -B build_route_registry.py", search_check)
+        final_route_check = initial.index("python -B build_route_registry.py --check", final_route)
+        final_search_check = initial.index("python -B build_search_entrypoints.py --check", final_route_check)
+        self.assertLess(search_check, final_route)
+        self.assertLess(final_search_check, initial.index("python -B build_sitemaps.py"))
+        self.assertLess(initial.index("python -B build_sitemaps.py --check"),
+                        initial.index("python -B -m unittest -v"))
 
         rebase_start = text.index(
             "- name: Rebase, reconcile and push"
@@ -231,6 +238,13 @@ class PublicationOrchestrationContractTests(unittest.TestCase):
         )
         self.assertLess(rebase.index("build_candidate_reference.py"), rebase_route)
         self.assertLess(rebase_search_check, rebase.index("build_sitemaps.py"))
+        final_route = rebase.index("python -B build_route_registry.py", rebase_search_check)
+        final_route_check = rebase.index("python -B build_route_registry.py --check", final_route)
+        final_search_check = rebase.index("python -B build_search_entrypoints.py --check", final_route_check)
+        self.assertLess(rebase_search_check, final_route)
+        self.assertLess(final_search_check, rebase.index("python -B build_sitemaps.py"))
+        self.assertLess(rebase.index("python -B build_sitemaps.py --check"),
+                        rebase.index("python -B -m unittest -v"))
 
         commit = text[commit_start:rebase_start]
 
