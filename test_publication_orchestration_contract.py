@@ -73,6 +73,35 @@ def in_directory(path):
 
 
 class PublicationOrchestrationContractTests(unittest.TestCase):
+    def test_polls_rebuilds_routes_before_search_in_both_publication_paths(self):
+        text = read_workflow("update-polls.yml")
+        initial, reconciliation = text.split('git commit -m "Update polls data"', 1)
+        commands = (
+            "python -B build_candidate_signals.py --candidacy-status candidate_candidacy_status.json",
+            "python -B build_poll_explorer.py",
+            "python -B build_poll_pages.py\n",
+            "python -B build_poll_hub_static_links.py\n",
+            "python -B build_route_registry.py ",
+            "python -B build_route_registry.py --check",
+            "python -B build_search_entrypoints.py\n",
+            "python -B build_search_entrypoints.py --check",
+            # Home-page hashes change when search is rendered. Finalizing
+            # them must preserve the pair's already rebuilt destinations.
+            "python -B build_route_registry.py ",
+            "python -B build_route_registry.py --check",
+            "python -B build_search_entrypoints.py --check",
+            "python -B build_sitemaps.py\n",
+            "python -B build_sitemaps.py --check",
+            "python -B build_publication_manifest.py ",
+        )
+        for name, block in (("initial", initial), ("reconciliation", reconciliation)):
+            with self.subTest(path=name):
+                cursor = 0
+                for command in commands:
+                    cursor = block.index(command, cursor) + len(command)
+                self.assertLess(block.rindex("python -B build_route_registry.py"),
+                                block.index("python -B build_sitemaps.py"))
+
     def test_candidate_universe_refreshes_all_candidate_aware_collectors(
         self,
     ):
