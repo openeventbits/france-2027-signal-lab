@@ -1484,6 +1484,22 @@ def _candidate_status_label_fr(
         ) from exc
 
 
+def _archived_candidate_status_label_fr(status: str) -> str:
+    """Label retained dossiers without treating hidden statuses as active."""
+
+    labels = {
+        "ruled_out": "DOSSIER ARCHIVÉ · CANDIDATURE ÉCARTÉE",
+        "withdrawn": "DOSSIER ARCHIVÉ · CANDIDATURE RETIRÉE",
+        "historical_poll_only": "DOSSIER ARCHIVÉ · SONDAGES HISTORIQUES UNIQUEMENT",
+    }
+    try:
+        return labels[status]
+    except KeyError as exc:
+        raise CandidateReferenceError(
+            f"unsupported archived candidacy status: {status!r}"
+        ) from exc
+
+
 def _candidate_initials(candidate_name: str) -> str:
     parts = [
         part
@@ -1720,10 +1736,14 @@ def _render_candidate_structure_html(
 
     reference_candidate = candidate["candidate_id"] == CANDIDATE_ID
 
-    status_label = _candidate_status_label_fr(
-        candidate["status"],
-        reference_candidate=reference_candidate,
-    )
+    archived = is_archived_candidacy_status(candidate["status"])
+    if archived:
+        status_label = _archived_candidate_status_label_fr(candidate["status"])
+    else:
+        status_label = _candidate_status_label_fr(
+            candidate["status"],
+            reference_candidate=reference_candidate,
+        )
 
     portrait_html = _candidate_portrait_html(candidate)
 
@@ -1790,6 +1810,12 @@ def _render_candidate_structure_html(
         events_definition = (
             "Événements de campagne publiés associés à cette candidature."
         )
+    if archived:
+        candidacy_copy = (
+            "Ce dossier est conservé comme archive. Cette source documente "
+            "le statut inactif enregistré par France 2027 Signal Lab."
+        )
+
     poll_reported = (
         current_poll["evidence_state"] == "reported"
     )
@@ -2836,6 +2862,13 @@ _CANDIDATE_TEXT_EN.update({
     "CANDIDATURE EN SÉLECTION": "CANDIDACY IN SELECTION",
     "CANDIDATURE POTENTIELLE": "POTENTIAL CANDIDACY",
     "CANDIDATURE CONDITIONNELLE": "CONDITIONAL CANDIDACY",
+    "DOSSIER ARCHIVÉ · CANDIDATURE ÉCARTÉE": "ARCHIVED DOSSIER · CANDIDACY RULED OUT",
+    "DOSSIER ARCHIVÉ · CANDIDATURE RETIRÉE": "ARCHIVED DOSSIER · CANDIDACY WITHDRAWN",
+    "DOSSIER ARCHIVÉ · SONDAGES HISTORIQUES UNIQUEMENT": "ARCHIVED DOSSIER · HISTORICAL POLLS ONLY",
+    "Ce dossier est conservé comme archive. Cette source documente le statut inactif enregistré par France 2027 Signal Lab.": (
+        "This dossier is retained as an archive. This source documents "
+        "the inactive status recorded by France 2027 Signal Lab."
+    ),
     "Thèmes associés à cette candidature dans la couverture suivie. Ils décrivent la composition de la couverture médiatique, pas les priorités ou positions de la personne suivie.": (
         "Topics associated with this candidacy in monitored coverage. "
         "They describe the composition of media coverage, not the "

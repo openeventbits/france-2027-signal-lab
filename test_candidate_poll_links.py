@@ -109,12 +109,13 @@ class CandidatePollLinkTests(unittest.TestCase):
                     f"candidate {candidate_id!r} lacks one bilingual route pair"
                 )
 
+        # Published routes include retained archives as well as active dossiers.
+        # Use the publication builder so archived attention snapshots and
+        # lifecycle rules are exercised rather than requesting active projections.
+        artifacts = reference.build_all_active_artifacts(cls.sources, ROOT)
         for candidate_id in cls.candidate_ids:
-            payload = reference.build_projection(
-                cls.sources,
-                ROOT,
-                candidate_id=candidate_id,
-                _sources_validated=True,
+            payload = json.loads(
+                artifacts[Path("candidates") / candidate_id / "data.json"]
             )
             observations = payload["polling"]["first_round_history"].get(
                 "observations", []
@@ -138,12 +139,10 @@ class CandidatePollLinkTests(unittest.TestCase):
             cls.rendered[candidate_id] = {}
             cls.audits[candidate_id] = {}
             for language in ("fr", "en"):
-                document = reference.render_html(
-                    payload,
-                    cls.hud,
-                    lang=language,
-                    poll_wave_index=cls.wave_index,
-                ).decode("utf-8")
+                page = Path("candidates") / candidate_id / "index.html"
+                if language == "en":
+                    page = Path("en") / page
+                document = artifacts[page].decode("utf-8")
                 audit = CandidatePollHTMLAuditParser()
                 audit.feed(document)
                 audit.close()

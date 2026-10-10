@@ -28,6 +28,7 @@ from build_search_entrypoints import (
     render_semantic_regions,
 )
 from dashboard_navigation import navigation_model, poll_href
+import build_route_registry as route_builder
 
 
 ROOT = Path(__file__).resolve().parent
@@ -240,6 +241,72 @@ class SearchFoundationTests(unittest.TestCase):
 
     def test_navigation_payload_is_invariant_under_issue_page_reordering(self):
         self.assert_navigation_invariant_under_manifest_reordering("issue")
+
+    def test_route_rebuild_requires_and_refreshes_both_search_entrypoints(self):
+        # Polls is an authoritative search writer. A newly published candidate
+        # route must reach both documents in its routes -> search transaction.
+        rebuilt = route_builder.build_registry(effective_date="2026-10-10")
+        stored = copy.deepcopy(rebuilt)
+        stored["routes"] = [route for route in stored["routes"]
+                            if route.get("entity_id") != "marine-le-pen"]
+        stored["route_count"] = len(stored["routes"])
+        stored["family_counts"]["candidates"] -= 2
+        real_read = Path.read_text
+
+        def read(path, *args, **kwargs):
+            if path == ROOT / "route_registry.json":
+                return json.dumps(stored, ensure_ascii=False)
+            return real_read(path, *args, **kwargs)
+
+        with temporary_workspace() as temporary, mock.patch.object(Path, "read_text", read):
+            source = temporary / "index.html"
+            english = temporary / "en" / "index.html"
+            english.parent.mkdir()
+            source.write_bytes(INDEX.read_bytes())
+            english.write_bytes(ENGLISH_INDEX.read_bytes())
+            paths = {
+                "source_path": source,
+                "english_output_path": english,
+                "candidate_signals_path": CANDIDATE_SIGNALS,
+                "recent_changes_path": RECENT_CHANGES,
+            }
+            generate_entrypoints(**paths)
+            self.assertEqual(generate_entrypoints(**paths, check=True), (False, False))
+            stale_hashes = {"fr": route_builder._content_hash(source),
+                            "en": route_builder._content_hash(english)}
+            stored = rebuilt
+            for route in stored["routes"]:
+                if route["kind"] == "home":
+                    route["content_sha256"] = stale_hashes[route["language"]]
+            with self.assertRaises(SearchEntrypointError) as error:
+                generate_entrypoints(**paths, check=True)
+            self.assertIn(str(source), str(error.exception))
+            self.assertIn(str(english), str(error.exception))
+            self.assertEqual(generate_entrypoints(**paths), (True, True))
+            self.assertEqual(generate_entrypoints(**paths, check=True), (False, False))
+            before = (source.read_bytes(), english.read_bytes())
+            real_read_bytes = Path.read_bytes
+
+            def read_bytes(path):
+                document = {INDEX: source, ENGLISH_INDEX: english}.get(path, path)
+                return real_read_bytes(document)
+
+            # Finalize hashes from the newly rendered pair, as Polls must do
+            # before sitemaps, and prove that search remains current afterward.
+            with mock.patch.object(Path, "read_bytes", read_bytes):
+                stored = route_builder.build_registry(effective_date="2026-10-10")
+            for route in stored["routes"]:
+                if route["kind"] == "home":
+                    self.assertNotEqual(route["content_sha256"], stale_hashes[route["language"]])
+            self.assertEqual(generate_entrypoints(**paths, check=True), (False, False))
+            self.assertEqual(before, (source.read_bytes(), english.read_bytes()))
+            for document in (source, english):
+                payload = json.loads(self.navigation_payload(document.read_text(encoding="utf-8")))
+                self.assertEqual(payload, navigation_model())
+                self.assertEqual(payload["candidates"]["marine-le-pen"], {
+                    "fr": "/candidates/marine-le-pen/",
+                    "en": "/en/candidates/marine-le-pen/",
+                })
 
     def test_navigation_payload_is_invariant_under_agenda_page_reordering(self):
         self.assert_navigation_invariant_under_manifest_reordering("agenda")

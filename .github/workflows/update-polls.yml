@@ -444,6 +444,19 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Rebuild route registry
+        id: route_registry
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          effective_date="$(date -u +'%Y-%m-%d')"
+          echo "effective_date=$effective_date" >> "$GITHUB_OUTPUT"
+
+          python -B build_route_registry.py \
+            --effective-date "$effective_date"
+          python -B build_route_registry.py --check
+
       - name: Rebuild semantic search entrypoints
         id: search_entrypoints
         shell: bash
@@ -459,18 +472,20 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Rebuild route registry and sitemaps
+      - name: Finalize route hashes and rebuild sitemaps
         id: search_artifacts
+        env:
+          ROUTE_EFFECTIVE_DATE: ${{ steps.route_registry.outputs.effective_date }}
         shell: bash
         run: |
           set -euo pipefail
 
-          effective_date="$(date -u +'%Y-%m-%d')"
-          echo "effective_date=$effective_date" >> "$GITHUB_OUTPUT"
-
+          # Search changes the home-page content hashed by the registry.
+          # Finalize those hashes after consuming the rebuilt route census.
           python -B build_route_registry.py \
-            --effective-date "$effective_date"
+            --effective-date "$ROUTE_EFFECTIVE_DATE"
           python -B build_route_registry.py --check
+          python -B build_search_entrypoints.py --check
 
           python -B build_sitemaps.py
           python -B build_sitemaps.py --check
@@ -545,7 +560,7 @@ jobs:
           SEARCH_ENTRYPOINTS_CHANGED: ${{ steps.search_entrypoints.outputs.changed }}
           SEARCH_ARTIFACTS_CHANGED: ${{ steps.search_artifacts.outputs.changed }}
           PUBLICATION_MANIFEST_CHANGED: ${{ steps.publication_manifest.outputs.publication_manifest_changed }}
-          ROUTE_EFFECTIVE_DATE: ${{ steps.search_artifacts.outputs.effective_date }}
+          ROUTE_EFFECTIVE_DATE: ${{ steps.route_registry.outputs.effective_date }}
         shell: bash
         run: |
           set -euo pipefail
@@ -595,12 +610,18 @@ jobs:
           python -B build_poll_pages.py --check
           python -B build_poll_hub_static_links.py --check
 
-          python -B build_search_entrypoints.py
-          python -B build_search_entrypoints.py --check
-
           python -B build_route_registry.py \
             --effective-date "$effective_date"
           python -B build_route_registry.py --check
+
+          python -B build_search_entrypoints.py
+          python -B build_search_entrypoints.py --check
+
+          # Reconcile home-page hashes without changing search destinations.
+          python -B build_route_registry.py \
+            --effective-date "$effective_date"
+          python -B build_route_registry.py --check
+          python -B build_search_entrypoints.py --check
 
           python -B build_sitemaps.py
           python -B build_sitemaps.py --check

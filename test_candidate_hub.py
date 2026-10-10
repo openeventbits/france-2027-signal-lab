@@ -1,12 +1,18 @@
+import copy
 import json
 import re
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
 import build_candidate_reference as reference
 from candidate_candidacy_status import active_candidate_records
-from candidate_page_contract import project_candidate_page_index
+from candidate_page_contract import (
+    candidate_detail_artifacts,
+    project_candidate_page_index,
+    project_candidate_page_lifecycle,
+)
 from candidate_portraits import load_candidate_portraits
 
 
@@ -71,6 +77,87 @@ class CandidateHubTests(unittest.TestCase):
                 f"<strong data-candidate-total>{len(self.active)}</strong>",
                 document,
             )
+
+    def test_active_dossier_becomes_retained_ruled_out_archive(self):
+        from build_candidate_signals import build_candidate_signals
+        from fetch_claims_under_scrutiny import build_candidate_query
+
+        candidate_id = "edouard-philippe"
+        sources = copy.deepcopy(self.sources)
+        registry = sources["candidate_candidacy_status"]
+        record = next(item for item in registry["candidates"]
+                      if item["candidate_id"] == candidate_id)
+        self.assertIn(candidate_id, {item["candidate_id"] for item in self.active})
+        record.update(status="ruled_out", display_tier="hidden")
+        sources["claims_under_scrutiny"]["candidate_query"] = build_candidate_query(registry)
+        sources["candidate_signals"] = build_candidate_signals(
+            sources["polls"], sources["news_wire"],
+            sources["claims_under_scrutiny"], registry,
+        )
+        # Attention refreshes only the active field; the retained dossier owns
+        # the last published attention snapshot after the transition.
+        attention = sources["candidate_attention"]
+        attention["candidates"] = [item for item in attention["candidates"]
+                                   if item["candidate_id"] != candidate_id]
+        attention["candidate_universe"]["count"] -= 1
+        attention["candidate_universe"]["article_eligible_count"] -= 1
+        attention["validation"]["candidate_count"] -= 1
+        attention["validation"]["observed_candidate_count"] -= 1
+
+        with tempfile.TemporaryDirectory() as directory:
+            site_root = Path(directory)
+            paths = candidate_detail_artifacts(candidate_id)
+            for path in paths:
+                (site_root / path).parent.mkdir(parents=True, exist_ok=True)
+                (site_root / path).write_bytes(self.artifacts[path])
+            before = {path: (site_root / path).read_bytes() for path in paths}
+            lifecycle = project_candidate_page_lifecycle(registry, site_root)
+            self.assertEqual(lifecycle["retained_archived_ids"], [candidate_id])
+            self.assertNotIn(candidate_id, lifecycle["active_ids"])
+            self.assertNotIn(candidate_id, lifecycle["prunable_ids"])
+            with self.assertRaisesRegex(reference.CandidateReferenceError,
+                                        "not in the active monitoring field"):
+                reference.build_projection(sources, ROOT, candidate_id=candidate_id)
+
+            artifacts = reference.build_all_active_artifacts(sources, ROOT, site_root=site_root)
+            self.assertTrue(all(path in artifacts for path in paths))
+            archived = json.loads(artifacts[paths[0]])
+            prior = json.loads(before[paths[0]])
+            self.assertEqual(archived["candidate"]["status"], "ruled_out")
+            self.assertEqual(archived["candidate"]["display_tier"], "hidden")
+            self.assertEqual(archived["attention"], prior["attention"])
+            self.assertEqual(archived["polling"]["first_round_history"],
+                             prior["polling"]["first_round_history"])
+            for language, path, label in (
+                ("fr", paths[1], "DOSSIER ARCHIVÉ · CANDIDATURE ÉCARTÉE"),
+                ("en", paths[2], "ARCHIVED DOSSIER · CANDIDACY RULED OUT"),
+            ):
+                document = artifacts[path].decode("utf-8")
+                self.assertIn(f'<span class="candidate-status">{label}</span>', document)
+                self.assertIn(f'https://france2027.app/{path.parent.as_posix()}/', document)
+                self.assertNotIn(f'data-candidate-id="{candidate_id}"',
+                                 artifacts[Path("candidates/index.html") if language == "fr"
+                                           else Path("en/candidates/index.html")].decode("utf-8"))
+            self.assertEqual(before, {path: (site_root / path).read_bytes() for path in paths})
+
+    def test_retained_archive_statuses_render_without_active_labels(self):
+        candidate_id = "francois-baroin"
+        projection = json.loads(self.artifacts[Path("candidates") / candidate_id / "data.json"])
+        hud = reference.derive_hud_metrics(self.sources)
+        for status, french, english in (
+            ("ruled_out", "CANDIDATURE ÉCARTÉE", "CANDIDACY RULED OUT"),
+            ("withdrawn", "CANDIDATURE RETIRÉE", "CANDIDACY WITHDRAWN"),
+            ("historical_poll_only", "SONDAGES HISTORIQUES UNIQUEMENT", "HISTORICAL POLLS ONLY"),
+        ):
+            with self.subTest(status=status):
+                projection["candidate"]["status"] = status
+                with self.assertRaisesRegex(reference.CandidateReferenceError,
+                                            "unsupported active candidacy status"):
+                    reference._candidate_status_label_fr(status)
+                for language, label in (("fr", f"DOSSIER ARCHIVÉ · {french}"),
+                                        ("en", f"ARCHIVED DOSSIER · {english}")):
+                    document = reference.render_html(projection, hud, lang=language).decode("utf-8")
+                    self.assertIn(f'<span class="candidate-status">{label}</span>', document)
 
     def test_generator_contains_no_fixed_candidate_count(self):
         for filename in (

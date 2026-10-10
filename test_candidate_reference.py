@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html as html_module
+import copy
 import json
 import re
 import unittest
@@ -1361,6 +1362,27 @@ class CandidateReferenceTests(unittest.TestCase):
             "Portrait illustré de Marine Le Pen",
             portrait,
         )
+
+    def test_all_active_status_labels_keep_their_bilingual_rendering(self):
+        projection = reference.build_projection(
+            self.sources, ROOT, candidate_id="edouard-philippe",
+            _sources_validated=True,
+        )
+        hud = reference.derive_hud_metrics(self.sources)
+        for status, french, english in (
+            ("declared", "CANDIDATURE DÉCLARÉE", "DECLARED CANDIDACY"),
+            ("party_selected", "CANDIDATURE SÉLECTIONNÉE PAR UN PARTI", "PARTY-SELECTED CANDIDACY"),
+            ("primary_contender", "CANDIDATURE EN SÉLECTION", "CANDIDACY IN SELECTION"),
+            ("active_potential", "CANDIDATURE POTENTIELLE", "POTENTIAL CANDIDACY"),
+            ("conditional", "CANDIDATURE CONDITIONNELLE", "CONDITIONAL CANDIDACY"),
+        ):
+            with self.subTest(status=status):
+                self.assertEqual(reference._candidate_status_label_fr(status), french)
+                payload = copy.deepcopy(projection)
+                payload["candidate"]["status"] = status
+                for language, label in (("fr", french), ("en", english)):
+                    document = reference.render_html(payload, hud, lang=language).decode("utf-8")
+                    self.assertIn(f'<span class="candidate-status">{label}</span>', document)
 
     def test_not_observed_poll_and_campaign_agenda_render_without_null_assumptions(self):
         original_validate_sources = reference.validate_sources
