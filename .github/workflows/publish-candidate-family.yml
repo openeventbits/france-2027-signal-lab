@@ -309,6 +309,13 @@ jobs:
           python -B build_search_entrypoints.py
           python -B build_search_entrypoints.py --check
 
+          # Search changes the home-page content hashed by the registry.
+          # Finalize those hashes after consuming the rebuilt route census.
+          python -B build_route_registry.py \
+            --effective-date "$effective_date"
+          python -B build_route_registry.py --check
+          python -B build_search_entrypoints.py --check
+
           python -B build_sitemaps.py
           python -B build_sitemaps.py --check
 
@@ -372,6 +379,12 @@ jobs:
           python -B build_route_registry.py --check
 
           python -B build_search_entrypoints.py
+          python -B build_search_entrypoints.py --check
+
+          # Reconcile home-page hashes without changing search destinations.
+          python -B build_route_registry.py \
+            --effective-date "$ROUTE_EFFECTIVE_DATE"
+          python -B build_route_registry.py --check
           python -B build_search_entrypoints.py --check
 
           python -B build_sitemaps.py

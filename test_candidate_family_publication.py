@@ -253,6 +253,35 @@ class CandidateFamilyPublicationWorkflowTests(
             self.text,
         )
 
+    def test_both_transactions_finalize_route_hashes_before_sitemaps_and_tests(self):
+        initial_start = self.text.index("- name: Build and validate candidate publication")
+        commit_start = self.text.index("- name: Commit generated candidate publication")
+        reconciliation_start = self.text.index("- name: Rebase, reconcile and push")
+        expected = [
+            "build_candidate_reference.py --all-active",
+            "build_candidate_reference.py --all-active --check",
+            "build_route_registry.py",
+            "build_route_registry.py --check",
+            "build_search_entrypoints.py",
+            "build_search_entrypoints.py --check",
+            "build_route_registry.py",
+            "build_route_registry.py --check",
+            "build_search_entrypoints.py --check",
+            "build_sitemaps.py",
+            "build_sitemaps.py --check",
+            "-m unittest -v",
+        ]
+        for name, block, date_variable in (
+            ("initial", self.text[initial_start:commit_start], "$effective_date"),
+            ("reconciliation", self.text[reconciliation_start:], "$ROUTE_EFFECTIVE_DATE"),
+        ):
+            with self.subTest(path=name):
+                commands = [line.strip().removeprefix("python -B ").rstrip(" \\")
+                            for line in block.splitlines()
+                            if line.strip().startswith("python -B ")]
+                self.assertEqual(commands, expected)
+                self.assertEqual(block.count(f'--effective-date "{date_variable}"'), 2)
+
     def test_rebase_rebuilds_before_push(self):
         rebase = self.text.index(
             "git rebase origin/main"
