@@ -71,6 +71,7 @@ ISSUE_DEFINITIONS = (
             ("wages", "Salaires", "Wages"),
             ("purchasing_power", "Pouvoir d’achat", "Purchasing power"),
             ("employment", "Emploi", "Employment"),
+            ("social_contributions", "Cotisations sociales", "Social contributions"),
         ),
     ),
     IssueDefinition(
@@ -91,6 +92,7 @@ ISSUE_DEFINITIONS = (
                 "Identité & laïcité",
                 "Identity & secularism",
             ),
+            ("asylum", "Asile", "Asylum"),
         ),
     ),
     IssueDefinition(
@@ -108,6 +110,7 @@ ISSUE_DEFINITIONS = (
                 "Prisons & sentencing",
             ),
             ("terrorism", "Terrorisme", "Terrorism"),
+            ("justice_system", "Système judiciaire", "Justice system"),
         ),
     ),
     IssueDefinition(
@@ -136,6 +139,7 @@ ISSUE_DEFINITIONS = (
             ),
             ("energy", "Énergie", "Energy"),
             ("agriculture", "Agriculture", "Agriculture"),
+            ("transport", "Transports", "Transport"),
         ),
     ),
     IssueDefinition(
@@ -162,7 +166,12 @@ ISSUE_DEFINITIONS = (
             ("constitution", "Constitution", "Constitution"),
             ("democracy", "Démocratie", "Democracy"),
             ("parliament", "Parlement", "Parliament"),
-            ("territories", "Territoires", "Territories"),
+            (
+                "decentralisation",
+                "Décentralisation & territoires",
+                "Decentralisation & territories",
+            ),
+            ("electoral_reform", "Réforme électorale", "Electoral reform"),
         ),
     ),
 )

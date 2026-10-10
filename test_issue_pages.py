@@ -10,8 +10,10 @@ import unittest
 
 import build_issue_pages as builder
 from candidate_page_contract import project_candidate_route_index
+from fetch_news_wire import POLICY_AGENDA_TOPICS
 from issue_page_contract import (
     CANONICAL_ISSUE_IDS,
+    ISSUE_DEFINITIONS,
     IssuePageContractError,
     issue_manifest_payload,
     project_issue_pages,
@@ -20,6 +22,19 @@ from issue_page_contract import (
 
 
 ROOT = Path(__file__).resolve().parent
+
+
+class IssueTaxonomyParityTests(unittest.TestCase):
+    def test_issue_and_subtopic_ids_match_policy_agenda_exactly(self):
+        upstream = {topic["id"]: topic for topic in POLICY_AGENDA_TOPICS}
+        contract = {definition.issue_id: definition for definition in ISSUE_DEFINITIONS}
+        self.assertEqual(set(upstream), set(contract))
+        for issue_id, topic in upstream.items():
+            with self.subTest(issue_id=issue_id):
+                self.assertEqual(
+                    set(topic["subtopics"].keys()),
+                    {subtopic_id for subtopic_id, _, _ in contract[issue_id].subtopics},
+                )
 
 
 class IssuePageProjectionTests(unittest.TestCase):
@@ -205,6 +220,19 @@ class IssuePageProjectionTests(unittest.TestCase):
         news = copy.deepcopy(self.news)
         news["policy_agenda"]["topics"].pop()
         with self.assertRaises(IssuePageContractError):
+            project_issue_pages(news, self.history)
+
+    def test_unknown_policy_agenda_subtopic_fails_closed(self):
+        news = copy.deepcopy(self.news)
+        issue_id = "institutions_democracy_territories"
+        topic = next(
+            item for item in news["policy_agenda"]["topics"] if item["id"] == issue_id
+        )
+        topic["subtopic_counts"].append({"id": "invented_unknown_subtopic", "item_count": 1})
+        with self.assertRaisesRegex(
+            IssuePageContractError,
+            f"unknown subtopic 'invented_unknown_subtopic' for {issue_id}",
+        ):
             project_issue_pages(news, self.history)
 
     def test_coverage_series_is_actual_issue_volume_and_not_history(self):
