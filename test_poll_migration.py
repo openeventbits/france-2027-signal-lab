@@ -2170,7 +2170,7 @@ class FrozenFixtureTests(unittest.TestCase):
     def test_current_fixture_bytes_and_h5_leaf_ownership(self):
         parsed = self.current_source()
         self.assertEqual(hashlib.sha256(((ROOT / "test_fixtures/fr27_polling") / "fr_mediawiki_240287946.json").read_bytes()).hexdigest(),
-                         "ca7f1d17b7c3a9bb0bf7446b324c7004be047f06a197fec9ac6dd471915ec949")
+                         "957320e5b203d5f25e96a9be8b0918a8da17dd965057d9f8f15f111846b126e6")
         tree = lxml_html.fromstring(parsed["text"])
         tables = _french_first_round_table_plan(tree.xpath("//table"))
         self.assertEqual([_preceding_heading(t) for t in tables[:2]],

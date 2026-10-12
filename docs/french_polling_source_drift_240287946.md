@@ -7,7 +7,7 @@ This report supersedes the earlier, incorrect source-omission conclusion. Villep
 Worktree: `C:\Users\Tanya\Documents\GitHub\france-2027-signal-lab-polls-source-drift`.
 Branch: `codex/polls-french-source-drift-v1`. HEAD: `10ce165e1fcf483192f9e7dba1918366f58125fd`.
 Reviewed frozen French revision: **240287946**, timestamp **2026-10-11T22:03:08Z**.
-Fixture SHA-256: `ca7f1d17b7c3a9bb0bf7446b324c7004be047f06a197fec9ac6dd471915ec949`.
+Fixture SHA-256: `957320e5b203d5f25e96a9be8b0918a8da17dd965057d9f8f15f111846b126e6`.
 
 No tracked production corpus or discovery output is changed. No staging, commit, push, reset, clean, stash or rebase is performed. The primary checkout, notebooks, workflow orchestration and shrink guard are untouched.
 
