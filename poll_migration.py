@@ -1190,7 +1190,7 @@ def _table_default_year(table: object) -> int | None:
 
 
 def _preceding_heading(table: object) -> str:
-    headings = table.xpath("preceding::*[self::h2 or self::h3 or self::h4]")
+    headings = table.xpath("preceding::*[self::h2 or self::h3 or self::h4 or self::h5 or self::h6]")
     return normalize_identity(headings[-1].text_content()) if headings else ""
 
 
@@ -1341,15 +1341,37 @@ def _french_first_round_table_plan(tables: list[object]) -> list[object]:
         raise ValueError("French source lacks first-round tables")
     by_context: dict[str, list[object]] = {}
     for table in selected:
+        if table.get("role") == "presentation" or {"navbox", "infobox"} & set(table.get("class", "").split()):
+            raise ValueError("French first-round presentation table cannot supply poll evidence")
         context = _preceding_heading(table)
         if not (
             context == "autres"
             or re.fullmatch(r"(?:premier|second) semestre 20\d{2}", context)
             or re.fullmatch(r"annee 20\d{2}", context)
+            or re.fullmatch(r"(?:janvier mars|avril juin|juillet septembre|octobre decembre) 20\d{2}", context)
         ):
             raise ValueError(
                 f"French first-round table has invalid context {context!r}"
             )
+        if re.fullmatch(r"(?:janvier mars|avril juin|juillet septembre|octobre decembre) 20\d{2}", context):
+            heading = table.xpath("preceding::*[self::h2 or self::h3 or self::h4 or self::h5 or self::h6]")[-1]
+            parents = heading.xpath("preceding::*[self::h2 or self::h3 or self::h4]")
+            if not parents:
+                raise ValueError("French first-round child period lacks heading ancestry")
+            parent = parents[-1]
+            year = context[-4:]
+            semester = "premier" if context.startswith(("janvier", "avril")) else "second"
+            years = parent.xpath("preceding::*[self::h2 or self::h3]")
+            if not years:
+                raise ValueError("French first-round child period lacks year ancestry")
+            year_heading = years[-1]
+            if (heading.tag != "h5" or parent.tag != "h4"
+                    or normalize_identity(parent.text_content()) != f"{semester} semestre {year}"
+                    or year_heading.tag != "h3"
+                    or normalize_identity(year_heading.text_content()) != f"annee {year}"):
+                raise ValueError("French first-round child period has invalid heading ancestry")
+            if any(_preceding_heading(other) == f"{semester} semestre {year}" for other in selected):
+                raise ValueError("French first-round mixes parent and child period table ownership")
         by_context.setdefault(context, []).append(table)
     excluded = []
     for context, context_tables in by_context.items():
@@ -1365,6 +1387,8 @@ def _french_first_round_table_plan(tables: list[object]) -> list[object]:
                 f"French first-round context {context!r} exposes multiple tables"
             )
         excluded.extend(reviewed)
+    if any(table.xpath("ancestor::table | .//table") for table in selected):
+        raise ValueError("French first-round table is nested")
     # Filter before enumeration: excluded evidence never consumes an FR-T index.
     return [table for table in selected if table not in excluded]
 
@@ -1492,10 +1516,8 @@ def _frozen_record(
     }
 
 
-def _matching_candidate_colspan_groups(
-    table: object,
-) -> dict[tuple[int, int], tuple[int, int, int]]:
-    """Prove matching physical name-header and score-cell spans by position.
+def _french_table_grids(table: object) -> tuple[list, list]:
+    """Expand physical cells using pandas' header/body ordering.
 
     Header/body sections and leading all-th rows follow read_html's ordering.
     Each grid entry retains the physical cell and its full logical interval;
@@ -1504,7 +1526,7 @@ def _matching_candidate_colspan_groups(
 
     table = copy.deepcopy(table)
     if table.xpath(".//table"):
-        return {}
+        raise ValueError("nested French polling table")
     for element in table.xpath(".//*[@style]"):
         if "display:none" in element.get("style", "").replace(" ", ""):
             element.drop_tree()
@@ -1561,6 +1583,13 @@ def _matching_candidate_colspan_groups(
 
     headers = expand(header_rows)
     body = expand(body_rows) + expand(table.xpath("./tfoot/tr"))
+    return headers, body
+
+
+def _matching_candidate_colspan_groups(
+    table: object,
+) -> dict[tuple[int, int], tuple[int, int, int]]:
+    headers, body = _french_table_grids(table)
     name_headers = []
     for row in headers:
         for cell, _start, _end in row[3:]:
@@ -1590,6 +1619,55 @@ def _matching_candidate_colspan_groups(
     return groups
 
 
+def _french_other_candidates(cell: object) -> list[dict[str, Any]]:
+    """Read explicitly delimited score/name pairs, consuming the entire cell.
+
+    Each hr-delimited entry must contain exactly one score followed by one
+    reviewed name. A candidate link, when present, must agree with that name.
+    Whitespace/inline wrappers cannot supply additional facts.
+    """
+    cell = copy.deepcopy(cell)
+    for reference in cell.xpath('.//sup[contains(@class, "reference")]'):
+        reference.drop_tree()
+    fragments = re.split(r"<hr\b[^>]*>", lxml_html.tostring(cell, encoding="unicode"))
+    result = []
+    for fragment in fragments:
+        entry = lxml_html.fromstring("<div>" + fragment + "</div>")
+        raw = " ".join(entry.text_content().split())
+        if len(fragments) == 1 and raw in {"", "-", "–", "—", "−", "__"}:
+            return []
+        if re.match(r"^<\s*\d", raw):
+            raise ValueError("censored_score")
+        if re.fullmatch(r"\d+(?:[.,]\d+)?\s*%?", raw):
+            raise ValueError("unnamed_generic_candidate")
+        match = re.fullmatch(r"(\d+(?:[.,]\d+)?)\s*%?\s*([^\d%<>]+)", raw)
+        if match is None:
+            raise ValueError("ambiguous Autres candidate/score pairing")
+        links = entry.xpath('.//a/@href')
+        label = match[2].strip()
+        if links:
+            if len(links) != 1:
+                raise ValueError("ambiguous Autres candidate links")
+            name = _candidate_from_link(links[0])
+            if name is None:
+                raise ValueError("unnamed_generic_candidate")
+            if not normalize_identity(name).endswith(normalize_identity(label)):
+                raise ValueError("ambiguous Autres candidate label/link")
+        else:
+            try:
+                name = reviewed_candidate_name(label)
+            except ValueError as error:
+                raise ValueError("unnamed_generic_candidate") from error
+        score = parse_score(match[1])
+        if score is None:
+            raise ValueError("missing Autres score")
+        candidate_id = candidate_identity(name)
+        if any(candidate_identity(item["name"]) == candidate_id for item in result):
+            raise ValueError("duplicate Autres candidate")
+        result.append({"name": name, "score": int(score) if score.is_integer() else score})
+    return result
+
+
 def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
     """Parse the two audited French table families from frozen rendered HTML."""
 
@@ -1612,6 +1690,7 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
         )
         _validate_first_round_candidate_headers(frame, table_label=table_label)
         colspan_groups = _matching_candidate_colspan_groups(table)
+        _headers, physical_rows = _french_table_grids(table)
         default_year = _table_default_year(table)
         candidate_columns = [
             (index, *_header_candidate(column))
@@ -1635,6 +1714,24 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
             span_values: dict[tuple[int, int, int], tuple[str, int | float]] = {}
             rejection: str | None = None
             for column_index, header_name, generic in candidate_columns:
+                if normalize_identity(_header_value(frame.columns[column_index])[0]) in {"autre", "autres"}:
+                    if normalize_identity(cell_text(row.iloc[column_index])) in {"", "nan"}:
+                        continue
+                    try:
+                        entries = _french_other_candidates(physical_rows[row_index][column_index][0])
+                    except ValueError as error:
+                        if str(error) not in {"censored_score", "unnamed_generic_candidate"}:
+                            raise ValueError(f"{locator}: {error}") from error
+                        rejection = str(error)
+                        break
+                    for entry in entries:
+                        identity = candidate_identity(entry["name"])
+                        if identity in candidate_links:
+                            raise ValueError(f"{locator} has duplicate candidate in Autres")
+                        candidates.append(entry)
+                        candidate_links[identity] = None
+                        candidate_groups[identity] = None
+                    continue
                 raw_score = cell_text(row.iloc[column_index])
                 normalized_score = raw_score.replace(",", ".").strip()
                 if normalize_identity(normalized_score) in {"", "nan"} or normalized_score in {"-", "–", "—"}:

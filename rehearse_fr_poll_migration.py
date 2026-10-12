@@ -1645,6 +1645,16 @@ def reconcile_french_production_source(
             if key in mapping_by_incoming:
                 raise RehearsalError("ambiguous registry incoming factual identity")
             mapping_by_incoming[key] = record
+            # The structured cell parser can now recover the complete reviewed
+            # map. Retain the existing explicit materialization rule when its
+            # canonical identity is absent, with the same provenance checks.
+            if (record.get("materialize_absent_canonical") is True
+                    and parsed["revid"] >= record["incoming_source_revision"]
+                    and record["retained_event_id"] not in previous_ids[FIRST_ROUND]):
+                canonical = factual_key_from_dict(record["canonical_factual_key"], "recovered canonical key")
+                if canonical in mapping_by_incoming and mapping_by_incoming[canonical] is not record:
+                    raise RehearsalError("ambiguous recovered canonical factual identity")
+                mapping_by_incoming[canonical] = record
 
     successor_payload = _load_second_round_evidence_reconciliation()
     second_round_evidence_state = (
@@ -2158,6 +2168,20 @@ def reconcile_french_production_source(
             if anchor in known_anchors:
                 raise RehearsalError(
                     "unregistered French row shares a review anchor; explicit mapping required"
+                )
+            if round_name == FIRST_ROUND and raw_key not in {
+                factual_key_from_dict(record["canonical_factual_key"], "reviewed canonical key")
+                for record in migration_registry["reviewed_reconciliations"]
+            } and any(
+                (prior.pollster_identity, prior.fieldwork_start, prior.fieldwork_end,
+                 prior.sample_size, prior.sample_scope)
+                == (raw_key.pollster_identity, raw_key.fieldwork_start, raw_key.fieldwork_end,
+                    raw_key.sample_size, raw_key.sample_scope)
+                and set(prior.candidates) < set(raw_key.candidates)
+                for prior in exact_indexes[FIRST_ROUND]
+            ):
+                raise RehearsalError(
+                    "unregistered source expands retained candidate facts; explicit correction required"
                 )
             maker = (
                 _make_normal_first_event

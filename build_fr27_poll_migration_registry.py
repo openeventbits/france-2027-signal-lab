@@ -7,6 +7,7 @@ frozen MediaWiki fixtures; it never fetches live Wikipedia.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 from collections import defaultdict
@@ -85,6 +86,7 @@ POST_AUDIT_FACTUAL_RECONCILIATIONS = (
     {
         "reviewed_locator": "FR-T0R3",
         "incoming_locator": "FR-T0R12",
+        "historical_unread_candidates": ["David Lisnard"],
         "retained_event_id": (
             "4810851ea958b928b63298fa94fb082afc6cc7d449b2aad41f023953bb1aac36"
         ),
@@ -98,6 +100,7 @@ POST_AUDIT_FACTUAL_RECONCILIATIONS = (
     {
         "reviewed_locator": "FR-T0R8",
         "incoming_locator": "FR-T0R17",
+        "historical_unread_candidates": ["David Lisnard"],
         "retained_event_id": (
             "cc9225fa3a6e2b9fa3f2c0b75f728272b99ab0cf667d9f2334cdf78dda342978"
         ),
@@ -675,7 +678,16 @@ def build_registry() -> dict[str, Any]:
     }
     for decision in POST_AUDIT_FACTUAL_RECONCILIATIONS:
         old = dict(post_audit_by_locator[decision["reviewed_locator"]])
-        incoming = degraded_by_locator[decision["incoming_locator"]]
+        incoming = copy.deepcopy(degraded_by_locator[decision["incoming_locator"]])
+        if _full_key(incoming) != _full_key(old):
+            raise ValueError("recovered historical source contradicts reviewed canonical facts")
+        # Reproduce the recorded audit interpretation, whose first-link-only
+        # parser missed the second Autres entry. The current parser recovers
+        # it; neither the original review nor its immutable registry is erased.
+        incoming["candidates"] = [
+            candidate for candidate in incoming["candidates"]
+            if candidate["name"] not in decision["historical_unread_candidates"]
+        ]
         hypothesis = "French source — " + ", ".join(
             candidate["name"] for candidate in old["candidates"]
         )
