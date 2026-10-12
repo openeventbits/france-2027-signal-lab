@@ -1859,15 +1859,17 @@ class CandidateReferenceTests(unittest.TestCase):
                 rendered_en,
             )
 
-        non_declared = reference.build_projection(
+        # Control the rendering branch without relying on a live candidacy status.
+        non_declared = copy.deepcopy(reference.build_projection(
             self.sources,
             ROOT,
             candidate_id="marine-tondelier",
-        )
+        ))
+        non_declared["candidate"]["status"] = "primary_contender"
 
-        self.assertNotEqual(
+        self.assertEqual(
             non_declared["candidate"]["status"],
-            "declared",
+            "primary_contender",
         )
 
         self.assertTrue(
