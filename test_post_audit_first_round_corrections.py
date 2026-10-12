@@ -27,6 +27,8 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.registry = load_corrections()
+        cls.registry["corrections"] = [r for r in cls.registry["corrections"]
+                                       if r["incoming_factual_key"]["pollster_identity"] != "yougov"]
         cls.retained = [r for r in cls.registry["corrections"] if r["action"] != "accept_reviewed_sample"]
         cls.historical = cls.registry["corrections"][-1]["historical_withheld_source"]
         cls.parsed = read("fr_mediawiki_240128358.json")["parse"]
@@ -231,7 +233,7 @@ class PostAuditFirstRoundCorrectionTests(unittest.TestCase):
                     self.run_lane(rows=self.mutated_row(lambda r: r.update(fields), exclusion["source_locator"]), revision=revision)
 
     def test_full_migration_and_fetch_integration_preserve_corrected_facts(self):
-        first = read("post_audit_first_round_9579b90.json") + self.previous
+        first = read("post_audit_first_round_9579b90.json") + self.previous + read("notice_10270_previous_events.json")
         # Use the published, already-applied runoff lifecycle; this lane must
         # leave second-round provenance and identity behavior untouched.
         second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
@@ -392,7 +394,7 @@ class Notice10292AcceptanceTests(unittest.TestCase):
         companion.getparent().remove(companion)
         parsed["text"] = html.tostring(tree, encoding="unicode")
         parsed["revid"] = 240180750
-        first = read("post_audit_first_round_9579b90.json") + self.previous
+        first = read("post_audit_first_round_9579b90.json") + self.previous + read("notice_10270_previous_events.json")
         second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
         events, runoffs, report, _ = integrate_french_migration_source(parsed, first, second, [])
         accepted = [e for e in events if e["source_url"] == self.row["source_url"]]
@@ -427,7 +429,7 @@ class PostAuditCorrectionSchemaTests(unittest.TestCase):
 
     def test_each_required_record_field_and_unexpected_fields(self):
         for index in (0, -1):
-            for field in self.registry["corrections"][index]:
+            for field in set(self.registry["corrections"][index]) - {"source_variants", "historical_incoming_factual_key", "additional_previous_events"}:
                 payload = copy.deepcopy(self.registry)
                 del payload["corrections"][index][field]
                 with self.subTest(index=index, field=field), self.assertRaises(ValueError):
@@ -488,7 +490,7 @@ class PostAuditCorrectionSchemaTests(unittest.TestCase):
         )
 
     def test_candidate_correction_cannot_silently_retain_identity(self):
-        self.assert_invalid(lambda p: p["corrections"][9].update(action="correct_retained_sample"), "identity")
+        self.assert_invalid(lambda p: p["corrections"][9].update(action="correct_retained_sample"), "non-sample facts|identity")
 
     def test_exclusion_schema_and_overlapping_locators(self):
         self.registry["excluded_source_rows"] = [copy.deepcopy(self.registry["corrections"][-1]["historical_withheld_source"])]
@@ -497,3 +499,248 @@ class PostAuditCorrectionSchemaTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StructuredSourceCorrectionTests(unittest.TestCase):
+    OLD = "4708b7c647cfa31ad8c8db6a257450ebe22c8f1cbcc455e7a03d3e7d5d23523e"
+    EARLIER = "07a06aee6b9812cfbd6e897ae5004c4ad268ef5cf29ce95c8c0ff2afed183a3a"
+    NEW = "44a6411d5cbb73e264613fcd90f0857576049bd039fd189db6c10e5028eda108"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.parsed = read("fr_mediawiki_240287946.json")["parse"]
+        cls.rows = parse_french_frozen_fixture(cls.parsed)[FIRST_ROUND]
+        cls.previous = json.loads((ROOT / "polls.json").read_text(encoding="utf8"))
+        cls.second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf8"))["events"]
+        cls.registry = load_corrections()
+        cls.record = next(r for r in cls.registry["corrections"] if r["action"] == "consolidate_events")
+        cls.expected = reconcile_first_round_corrections(cls.rows,240287946,cls.previous)
+
+    def run_lane(self, rows=None, previous=None, registry=None):
+        return reconcile_first_round_corrections(self.rows if rows is None else rows,240287946,
+                                                self.previous if previous is None else previous,
+                                                registry=self.registry if registry is None else registry)
+
+    def test_primary_complete_hypothesis_and_frozen_provenance(self):
+        primary = read("notice_10270_first_round.json")
+        self.assertEqual(primary["pdf_sha256"], "4b95c5d1ca180dac1117629532518aaa14e47c71619ad70e002e357386dd24ce")
+        self.assertEqual((primary["official_page"],primary["hypothesis"],primary["total_adults"],primary["registered_voters"]),(26,5,1103,1008))
+        self.assertEqual({c["name"]:c["score"] for c in primary["weighted_candidates"]},
+                         {c["name"]:c["score"] for c in self.record["canonical_candidates"]})
+        self.assertEqual(self.record["evidence_urls"],[primary["source_url"]])
+        self.assertEqual(self.record["canonical_event_id"],self.NEW)
+        self.assertEqual(len(self.record["canonical_candidates"]),16)
+        self.assertEqual(sum(c["score"] for c in self.record["canonical_candidates"]),100)
+
+    def test_exact_explicit_successor_removes_reviewed_partial_identity(self):
+        events = {e["event_id"]:e for e in self.expected.events}
+        self.assertNotIn(self.OLD,events)
+        self.assertNotIn(self.EARLIER,events)
+        self.assertEqual(events[self.NEW]["supersedes_event_ids"],sorted([self.OLD,self.EARLIER]))
+        self.assertNotIn("supersedes_event_id",events[self.NEW])
+        self.assertEqual(exact_factual_key(events[self.NEW]).to_dict(),self.record["canonical_factual_key"])
+        self.assertEqual(set(self.expected.report["superseded_event_ids"]),{self.OLD,self.EARLIER})
+        self.assertEqual(self.expected.report["consolidate_events"],1)
+        self.assertEqual((len(self.previous),len(events)),(299,298))
+
+    def test_ifop_and_cluster17_reviewed_ids_and_maps_are_unchanged(self):
+        by_id={e["event_id"]:e for e in self.expected.events}
+        for identity in ("7ae37b33f52f31df34aa2b1fd0e5a326fff1c7e6b8683255b30472d9fb44309a",
+                         "4810851ea958b928b63298fa94fb082afc6cc7d449b2aad41f023953bb1aac36"):
+            self.assertEqual(by_id[identity],next(e for e in self.previous if e["event_id"]==identity))
+
+    def test_reordered_explicit_entries_retain_canonical_successor(self):
+        rows=copy.deepcopy(self.rows)
+        row=next(r for r in rows if r["source_locator"]=="FR-T1R21")
+        row["candidates"]=list(reversed(row["candidates"]))
+        self.assertEqual(self.run_lane(rows).events,self.expected.events)
+
+    def test_incoming_candidate_score_and_metadata_drift_fail_closed(self):
+        for mutate in (lambda r:r["candidates"].pop(), lambda r:r["candidates"][0].update(score=2),
+                       lambda r:r.update(sample_size=1104),lambda r:r.update(source_locator="FR-T1R999"),
+                       lambda r:r.update(source_url="https://example.org/unreviewed")):
+            rows=copy.deepcopy(self.rows)
+            mutate(next(r for r in rows if r["source_locator"]=="FR-T1R21"))
+            with self.subTest(mutate=mutate),self.assertRaisesRegex(ValueError,"scope/facts"):
+                self.run_lane(rows)
+
+    def test_replay_is_deterministic_and_idempotent(self):
+        self.assertEqual(self.run_lane().events,self.expected.events)
+        repeated=self.run_lane(previous=self.expected.events)
+        self.assertEqual(repeated.events,self.expected.events)
+        self.assertEqual(repeated.report["superseded_event_ids"],[])
+
+    def test_no_implicit_correction_without_review_record(self):
+        from unittest.mock import patch
+        registry=copy.deepcopy(self.registry)
+        registry["corrections"]=[r for r in registry["corrections"] if r["incoming_factual_key"]["pollster_identity"]!="yougov"]
+        with patch("post_audit_first_round_corrections.load_corrections",return_value=registry):
+            with self.assertRaisesRegex(ValueError,"explicit correction required"):
+                reconcile_french_production_source(self.parsed,self.previous,self.second)
+
+    def test_duplicate_old_and_successor_fail(self):
+        successor=next(e for e in self.expected.events if e["event_id"]==self.NEW)
+        with self.assertRaisesRegex(ValueError,"both event identities"):
+            self.run_lane(previous=self.previous+[successor])
+
+    def test_full_reconciliation_preserves_all_other_ids_and_runoffs(self):
+        result=reconcile_french_production_source(self.parsed,self.previous,self.second)
+        self.assertEqual(result.second_round_events,self.second)
+        old={e["event_id"] for e in self.previous}; new={e["event_id"] for e in result.first_round_events}
+        self.assertEqual(old-new,{self.OLD,self.EARLIER})
+        self.assertEqual(new-old,{self.NEW})
+        prior={e["event_id"]:e for e in self.previous}
+        for event in result.first_round_events:
+            if event["event_id"] != self.NEW:
+                self.assertEqual(event,prior[event["event_id"]])
+                self.assertEqual(json.dumps(event,ensure_ascii=False,separators=(",",":")),
+                                 json.dumps(prior[event["event_id"]],ensure_ascii=False,separators=(",",":")))
+        self.assertEqual((len(result.first_round_events),len(result.second_round_events)),(298,81))
+        repeated=reconcile_french_production_source(self.parsed,result.first_round_events,result.second_round_events)
+        self.assertEqual(repeated.first_round_events,result.first_round_events)
+        self.assertEqual(repeated.second_round_events,result.second_round_events)
+
+    def test_reviewed_source_variant_schema_rejects_unregistered_provenance(self):
+        for update in ({"first_revision":240287947},{"source_locator":None},
+                       {"source_locator":"FR-T1Rinvalid"},{"factual_key":{}}):
+            registry=copy.deepcopy(self.registry)
+            record=next(r for r in registry["corrections"] if r["action"]=="consolidate_events")
+            record["source_variants"][0].update(update)
+            with self.subTest(update=update),self.assertRaises(ValueError): validate_corrections(registry)
+
+    def altered_registry(self):
+        registry=copy.deepcopy(self.registry)
+        return registry,next(r for r in registry["corrections"] if r["action"]=="consolidate_events")
+
+    def test_predecessor_evidence_and_historical_provenance_are_explicit(self):
+        previous={e["event_id"]:e for e in self.previous}
+        self.assertEqual({p["event_id"] for p in self.record["predecessors"]},{self.OLD,self.EARLIER})
+        for predecessor in self.record["predecessors"]:
+            event=previous[predecessor["event_id"]]
+            self.assertEqual(predecessor["factual_key"],exact_factual_key(event).to_dict())
+            self.assertEqual(predecessor["source_url"],event["source_url"])
+            self.assertEqual(predecessor["source_locator"],event["migration_source_locator"])
+            self.assertEqual(predecessor["source_revision"],239927833 if predecessor["event_id"]==self.EARLIER else 240063728)
+            self.assertEqual((predecessor["evidence_urls"],predecessor["official_page"]),
+                             (self.record["evidence_urls"],26))
+            self.assertTrue(predecessor["review_reason"])
+
+    def test_missing_either_or_both_predecessors_fails(self):
+        for removed in ({self.OLD},{self.EARLIER},{self.OLD,self.EARLIER}):
+            with self.subTest(removed=removed),self.assertRaisesRegex(ValueError,"missing a predecessor or successor"):
+                self.run_lane(previous=[e for e in self.previous if e["event_id"] not in removed])
+
+    def test_each_mutated_predecessor_factual_key_fails(self):
+        for identity in (self.OLD,self.EARLIER):
+            previous=copy.deepcopy(self.previous)
+            event=next(e for e in previous if e["event_id"]==identity)
+            event["candidates"][0]["score"]+=1
+            apply_completeness_contract(event)
+            with self.subTest(identity=identity),self.assertRaisesRegex(ValueError,"predecessor facts/provenance"):
+                self.run_lane(previous=previous)
+
+    def test_each_mutated_predecessor_provenance_fails(self):
+        for identity in (self.OLD,self.EARLIER):
+            for field,value in (("source_url","https://example.org/unreviewed"),
+                                ("migration_source_locator","FR-T0R999")):
+                previous=copy.deepcopy(self.previous)
+                next(e for e in previous if e["event_id"]==identity)[field]=value
+                with self.subTest(identity=identity,field=field),self.assertRaises(ValueError):
+                    self.run_lane(previous=previous)
+
+    def test_canonical_facts_and_provenance_drift_fail_on_replay(self):
+        for mutate in (lambda e:e["candidates"][0].update(score=2),
+                       lambda e:e.update(sample_size=1104),
+                       lambda e:e.update(source_url="https://example.org/unreviewed"),
+                       lambda e:e.update(supersedes_event_ids=[self.OLD]),
+                       lambda e:e.update(supersedes_event_id=self.OLD)):
+            previous=copy.deepcopy(self.expected.events)
+            event=next(e for e in previous if e["event_id"]==self.NEW)
+            mutate(event);apply_completeness_contract(event)
+            with self.subTest(mutate=mutate),self.assertRaises(ValueError):self.run_lane(previous=previous)
+
+    def test_successor_cannot_coexist_with_either_predecessor(self):
+        for identity in (self.OLD,self.EARLIER):
+            event=next(e for e in self.previous if e["event_id"]==identity)
+            with self.subTest(identity=identity),self.assertRaisesRegex(ValueError,"both event identities"):
+                self.run_lane(previous=self.expected.events+[event])
+
+    def test_missing_canonical_after_correction_fails(self):
+        with self.assertRaisesRegex(ValueError,"missing a predecessor or successor"):
+            self.run_lane(previous=[e for e in self.expected.events if e["event_id"]!=self.NEW])
+
+    def test_duplicate_and_unbounded_predecessor_declarations_fail(self):
+        for count in (0,1,9):
+            registry,record=self.altered_registry()
+            record["predecessors"]=(record["predecessors"]*5)[:count]
+            with self.subTest(count=count),self.assertRaisesRegex(ValueError,"bounded"):
+                validate_corrections(registry)
+        registry,record=self.altered_registry()
+        record["predecessors"][1]=copy.deepcopy(record["predecessors"][0])
+        with self.assertRaisesRegex(ValueError,"duplicate.*predecessor"):
+            validate_corrections(registry)
+
+    def test_unknown_predecessor_id_cannot_authorize_removal(self):
+        from poll_contract import make_event_id
+        registry,record=self.altered_registry()
+        predecessor=record["predecessors"][1]
+        predecessor["hypothesis"]+=" reviewed unknown"
+        key=predecessor["factual_key"]
+        predecessor["event_id"]=make_event_id("YouGov",key["fieldwork_start"],key["fieldwork_end"],
+                                            predecessor["hypothesis"],predecessor["source_url"])
+        validate_corrections(registry)
+        with self.assertRaisesRegex(ValueError,"missing a predecessor"):
+            self.run_lane(registry=registry)
+
+    def test_duplicate_canonical_and_shared_predecessor_corrections_fail(self):
+        registry,record=self.altered_registry()
+        registry["corrections"].append(copy.deepcopy(record))
+        with self.assertRaisesRegex(ValueError,"duplicate"):
+            validate_corrections(registry)
+        registry,record=self.altered_registry()
+        other=copy.deepcopy(record)
+        other["source_locator"]="FR-T0R999"
+        other["incoming_factual_key"]["sample_size"]=1104
+        registry["corrections"].append(other)
+        with self.assertRaisesRegex(ValueError,"ambiguous correction"):
+            validate_corrections(registry)
+
+    def test_unrelated_or_incompatible_predecessors_fail(self):
+        for field,value in (("pollster_identity","ifop"),("sample_size",1104),
+                            ("sample_scope","registered_voters"),("fieldwork_end","2026-09-22")):
+            registry,record=self.altered_registry()
+            record["predecessors"][1]["factual_key"][field]=value
+            with self.subTest(field=field),self.assertRaisesRegex(ValueError,"contradicts"):
+                validate_corrections(registry)
+        registry,record=self.altered_registry()
+        record["predecessors"][1]["factual_key"]["candidates"][0]["score"]="99"
+        with self.assertRaisesRegex(ValueError,"contradicts"):validate_corrections(registry)
+
+    def test_predecessor_schema_provenance_and_primary_evidence_are_strict(self):
+        for field,value in (("source_url","https://example.org/unreviewed"),
+                            ("evidence_urls",[]),("official_page",25),("source_revision",None),
+                            ("source_locator","unknown"),("review_reason","")):
+            registry,record=self.altered_registry()
+            record["predecessors"][1][field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):validate_corrections(registry)
+        for field in self.record["predecessors"][1]:
+            registry,record=self.altered_registry();del record["predecessors"][1][field]
+            with self.subTest(missing=field),self.assertRaisesRegex(ValueError,"fields"):
+                validate_corrections(registry)
+
+    def test_successor_canonical_declaration_cannot_drift(self):
+        registry,record=self.altered_registry()
+        record["canonical_candidates"][0]["score"]=2
+        with self.assertRaisesRegex(ValueError,"contradict"):
+            validate_corrections(registry)
+
+    def test_unchanged_workflow_shrink_guard_still_rejects_reviewed_consolidation(self):
+        import textwrap
+        from fetch_polls import filter_rejected_poll_waves,load_poll_wave_overrides
+        workflow=(ROOT/".github/workflows/update-polls.yml").read_text(encoding="utf-8")
+        start=workflow.index("          if len(fetched) < len(reviewed_current):")
+        end=workflow.index("          required =",start)
+        guard=compile(textwrap.dedent(workflow[start:end]),"unchanged workflow shrink guard","exec")
+        reviewed,_,_=filter_rejected_poll_waves(self.previous,load_poll_wave_overrides())
+        with self.assertRaisesRegex(SystemExit,"299 expected publishable -> 298 events"):
+            exec(guard,{"reviewed_current":reviewed,"fetched":self.expected.events})

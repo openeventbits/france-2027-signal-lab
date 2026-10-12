@@ -6,6 +6,7 @@ import copy
 import hashlib
 import io
 import json
+import re
 import subprocess
 import sys
 import unittest
@@ -1222,7 +1223,7 @@ class FrozenFixtureTests(unittest.TestCase):
         parsed["revid"] += 1
         with self.assertRaisesRegex(
             SourceDriftError,
-            "semantic/evidence drift: reviewed first_round factual identities",
+            "semantic/evidence drift: reviewed first_round provenance changed",
         ):
             reconcile_french_production_source(
                 parsed,
@@ -2161,6 +2162,120 @@ class FrozenFixtureTests(unittest.TestCase):
                 "FR-T3R10": "censored_score",
             },
         )
+
+
+    def current_source(self):
+        return load_mediawiki_fixture((ROOT / "test_fixtures/fr27_polling") / "fr_mediawiki_240287946.json", 240287946)
+
+    def test_current_fixture_bytes_and_h5_leaf_ownership(self):
+        parsed = self.current_source()
+        self.assertEqual(hashlib.sha256(((ROOT / "test_fixtures/fr27_polling") / "fr_mediawiki_240287946.json").read_bytes()).hexdigest(),
+                         "ca7f1d17b7c3a9bb0bf7446b324c7004be047f06a197fec9ac6dd471915ec949")
+        tree = lxml_html.fromstring(parsed["text"])
+        tables = _french_first_round_table_plan(tree.xpath("//table"))
+        self.assertEqual([_preceding_heading(t) for t in tables[:2]],
+                         ["octobre decembre 2026", "juillet septembre 2026"])
+        rows = parse_french_frozen_fixture(parsed)
+        self.assertEqual((len(rows[FIRST_ROUND]), len(rows[SECOND_ROUND]), len(rows["rejected"])), (256, 79, 13))
+        self.assertFalse(any(r["source_locator"].startswith("FR-T0") for r in rows[FIRST_ROUND] + rows["rejected"]))
+        self.assertEqual(sum(r["source_locator"].startswith("FR-T1") for r in rows[FIRST_ROUND]), 86)
+        self.assertEqual(sum(r["source_locator"].startswith("FR-T1") for r in rows["rejected"]), 6)
+
+    def test_current_child_heading_mutations_cannot_broaden_acceptance(self):
+        for mutation in ("remove", "remove_first", "rename", "promote", "duplicate", "wrong_parent", "nested", "presentation", "presentation_only"):
+            with self.subTest(mutation=mutation):
+                parsed = self.current_source()
+                tree = lxml_html.fromstring(parsed["text"])
+                tables = _french_first_round_table_plan(tree.xpath("//table"))
+                heading = tables[1].xpath("preceding::h5[1]")[0]
+                if mutation == "remove_first":
+                    first = tables[0].xpath("preceding::h5[1]")[0]
+                    first.getparent().remove(first)
+                elif mutation == "remove": heading.getparent().remove(heading)
+                elif mutation == "rename": heading.text = "Unreviewed period"
+                elif mutation == "promote": heading.tag = "h4"
+                elif mutation == "wrong_parent": heading.xpath("preceding::h4[1]")[0].text = "Premier semestre 2026"
+                elif mutation == "duplicate": tables[1].addnext(copy.deepcopy(tables[1]))
+                elif mutation == "presentation_only": tables[1].set("role", "presentation")
+                elif mutation == "nested": tables[1].xpath(".//td")[0].append(lxml_html.fromstring("<table><tr><td>2</td></tr></table>"))
+                else: tables[1].addnext(lxml_html.fromstring("<table><tr><td>Presentation</td></tr></table>"))
+                parsed["text"] = lxml_html.tostring(tree, encoding="unicode")
+                with self.assertRaises(ValueError): parse_french_frozen_fixture(parsed)
+
+    def test_historical_fixture_acceptance_and_rejection_semantics(self):
+        for revision, counts in ((238906992, (191,48,8)), (239248634,(209,63,8)),
+                (239255702,(218,66,8)), (239587014,(231,71,13)),
+                (240128358,(256,79,14)), (240131611,(256,79,14))):
+            with self.subTest(revision=revision):
+                rows = parse_french_frozen_fixture(load_mediawiki_fixture((ROOT / "test_fixtures/fr27_polling") / f"fr_mediawiki_{revision}.json", revision))
+                self.assertEqual(tuple(len(rows[k]) for k in (FIRST_ROUND,SECOND_ROUND,"rejected")),counts)
+
+    def test_structured_autres_explicit_pairing_and_document_order(self):
+        from poll_migration import _french_other_candidates
+        for entries in (("2<br><a href='/wiki/Fran%C3%A7ois_Ruffin'>Ruffin</a>", "1<br><a href='/wiki/Xavier_Bertrand'>Bertrand</a>"),
+                        ("1 Bertrand", "2 Ruffin")):
+            result = _french_other_candidates(lxml_html.fromstring("<td>"+"<hr>".join(entries)+"</td>"))
+            self.assertEqual(sorted((c["name"],c["score"]) for c in result), [("François Ruffin",2),("Xavier Bertrand",1)])
+            self.assertEqual(result[0]["score"], 2 if entries[0].startswith("2") else 1)
+
+    def test_structured_autres_malformed_entries_fail_closed(self):
+        from poll_migration import _french_other_candidates
+        for content in ("Ruffin 2", "2 Ruffin 1 Bertrand", "2 1 Ruffin Bertrand", "Ruffin",
+                        "2", "2 Ruffin<hr>1", "2 Ruffin<hr>Bertrand", "2 Ruffin<hr>",
+                        "2 Ruffin<hr>2 Ruffin", "2 Ruffin wins a primary",
+                        "2<a href='/wiki/Fran%C3%A7ois_Ruffin'>Ruffin</a><a href='/wiki/Xavier_Bertrand'>Bertrand</a>",
+                        "2<a href='/wiki/Xavier_Bertrand'>Ruffin</a>"):
+            with self.subTest(content=content), self.assertRaises(ValueError):
+                _french_other_candidates(lxml_html.fromstring("<td>"+content+"</td>"))
+
+    def test_dedicated_candidate_and_autres_duplicate_fails_closed(self):
+        parsed = self.current_source()
+        tree = lxml_html.fromstring(parsed["text"])
+        table = _french_first_round_table_plan(tree.xpath("//table"))[1]
+        row = next(r for r in table.xpath(".//tr[td]") if "3,5Lisnard" in r.text_content())
+        row.xpath("./td")[-1].append(lxml_html.fromstring("<span><hr>2<a href='/wiki/Nathalie_Arthaud'>Arthaud</a></span>"))
+        parsed["text"] = lxml_html.tostring(tree,encoding="unicode")
+        with self.assertRaisesRegex(ValueError,"duplicate candidate in Autres"): parse_french_frozen_fixture(parsed)
+
+    def test_current_and_previous_complete_source_maps_and_runoffs_match(self):
+        previous = parse_french_frozen_fixture(load_mediawiki_fixture((ROOT / "test_fixtures/fr27_polling") / "fr_mediawiki_240131611.json",240131611))
+        current = parse_french_frozen_fixture(self.current_source())
+        self.assertEqual([{k:v for k,v in r.items() if k != "source_locator"} for r in previous[SECOND_ROUND]],
+                         [{k:v for k,v in r.items() if k != "source_locator"} for r in current[SECOND_ROUND]])
+        self.assertEqual({exact_factual_key(r) for r in previous[FIRST_ROUND]},
+                         {exact_factual_key(r) for r in current[FIRST_ROUND]})
+        for locator, count in (("FR-T1R10",14),("FR-T1R21",16),("FR-T1R58",12)):
+            self.assertEqual(len(next(r for r in current[FIRST_ROUND] if r["source_locator"]==locator)["candidates"]),count)
+
+
+    def test_historical_row_metadata_rejections_and_runoffs_match_before_repair(self):
+        # Digests captured from HEAD before changing either parser path.
+        expected = {238906992: ('9088091621c700bac648d4eb086f7df14b6b250b9ff347d0c6fcad7e276a9a4d', 'f3a0954e3486df007da457cf0c1aeaa09f793cad51aa86deefe079ec4646a723', '554034cf648a4fd1e00afd4c9e53872efdd3ba220c70494dd729c8edbc8a8403'), 239248634: ('7cadee6e62268b21b46594ca1c5d500c24599941909cb7fe7e31054997d22bea', 'a0999858a0c1212167310e5ecde7f251aa23280e328b141fcf691fe55460addd', '8d3ce4012a6e9bac38d3c8b004fcee7e518cb2da1b411603a149b86c8d8d8cb7'), 239255702: ('2b130aeb92bfda3d288709b3526b7a4f28fa1ee97b05afa6fa4cbfbb2998effa', '37a963f0a1f2fa239495291c22f1753ec6b6bc400dd43d845be80f531739cf45', '301227ecf90400a968012bedbb95e93d99e72115be8455e0f2d2cec6bac1d807'), 239587014: ('87d4e7c2f065a50e2105b9e21560ecf4f9aae03c0849e743823fd23e2c9c7c28', 'bceb40aabca7fe46a6f5f40e88c57fad4a43019be190e42eb824a87865125b1f', '52e8894754edd0d0e02c2889772195edca4bc4b55cfe4d632f2a3af3bf7824d3'), 240128358: ('59cd9e04a43b9ca58f3b2de6d4d5fc9696799e127f857427256d1c4152d2bbe6', '277342308519796b1b7ddb401941d323313dab35d1afb909c6e473b378855132', '80395151befc7b6c6324d3540ee672c9c45fdb38a3ebdc2041589f9e53e48ba6'), 240131611: ('59cd9e04a43b9ca58f3b2de6d4d5fc9696799e127f857427256d1c4152d2bbe6', '277342308519796b1b7ddb401941d323313dab35d1afb909c6e473b378855132', '80395151befc7b6c6324d3540ee672c9c45fdb38a3ebdc2041589f9e53e48ba6')}
+        def digest(value):
+            return hashlib.sha256(json.dumps(value,ensure_ascii=True,sort_keys=True,separators=(",",":")).encode()).hexdigest()
+        for revision, fingerprints in expected.items():
+            with self.subTest(revision=revision):
+                rows=parse_french_frozen_fixture(load_mediawiki_fixture((ROOT / "test_fixtures/fr27_polling") / f"fr_mediawiki_{revision}.json",revision))
+                observed=(digest([{k:v for k,v in r.items() if k!="candidates"} for r in rows[FIRST_ROUND]]),
+                          digest(rows["rejected"]),digest(rows[SECOND_ROUND]))
+                self.assertEqual(observed,fingerprints)
+
+    def test_reordered_autres_dom_entries_preserve_complete_factual_keys(self):
+        parsed=self.current_source()
+        before=parse_french_frozen_fixture(parsed)
+        tree=lxml_html.fromstring(parsed["text"])
+        cell=next(c for c in tree.xpath("//td[.//hr]") if "Bertrand" in c.text_content())
+        inner=(cell.text or "")+"".join(lxml_html.tostring(c,encoding="unicode") for c in cell)
+        entries=re.split(r"<hr\b[^>]*>",inner)
+        replacement=lxml_html.fromstring("<td>"+"<hr>".join(reversed(entries))+"</td>")
+        cell.getparent().replace(cell,replacement)
+        parsed["text"]=lxml_html.tostring(tree,encoding="unicode")
+        after=parse_french_frozen_fixture(parsed)
+        self.assertEqual({exact_factual_key(r) for r in before[FIRST_ROUND]},
+                         {exact_factual_key(r) for r in after[FIRST_ROUND]})
+        row=next(r for r in after[FIRST_ROUND] if r["source_locator"]=="FR-T1R21")
+        self.assertEqual([c["name"] for c in row["candidates"][-4:]],
+                         ["Xavier Bertrand","Dominique de Villepin","François Ruffin","David Lisnard"])
 
 
 class RegistryBuilderTests(unittest.TestCase):

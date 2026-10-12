@@ -29,6 +29,16 @@ RECORD_FIELDS = {
     "incoming_factual_key", "canonical_factual_key", "canonical_candidates",
     "action", "evidence_urls", "review_reason", "official_page",
 }
+SOURCE_VARIANT_FIELDS = {"source_variants", "historical_incoming_factual_key"}
+CONSOLIDATION_FIELDS = RECORD_FIELDS - {
+    "previous_event_id", "previous_hypothesis", "old_factual_key",
+    "historical_source_revision",
+} | {"predecessors"}
+PREDECESSOR_FIELDS = {
+    "event_id", "hypothesis", "factual_key", "source_url", "source_revision",
+    "source_locator", "review_reason", "evidence_urls", "official_page",
+}
+MAX_REVIEWED_PREDECESSORS = 8
 EXCLUSION_FIELDS = {
     "source_locator", "source_revisions", "source_url", "factual_key",
     "review_reason",
@@ -68,6 +78,53 @@ def _provenance(record: dict, revisions_field: str) -> list[int]:
     return _revisions(record[revisions_field])
 
 
+def _predecessor_projection(record: dict, predecessor: dict) -> dict:
+    """Validate shared contracts through the existing one-predecessor schema."""
+    return {
+        **{key: value for key, value in record.items() if key != "predecessors"},
+        "action": "supersede_event",
+        "previous_event_id": predecessor["event_id"],
+        "previous_hypothesis": predecessor["hypothesis"],
+        "old_factual_key": predecessor["factual_key"],
+        "historical_source_revision": predecessor["source_revision"],
+    }
+
+
+def _validate_predecessors(record: dict) -> list[dict]:
+    predecessors = record["predecessors"]
+    if not isinstance(predecessors, list) or not 2 <= len(predecessors) <= MAX_REVIEWED_PREDECESSORS:
+        raise ValueError("consolidation requires a bounded explicit predecessor collection")
+    ids = set()
+    canonical = factual_key_from_dict(record["canonical_factual_key"], "consolidation canonical key")
+    for predecessor in predecessors:
+        if not isinstance(predecessor, dict) or set(predecessor) != PREDECESSOR_FIELDS:
+            raise ValueError("consolidation predecessor fields are malformed")
+        if not isinstance(predecessor["event_id"], str) or not re.fullmatch(r"[a-f0-9]{64}", predecessor["event_id"]):
+            raise ValueError("consolidation predecessor ID is malformed")
+        if predecessor["event_id"] in ids:
+            raise ValueError("duplicate consolidation predecessor ID")
+        ids.add(predecessor["event_id"])
+        _provenance({**predecessor, "source_revisions": [predecessor["source_revision"]]}, "source_revisions")
+        old = factual_key_from_dict(predecessor["factual_key"], "consolidation predecessor key")
+        if (
+            (old.round, old.pollster_identity, old.fieldwork_start, old.fieldwork_end,
+             old.sample_size, old.sample_scope)
+            != (canonical.round, canonical.pollster_identity, canonical.fieldwork_start,
+                canonical.fieldwork_end, canonical.sample_size, canonical.sample_scope)
+            or not set(old.candidates) < set(canonical.candidates)
+            or predecessor["source_url"] != record["source_url"]
+            or predecessor["evidence_urls"] != record["evidence_urls"]
+            or predecessor["official_page"] != record["official_page"]
+        ):
+            raise ValueError("consolidation predecessor contradicts reviewed canonical evidence")
+        # Each exact ID, historical revision, hypothesis and factual key must
+        # also satisfy every existing scalar supersession validation rule.
+        validate_corrections({"schema_version": "1.0", "corrections": [
+            _predecessor_projection(record, predecessor)
+        ], "excluded_source_rows": []})
+    return predecessors
+
+
 def validate_corrections(payload: object) -> dict:
     if (
         not isinstance(payload, dict)
@@ -79,8 +136,14 @@ def validate_corrections(payload: object) -> dict:
         raise ValueError("post-audit first-round correction schema is malformed")
     locators, incoming_keys, previous_ids, canonical_ids = set(), set(), set(), set()
     for record in payload["corrections"]:
+        predecessors = []
+        if isinstance(record, dict) and record.get("action") == "consolidate_events":
+            if set(record) - {"source_variants"} != CONSOLIDATION_FIELDS:
+                raise ValueError("consolidation correction fields are malformed")
+            predecessors = _validate_predecessors(record)
+            record = _predecessor_projection(record, predecessors[0])
         acceptance = isinstance(record, dict) and record.get("action") == "accept_reviewed_sample"
-        if not isinstance(record, dict) or set(record) != (ACCEPTANCE_FIELDS if acceptance else RECORD_FIELDS):
+        if not isinstance(record, dict) or set(record) - SOURCE_VARIANT_FIELDS != (ACCEPTANCE_FIELDS if acceptance else RECORD_FIELDS):
             raise ValueError("post-audit first-round correction fields are malformed")
         revisions = _provenance(record, "incoming_source_revisions")
         if acceptance:
@@ -121,13 +184,41 @@ def validate_corrections(payload: object) -> dict:
             if value in seen:
                 raise ValueError("ambiguous correction event target")
             seen.add(value)
+        for predecessor in predecessors[1:]:
+            if predecessor["event_id"] in previous_ids:
+                raise ValueError("ambiguous correction predecessor target")
+            previous_ids.add(predecessor["event_id"])
         for key in (incoming, canonical):
             if (key.pollster_identity, key.fieldwork_start, key.fieldwork_end) != (
                 old.pollster_identity, old.fieldwork_start, old.fieldwork_end
             ):
                 raise ValueError("correction changes pollster or fieldwork")
-        if old.candidates != incoming.candidates:
+        if old.candidates != incoming.candidates and not (
+            record["action"] == "supersede_event" and incoming.candidates == canonical.candidates
+        ):
             raise ValueError("reviewed source refresh changes non-sample facts")
+        variants = record.get("source_variants", [])
+        if not isinstance(variants, list):
+            raise ValueError("correction source variants are malformed")
+        variant_revisions = set()
+        for variant in variants:
+            if (not isinstance(variant, dict) or set(variant) != {"first_revision", "source_locator"}
+                    or type(variant["first_revision"]) is not int
+                    or variant["first_revision"] not in revisions
+                    or variant["first_revision"] in variant_revisions
+                    or not isinstance(variant["source_locator"], str)
+                    or not re.fullmatch(r"FR-T\d+R\d+", variant["source_locator"])):
+                raise ValueError("correction source variant provenance is malformed")
+            variant_revisions.add(variant["first_revision"])
+        if "historical_incoming_factual_key" in record:
+            if acceptance:
+                raise ValueError("acceptance cannot contain historical correction facts")
+            historical_key = factual_key_from_dict(record["historical_incoming_factual_key"], "historical source key")
+            if (historical_key.pollster_identity, historical_key.fieldwork_start, historical_key.fieldwork_end,
+                    historical_key.sample_size, historical_key.sample_scope, historical_key.candidates) != (
+                    old.pollster_identity, old.fieldwork_start, old.fieldwork_end,
+                    old.sample_size, old.sample_scope, incoming.candidates):
+                raise ValueError("historical source key changes reviewed facts")
         candidates = record["canonical_candidates"]
         if (
             not isinstance(candidates, list) or len(candidates) < 2
@@ -247,6 +338,59 @@ class CorrectionResult:
     report: dict
 
 
+def _consolidate_reviewed_events(record: dict, events: dict, report: dict) -> None:
+    """Allow only the complete reviewed before-state or complete after-state."""
+    predecessors = record["predecessors"]
+    ids = sorted(predecessor["event_id"] for predecessor in predecessors)
+    canonical_id = record["canonical_event_id"]
+    canonical_key = factual_key_from_dict(record["canonical_factual_key"], "canonical consolidation key")
+    present = [identity for identity in ids if identity in events]
+    canonical = events.get(canonical_id)
+    if canonical is not None:
+        if present:
+            raise ValueError("consolidation contains both event identities")
+        if (
+            exact_factual_key(canonical) != canonical_key
+            or canonical["source_url"] != record["source_url"]
+            or canonical["hypothesis"] != record["canonical_hypothesis"]
+            or canonical.get("supersedes_event_ids") != ids
+            or "supersedes_event_id" in canonical
+        ):
+            raise ValueError("consolidation canonical facts/provenance/continuity changed")
+        report["already_applied"] += 1
+    else:
+        if present != ids:
+            raise ValueError("reviewed consolidation is missing a predecessor or successor")
+        for predecessor in predecessors:
+            event = events[predecessor["event_id"]]
+            if (
+                exact_factual_key(event) != factual_key_from_dict(predecessor["factual_key"], "predecessor key")
+                or event["hypothesis"] != predecessor["hypothesis"]
+                or event["source_url"] != predecessor["source_url"]
+                or event.get("migration_source_locator") != predecessor["source_locator"]
+            ):
+                raise ValueError("reviewed consolidation predecessor facts/provenance changed")
+        corrected = copy.deepcopy(events[predecessors[0]["event_id"]])
+        corrected.update({
+            "event_id": canonical_id, "hypothesis": record["canonical_hypothesis"],
+            "candidates": copy.deepcopy(record["canonical_candidates"]),
+            "scenario_key": make_scenario_key(c["name"] for c in record["canonical_candidates"]),
+            "supersedes_event_ids": ids,
+        })
+        corrected.pop("supersedes_event_id", None)
+        apply_completeness_contract(corrected)
+        validate_poll_events([corrected])
+        if exact_factual_key(corrected) != canonical_key:
+            raise ValueError("consolidation did not produce reviewed canonical facts")
+        for identity in ids:
+            del events[identity]
+        events[canonical_id] = corrected
+        report["superseded_event_ids"].extend(ids)
+        report["consolidate_events"] += 1
+    if any(identity in events for identity in ids) or canonical_id not in events:
+        raise ValueError("consolidation did not replace every reviewed predecessor")
+
+
 def _make_reviewed_source_event(source_record: dict) -> dict:
     candidates = copy.deepcopy(source_record["candidates"])
     hypothesis = "French source — " + ", ".join(
@@ -294,6 +438,7 @@ def reconcile_first_round_corrections(
     report = {
         "correct_retained_sample": 0, "supersede_event": 0, "already_applied": 0,
         "accept_reviewed_sample": 0,
+        "consolidate_events": 0,
         "canonical_event_ids": [], "superseded_event_ids": [], "excluded_source_rows": 0,
     }
     rows_by_locator = {row["source_locator"]: row for row in rows}
@@ -315,12 +460,15 @@ def reconcile_first_round_corrections(
     }
     for record in registry["corrections"]:
         acceptance = record["action"] == "accept_reviewed_sample"
+        consolidation = record["action"] == "consolidate_events"
         if acceptance and revision < min(record["incoming_source_revisions"]):
             historical = record["historical_withheld_source"]
             if revision >= min(historical["source_revisions"]):
                 excluded.update(_withheld_matches(rows, historical))
             continue
-        locator = record["source_locator"]
+        # Positions are reviewed provenance, never a fallback for changed facts.
+        variants = [v for v in record.get("source_variants", []) if revision >= v["first_revision"]]
+        locator = max(variants, key=lambda v: v["first_revision"])["source_locator"] if variants else record["source_locator"]
         key = record.get("old_factual_key", record["incoming_factual_key"])
         wave_present = any(
             (pollster_identity(row["pollster"]), row["fieldwork_start"], row["fieldwork_end"])
@@ -333,7 +481,7 @@ def reconcile_first_round_corrections(
             continue
         row = rows_by_locator.get(locator)
         expected = (
-            record["old_factual_key"] if revision == record.get("historical_source_revision")
+            record.get("historical_incoming_factual_key", record.get("old_factual_key")) if revision == record.get("historical_source_revision")
             else record["incoming_factual_key"]
         )
         if (
@@ -350,6 +498,11 @@ def reconcile_first_round_corrections(
         ):
             raise ValueError("unregistered row in reviewed first-round acceptance source")
         canonical_id = record["canonical_event_id"]
+        if consolidation:
+            _consolidate_reviewed_events(record, events, report)
+            report["canonical_event_ids"].append(canonical_id)
+            handled[locator] = factual_key_from_dict(record["canonical_factual_key"], "canonical consolidation key")
+            continue
         old_id = record.get("previous_event_id", canonical_id)
         old, canonical = events.get(old_id), events.get(canonical_id)
         if old_id != canonical_id and old is not None and canonical is not None:
