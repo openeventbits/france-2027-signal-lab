@@ -511,7 +511,7 @@ class StructuredSourceCorrectionTests(unittest.TestCase):
         cls.parsed = read("fr_mediawiki_240287946.json")["parse"]
         cls.rows = parse_french_frozen_fixture(cls.parsed)[FIRST_ROUND]
         cls.previous = read("structured_source_correction_previous_events.json")
-        cls.second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf8"))["events"]
+        cls.second = read("structured_source_correction_previous_second_round.json")["events"]
         cls.registry = load_corrections()
         cls.record = next(r for r in cls.registry["corrections"] if r["action"] == "consolidate_events")
         cls.expected = reconcile_first_round_corrections(cls.rows,240287946,cls.previous)
