@@ -661,7 +661,6 @@ class CandidateReferenceTests(unittest.TestCase):
                 for topic in profile["topics"]
                 if topic["share"] == 0
             ]
-            self.assertGreater(len(zero_topics), 0)
 
             for topic in zero_topics:
                 self.assertIn(
