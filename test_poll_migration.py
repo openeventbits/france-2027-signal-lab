@@ -847,6 +847,254 @@ class FrozenFixtureTests(unittest.TestCase):
                 self.assertFalse(_reviewed_ineligible_first_round_table(companion))
                 self.assert_autres_multiplicity(document)
 
+    def _ifop_10314_expanded_row(self):
+        return {
+            "source_locator": "FR-T0R4",
+            "round": "first_round",
+            "pollster": "Ifop",
+            "fieldwork_start": "2026-10-12",
+            "fieldwork_end": "2026-10-14",
+            "sample_size": 1390,
+            "sample_scope": "reported",
+            "source_url": (
+                "https://www.commission-des-sondages.fr/"
+                "notices/files/notices/2026/octobre/"
+                "10314-pres-climat-politique-post-primaire-"
+                "ps-pp-ifop-lci-14-octobre.pdf"
+            ),
+            "candidates": [
+                {"name": "Nathalie Arthaud", "score": 0},
+                {"name": "Jean-Luc Mélenchon", "score": 16},
+                {"name": "Fabien Roussel", "score": 2},
+                {"name": "Marine Tondelier", "score": 2},
+                {"name": "Raphaël Glucksmann", "score": 11.5},
+                {"name": "Gabriel Attal", "score": 5},
+                {"name": "Édouard Philippe", "score": 13},
+                {"name": "Bruno Retailleau", "score": 5},
+                {"name": "Nicolas Dupont-Aignan", "score": 1},
+                {"name": "Marine Le Pen", "score": 32},
+                {"name": "Éric Zemmour", "score": 3},
+                {"name": "David Lisnard", "score": 6},
+                {"name": "François Ruffin", "score": 2},
+                {"name": "Dominique de Villepin", "score": 1.5},
+            ],
+        }
+
+    def test_reviewed_ifop_10314_arthaud_zero_is_removed(
+        self,
+    ) -> None:
+        from poll_migration import (
+            _apply_reviewed_ifop_10314_arthaud_zero_correction,
+        )
+
+        incoming = self._ifop_10314_expanded_row()
+
+        corrected = (
+            _apply_reviewed_ifop_10314_arthaud_zero_correction(
+                incoming
+            )
+        )
+
+        self.assertEqual(len(incoming["candidates"]), 14)
+        self.assertEqual(len(corrected["candidates"]), 13)
+
+        self.assertNotIn(
+            "Nathalie Arthaud",
+            {
+                candidate["name"]
+                for candidate in corrected["candidates"]
+            },
+        )
+
+        # A repaired Wikipedia representation self-deactivates.
+        repaired = self._ifop_10314_expanded_row()
+        repaired["candidates"] = [
+            candidate
+            for candidate in repaired["candidates"]
+            if candidate["name"] != "Nathalie Arthaud"
+        ]
+
+        self.assertEqual(
+            _apply_reviewed_ifop_10314_arthaud_zero_correction(
+                repaired
+            ),
+            repaired,
+        )
+
+    def test_reviewed_ifop_10314_second_arthaud_zero_is_removed(
+        self,
+    ) -> None:
+        from poll_migration import (
+            _apply_reviewed_ifop_10314_arthaud_zero_correction,
+        )
+
+        incoming = {
+            "source_locator": "FR-T0R7",
+            "round": "first_round",
+            "pollster": "Ifop",
+            "fieldwork_start": "2026-10-12",
+            "fieldwork_end": "2026-10-14",
+            "sample_size": 1390,
+            "sample_scope": "reported",
+            "source_url": (
+                "https://www.commission-des-sondages.fr/"
+                "notices/files/notices/2026/octobre/"
+                "10314-pres-climat-politique-post-primaire-"
+                "ps-pp-ifop-lci-14-octobre.pdf"
+            ),
+            "candidates": [
+                {"name": "Nathalie Arthaud", "score": 0},
+                {"name": "Jean-Luc Mélenchon", "score": 16},
+                {"name": "Fabien Roussel", "score": 2.5},
+                {"name": "Marine Tondelier", "score": 2},
+                {"name": "Raphaël Glucksmann", "score": 14},
+                {"name": "Gabriel Attal", "score": 6},
+                {"name": "Édouard Philippe", "score": 14},
+                {"name": "Bruno Retailleau", "score": 6.5},
+                {"name": "Nicolas Dupont-Aignan", "score": 2},
+                {"name": "Marine Le Pen", "score": 34},
+                {"name": "Éric Zemmour", "score": 3},
+            ],
+        }
+
+        corrected = (
+            _apply_reviewed_ifop_10314_arthaud_zero_correction(
+                incoming
+            )
+        )
+
+        self.assertEqual(
+            len(corrected["candidates"]),
+            10,
+        )
+
+        self.assertNotIn(
+            "Nathalie Arthaud",
+            {
+                candidate["name"]
+                for candidate in corrected["candidates"]
+            },
+        )
+
+        changed = {
+            **incoming,
+            "candidates": [
+                dict(candidate)
+                for candidate in incoming["candidates"]
+            ],
+        }
+
+        next(
+            candidate
+            for candidate in changed["candidates"]
+            if candidate["name"] == "Raphaël Glucksmann"
+        )["score"] = 14.5
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "reviewed Ifop 10314",
+        ):
+            _apply_reviewed_ifop_10314_arthaud_zero_correction(
+                changed
+            )
+
+    def test_reviewed_ifop_10314_near_match_fails_closed(
+        self,
+    ) -> None:
+        from poll_migration import (
+            _apply_reviewed_ifop_10314_arthaud_zero_correction,
+        )
+
+        changed = self._ifop_10314_expanded_row()
+
+        next(
+            candidate
+            for candidate in changed["candidates"]
+            if candidate["name"] == "Raphaël Glucksmann"
+        )["score"] = 12
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "reviewed Ifop 10314",
+        ):
+            _apply_reviewed_ifop_10314_arthaud_zero_correction(
+                changed
+            )
+
+        # The adapter is never generalized to unrelated provenance.
+        unrelated = self._ifop_10314_expanded_row()
+        unrelated["source_url"] = "https://example.org/unreviewed.pdf"
+
+        self.assertEqual(
+            _apply_reviewed_ifop_10314_arthaud_zero_correction(
+                unrelated
+            ),
+            unrelated,
+        )
+
+    def test_reviewed_companion_portrait_link_renderings_are_accepted(
+        self,
+    ) -> None:
+        for prefix in (
+            "/wiki/Fichier:",
+            "https://fr.wikipedia.org/wiki/Fichier:",
+        ):
+            with self.subTest(prefix=prefix):
+                document, ordinary = self.autres_document()
+                companion = (
+                    ordinary.getparent()
+                    .getparent()
+                    .getprevious()
+                    .xpath(".//table")[0]
+                )
+
+                metadata = companion.xpath("./tbody/tr")[0]
+
+                for index, cell in enumerate(metadata[3:-1]):
+                    link = lxml_html.Element("a")
+                    link.set(
+                        "href",
+                        f"{prefix}Reviewed_portrait_{index}.jpg",
+                    )
+                    cell.append(link)
+
+                self.assertTrue(
+                    _reviewed_ineligible_first_round_table(companion)
+                )
+
+                planned = _french_first_round_table_plan(
+                    document.xpath("//table")
+                )
+
+                self.assertIn(ordinary, planned)
+                self.assertNotIn(companion, planned)
+
+    def test_reviewed_companion_portrait_link_other_host_fails_closed(
+        self,
+    ) -> None:
+        document, ordinary = self.autres_document()
+        companion = (
+            ordinary.getparent()
+            .getparent()
+            .getprevious()
+            .xpath(".//table")[0]
+        )
+
+        metadata = companion.xpath("./tbody/tr")[0]
+
+        link = lxml_html.Element("a")
+        link.set(
+            "href",
+            "https://en.wikipedia.org/wiki/"
+            "Fichier:Reviewed_portrait.jpg",
+        )
+        metadata[3].append(link)
+
+        self.assertFalse(
+            _reviewed_ineligible_first_round_table(companion)
+        )
+        self.assert_autres_multiplicity(document)
+
     def test_reviewed_companion_dom_semantic_presentation_is_accepted(self) -> None:
         document, ordinary = self.autres_document()
         companion = ordinary.getparent().getparent().getprevious().xpath(".//table")[0]
