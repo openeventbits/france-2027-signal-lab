@@ -18,7 +18,7 @@ def navigation_model(root: Path = ROOT) -> dict:
             continue
         if route["kind"] == "hub":
             candidate_hubs[route["language"]] = route["path"]
-        elif route["kind"] == "candidate-detail" and (root / route["source_file"]).is_file():
+        elif route["kind"] in {"candidate-detail", "candidate-archive"} and (root / route["source_file"]).is_file():
             candidate_routes.setdefault(route["entity_id"], {})[route["language"]] = route["path"]
     issues = load("issue_pages_manifest.json")
     agenda = load("agenda_pages_manifest.json")

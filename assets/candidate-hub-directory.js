@@ -59,6 +59,7 @@
 
   const updateCount = () => {
     if (!count) return;
+    if (category.value === "archived") return;
 
     count.textContent = String(
       cards.filter(card => !card.hidden).length

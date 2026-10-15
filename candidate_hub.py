@@ -364,6 +364,7 @@ def build_hub_model(
     candidacy_payload: dict[str, Any],
     projections: list[dict[str, Any]],
     candidate_signals_payload: dict[str, Any] | None = None,
+    archived_projections: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Join canonical routes to dossier evidence without a second roster."""
 
@@ -445,6 +446,11 @@ def build_hub_model(
             for status in STATUS_LABELS["fr"]
         },
         "candidates": candidates,
+        "archives": [
+            projection["candidate"]
+            for projection in (archived_projections or [])
+            if is_archived_candidacy_status(projection["candidate"]["status"])
+        ],
     }
 
 
@@ -645,6 +651,13 @@ def render_hub(
         f'<option value="archived">{_h(copy["archived"])}</option>'
     )
     status_counts = model["status_counts"]
+    archive_links = "\n".join(
+        '<li data-candidate-archive-record '
+        f'data-candidate-name="{_h(candidate["candidate_name"])}">'
+        f'<a href="{copy["canonical_path"]}{_h(candidate["candidate_id"])}/">'
+        f'{_h(candidate["candidate_name"])}</a></li>'
+        for candidate in model.get("archives", [])
+    )
     breadcrumb_json_ld = _breadcrumb_json_ld(lang, copy, canonical)
 
     document = f'''<!doctype html>
@@ -718,6 +731,11 @@ def render_hub(
       data-candidate-directory-grid
       aria-label="{_h(copy["heading"])}">
 {cards}
+    </section>
+
+    <section data-candidate-archive-directory aria-label="{_h(copy['archived'])}">
+      <h2>{_h(copy['archived'])}</h2>
+      <ul>{archive_links}</ul>
     </section>
 
     <div

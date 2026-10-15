@@ -1490,6 +1490,7 @@ def _archived_candidate_status_label_fr(status: str) -> str:
     labels = {
         "ruled_out": "DOSSIER ARCHIVÉ · CANDIDATURE ÉCARTÉE",
         "withdrawn": "DOSSIER ARCHIVÉ · CANDIDATURE RETIRÉE",
+        "primary_eliminated": "DOSSIER ARCHIVÉ · ÉLIMINATION EN PRIMAIRE",
         "historical_poll_only": "DOSSIER ARCHIVÉ · SONDAGES HISTORIQUES UNIQUEMENT",
     }
     try:
@@ -2864,6 +2865,7 @@ _CANDIDATE_TEXT_EN.update({
     "CANDIDATURE CONDITIONNELLE": "CONDITIONAL CANDIDACY",
     "DOSSIER ARCHIVÉ · CANDIDATURE ÉCARTÉE": "ARCHIVED DOSSIER · CANDIDACY RULED OUT",
     "DOSSIER ARCHIVÉ · CANDIDATURE RETIRÉE": "ARCHIVED DOSSIER · CANDIDACY WITHDRAWN",
+    "DOSSIER ARCHIVÉ · ÉLIMINATION EN PRIMAIRE": "ARCHIVED DOSSIER · ELIMINATED IN PRIMARY",
     "DOSSIER ARCHIVÉ · SONDAGES HISTORIQUES UNIQUEMENT": "ARCHIVED DOSSIER · HISTORICAL POLLS ONLY",
     "Ce dossier est conservé comme archive. Cette source documente le statut inactif enregistré par France 2027 Signal Lab.": (
         "This dossier is retained as an archive. This source documents "
@@ -3999,6 +4001,7 @@ def build_all_active_artifacts(
         registry,
         active_projections,
         sources["candidate_signals"],
+        archived_projections=archived_projections,
     )
     artifacts[Path("candidates") / "index.html"] = render_hub(
         hub_model,

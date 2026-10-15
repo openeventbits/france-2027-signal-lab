@@ -92,6 +92,7 @@ _STATUS_TO_TIER = {
     "conditional": "secondary",
     "ruled_out": "hidden",
     "withdrawn": "hidden",
+    "primary_eliminated": "hidden",
     "historical_poll_only": "hidden",
 }
 def display_tier_for_status(status: str) -> str:

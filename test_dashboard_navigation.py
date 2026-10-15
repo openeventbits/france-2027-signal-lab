@@ -58,14 +58,27 @@ class DashboardNavigationTests(unittest.TestCase):
                 self.assertIn(wave["fieldwork_end"], source)
 
     def test_detail_routes_match_published_registry_and_files(self):
-        kinds = {"candidates": "candidate-detail", "issues": "issue-detail", "agenda": "agenda-detail"}
-        for family, kind in kinds.items():
-            registry = {(r["entity_id"], r["language"]): r["path"] for r in self.registry if r["kind"] == kind}
+        kinds = {"candidates": {"candidate-detail", "candidate-archive"}, "issues": {"issue-detail"}, "agenda": {"agenda-detail"}}
+        for family, accepted_kinds in kinds.items():
+            registry = {(r["entity_id"], r["language"]): r["path"] for r in self.registry if r["kind"] in accepted_kinds}
             for entity, routes in self.routes[family].items():
                 for language, href in routes.items():
                     self.assertEqual(href, registry[entity, language])
                     self.assertTrue((ROOT / href.lstrip("/") / "index.html").is_file())
                     self.assertNotRegex(href, r"/history/|/historique/")
+
+    def test_archived_dossiers_remain_navigable_outside_the_active_roster(self):
+        from candidate_candidacy_status import load_candidate_candidacy_status
+        from candidate_page_contract import project_candidate_page_lifecycle
+        registry = load_candidate_candidacy_status(ROOT / "candidate_candidacy_status.json")
+        lifecycle = project_candidate_page_lifecycle(registry, ROOT)
+        routes = {(row["entity_id"], row["language"]): row for row in self.registry}
+        for identifier in lifecycle["retained_archived_ids"]:
+            self.assertNotIn(identifier, lifecycle["active_ids"])
+            for language in ("fr", "en"):
+                route = routes[identifier, language]
+                self.assertEqual(route["kind"], "candidate-archive")
+                self.assertEqual(self.routes["candidates"][identifier][language], route["path"])
 
     def test_dashboard_has_no_redundant_family_hub_strip(self):
         for language, file in (("fr", "index.html"), ("en", "en/index.html")):

@@ -23,6 +23,7 @@ ARCHIVED_CANDIDACY_STATUSES = frozenset(
     {
         "ruled_out",
         "withdrawn",
+        "primary_eliminated",
         "historical_poll_only",
     }
 )

@@ -510,6 +510,8 @@
     "candidate.source_unavailable": "SOURCE INDISPONIBLE",
     "candidate.status.active_potential": "Candidature potentielle active",
     "candidate.status.declared": "Candidature déclarée",
+    "candidate.status.party_selected": "Candidature sélectionnée par un parti",
+    "candidate.status.primary_eliminated": "Élimination en primaire",
     "candidate.status.primary_contender": "Prétendant à la primaire",
     "candidate.status.ruled_out": "Candidature écartée",
     "candidate.status.withdrawn": "Retrait",

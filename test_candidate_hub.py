@@ -78,6 +78,22 @@ class CandidateHubTests(unittest.TestCase):
                 document,
             )
 
+    def test_retained_archives_are_discoverable_outside_active_cards(self):
+        archived_ids = project_candidate_page_lifecycle(
+            self.sources["candidate_candidacy_status"], ROOT
+        )["retained_archived_ids"]
+        self.assertTrue(archived_ids)
+        for lang, document in (("fr", self.fr), ("en", self.en)):
+            archive_section = re.search(
+                r'<section data-candidate-archive-directory.*?</section>',
+                document, re.DOTALL,
+            ).group(0)
+            prefix = "/en" if lang == "en" else ""
+            for candidate_id in archived_ids:
+                self.assertIn(f'href="{prefix}/candidates/{candidate_id}/"', archive_section)
+                self.assertNotIn(candidate_id, self._candidate_ids(document))
+        self.assertIn('selectedStatus === "archived"', self.javascript)
+
     def test_active_dossier_becomes_retained_ruled_out_archive(self):
         from build_candidate_signals import build_candidate_signals
         from fetch_claims_under_scrutiny import build_candidate_query
@@ -147,6 +163,7 @@ class CandidateHubTests(unittest.TestCase):
         for status, french, english in (
             ("ruled_out", "CANDIDATURE ÉCARTÉE", "CANDIDACY RULED OUT"),
             ("withdrawn", "CANDIDATURE RETIRÉE", "CANDIDACY WITHDRAWN"),
+            ("primary_eliminated", "ÉLIMINATION EN PRIMAIRE", "ELIMINATED IN PRIMARY"),
             ("historical_poll_only", "SONDAGES HISTORIQUES UNIQUEMENT", "HISTORICAL POLLS ONLY"),
         ):
             with self.subTest(status=status):
@@ -651,12 +668,16 @@ setTimeout(() => process.stdout.write(hudPollsValue.textContent), 20);
             {
                 "ruled_out",
                 "withdrawn",
+                "primary_eliminated",
                 "historical_poll_only",
             },
         )
 
         self.assertTrue(
             hub.is_archived_candidacy_status("withdrawn")
+        )
+        self.assertTrue(
+            hub.is_archived_candidacy_status("primary_eliminated")
         )
         self.assertFalse(
             hub.is_archived_candidacy_status("active_potential")

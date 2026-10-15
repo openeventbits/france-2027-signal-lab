@@ -228,12 +228,23 @@ class CuratedCandidacySource:
     status: str
     status_as_of: str
     status_note: str
+    effective_at: str | None = None
+    event_type: str | None = None
+
+
+def _utc_instant(value: str) -> datetime:
+    if not isinstance(value, str) or not _REVISION_TIMESTAMP.fullmatch(value):
+        _fail("lifecycle timestamp must be canonical UTC YYYY-MM-DDTHH:MM:SSZ")
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise CandidateCandidacyFetchError("invalid lifecycle timestamp") from error
 
 
 def load_curated_candidacy_sources(
     path: str | Path = DEFAULT_SOURCES_PATH,
 ) -> tuple[CuratedCandidacySource, ...]:
-    """Load validated curated first-party candidacy evidence."""
+    """Load curated evidence, including effective-dated authoritative events."""
     try:
         payload = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     except (OSError, json.JSONDecodeError) as error:
@@ -266,10 +277,13 @@ def load_curated_candidacy_sources(
     records: list[CuratedCandidacySource] = []
     seen_source_ids: set[str] = set()
     seen_candidate_ids: set[str] = set()
+    seen_event_instants: set[tuple[str, str]] = set()
 
     for index, value in enumerate(payload["sources"]):
         context = f"candidacy source inventory sources[{index}]"
-        if type(value) is not dict or set(value) != expected_keys:
+        is_event = isinstance(value, dict) and "effective_at" in value
+        keys = expected_keys | {"effective_at", "event_type"} if is_event else expected_keys
+        if type(value) is not dict or set(value) != keys:
             _fail(f"{context} has invalid keys")
         if type(value["enabled"]) is not bool:
             _fail(f"{context}.enabled must be a boolean")
@@ -291,8 +305,11 @@ def load_curated_candidacy_sources(
             if not isinstance(value[field], str) or not value[field].strip():
                 _fail(f"{context}.{field} must be non-empty text")
 
-        if value["source_type"] not in allowed_source_types:
-            _fail(f"{context}.source_type must be first-party")
+        if value["source_type"] not in allowed_source_types and not (
+            is_event and value["source_type"] == "primary_result_report"
+            and value["event_type"] == "primary_result"
+        ):
+            _fail(f"{context}.source_type must be first-party or a primary-result report")
         if not value["url"].startswith("https://"):
             _fail(f"{context}.url must use HTTPS")
 
@@ -310,6 +327,26 @@ def load_curated_candidacy_sources(
         if status_as_of < source_date:
             _fail(f"{context}.status_as_of cannot precede source_date")
 
+        if is_event:
+            if not isinstance(value["event_type"], str):
+                _fail(f"{context}.event_type must be text")
+            effective = _utc_instant(value["effective_at"])
+            if not source_date <= effective.date() <= status_as_of:
+                _fail(f"{context}.effective_at must fall between source_date and status_as_of")
+            event_statuses = {
+                "primary_result": {"party_selected", "primary_eliminated"},
+                "declaration": {"declared"},
+                "withdrawal": {"withdrawn"},
+                "selection": {"party_selected"},
+                "ruled_out": {"ruled_out"},
+            }
+            if value["status"] not in event_statuses.get(value["event_type"], set()):
+                _fail(f"{context} has incompatible event_type and status")
+            event_key = (value["candidate_id"], value["effective_at"])
+            if event_key in seen_event_instants:
+                _fail(f"ambiguous simultaneous lifecycle events: {event_key}")
+            seen_event_instants.add(event_key)
+
         try:
             candidate_id(value["candidate_name"])
             display_tier_for_status(value["status"])
@@ -322,13 +359,14 @@ def load_curated_candidacy_sources(
 
         if value["source_id"] in seen_source_ids:
             _fail(f"duplicate candidacy source_id: {value['source_id']}")
-        if value["candidate_id"] in seen_candidate_ids:
+        if not is_event and value["candidate_id"] in seen_candidate_ids:
             _fail(
                 "multiple enabled curated candidacy sources for candidate: "
                 f"{value['candidate_id']}"
             )
         seen_source_ids.add(value["source_id"])
-        seen_candidate_ids.add(value["candidate_id"])
+        if not is_event:
+            seen_candidate_ids.add(value["candidate_id"])
 
         records.append(
             CuratedCandidacySource(
@@ -343,10 +381,59 @@ def load_curated_candidacy_sources(
                 status=value["status"],
                 status_as_of=value["status_as_of"],
                 status_note=value["status_note"],
+                effective_at=value.get("effective_at"),
+                event_type=value.get("event_type"),
             )
         )
 
-    return tuple(sorted(records, key=lambda item: item.candidate_id))
+    return tuple(sorted(records, key=lambda item: (item.candidate_id, item.effective_at or "")))
+
+
+def apply_lifecycle_events(
+    records: list[dict[str, Any]],
+    sources: tuple[CuratedCandidacySource, ...],
+    *,
+    as_of: str,
+) -> None:
+    """Apply the latest effective authoritative event, independently of page presence.
+
+    Wikipedia revision dates describe page edits, not new candidacy decisions.
+    Only a newer dated authoritative event supersedes an accepted lifecycle event.
+    Historical rebuilds must use a last-good registry from that historical period.
+    """
+    instant = _utc_instant(as_of)
+    by_id = {record["candidate_id"]: record for record in records}
+    latest: dict[str, CuratedCandidacySource] = {}
+    seen_instants: set[tuple[str, str]] = set()
+    for source in sources:
+        if source.effective_at is None:
+            continue
+        event_key = (source.candidate_id, source.effective_at)
+        if event_key in seen_instants:
+            _fail(f"ambiguous simultaneous lifecycle events: {event_key}")
+        seen_instants.add(event_key)
+        if _utc_instant(source.effective_at) > instant:
+            continue
+        previous = latest.get(source.candidate_id)
+        if previous is None or source.effective_at > previous.effective_at:
+            latest[source.candidate_id] = source
+    for identifier, source in latest.items():
+        record = by_id.get(identifier)
+        if record is None or normalized_candidate_key(source.candidate_name) not in {
+            normalized_candidate_key(name)
+            for name in [record["candidate_name"], *record["previous_names"]]
+        }:
+            _fail(f"lifecycle event does not match a registered identity: {identifier}")
+        record.update({
+            "status": source.status,
+            "display_tier": display_tier_for_status(source.status),
+            "status_as_of": source.effective_at[:10],
+            "source_date": source.source_date,
+            "source_url": source.url,
+            "source_title": source.source_title,
+            "source_publisher": source.publisher,
+            "status_note": source.status_note,
+        })
 
 
 @dataclass(frozen=True)
@@ -1614,6 +1701,7 @@ def _build_payload_details(
     supplemental_candidates: tuple[ExtractedCandidate, ...] = (),
     supplemental_revision: RevisionSnapshot | None = None,
     curated_sources: tuple[CuratedCandidacySource, ...] = (),
+    as_of: str | None = None,
     article_resolver: Callable[[str], dict[str, Any]] | None = None,
     article_fetch_json: FetchJson | None = None,
 ) -> tuple[
@@ -1624,6 +1712,28 @@ def _build_payload_details(
     tuple[tuple[str, str, str], ...],
     tuple[dict[str, Any], ...],
 ]:
+    as_of = as_of or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    _utc_instant(as_of)
+    if revision.revision_timestamp > as_of or (
+        supplemental_revision is not None and supplemental_revision.revision_timestamp > as_of
+    ):
+        _fail("historical rebuild requires source revisions at or before as_of")
+    if previous_registry is not None and previous_registry["status_as_of"] > as_of[:10]:
+        _fail("historical rebuild requires a last-good registry at or before as_of")
+    if previous_registry is not None and (
+        previous_registry.get("source", {}).get("revision_timestamp", "") > as_of
+    ):
+        _fail("historical rebuild requires a last-good registry revision at or before as_of")
+    if previous_registry is not None:
+        for source in curated_sources:
+            if source.effective_at is not None and source.effective_at > as_of:
+                if any(
+                    row["candidate_id"] == source.candidate_id
+                    and row["status"] == source.status
+                    and row["source_url"] == source.url
+                    for row in previous_registry["candidates"]
+                ):
+                    _fail("historical rebuild requires a registry from before the lifecycle event")
     extracted = extract_candidates(parsed_html)
     if supplemental_candidates:
         extracted = merge_candidate_extractions(
@@ -1670,7 +1780,10 @@ def _build_payload_details(
     new_ids: list[str] = []
     name_changes: list[tuple[str, str, str]] = []
     present_ids: set[str] = set()
-    curated_by_id = {source.candidate_id: source for source in curated_sources}
+    curated_by_id = {
+        source.candidate_id: source for source in curated_sources
+        if source.effective_at is None and source.status_as_of <= as_of[:10]
+    }
 
     for candidate in extracted:
         previous = matches[candidate.candidate_name]
@@ -1794,6 +1907,7 @@ def _build_payload_details(
         )
         records.append(retained)
 
+    apply_lifecycle_events(records, curated_sources, as_of=as_of)
     records.sort(
         key=lambda candidate: (
             candidate["candidate_name"].casefold(),
@@ -1839,6 +1953,8 @@ def build_payload(
     previous_registry: dict[str, Any] | None = None,
     supplemental_candidates: tuple[ExtractedCandidate, ...] = (),
     supplemental_revision: RevisionSnapshot | None = None,
+    curated_sources: tuple[CuratedCandidacySource, ...] = (),
+    as_of: str | None = None,
     article_resolver: Callable[[str], dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], tuple[ExtractedCandidate, ...]]:
     """Build and validate one deterministic schema-v2 registry payload."""
@@ -1850,6 +1966,8 @@ def build_payload(
             previous_registry=previous_registry,
             supplemental_candidates=supplemental_candidates,
             supplemental_revision=supplemental_revision,
+            curated_sources=curated_sources,
+            as_of=as_of,
             article_resolver=article_resolver,
         )
     )
@@ -1861,6 +1979,7 @@ def fetch_candidate_candidacy_status(
     *,
     previous_registry: dict[str, Any] | None = None,
     curated_sources: tuple[CuratedCandidacySource, ...] = (),
+    as_of: str | None = None,
 ) -> FetchResult:
     """Fetch metadata, parse its exact revision, and build the registry."""
 
@@ -1893,6 +2012,7 @@ def fetch_candidate_candidacy_status(
             supplemental_candidates=supplemental_candidates,
             supplemental_revision=supplemental_revision,
             curated_sources=curated_sources,
+            as_of=as_of,
             article_fetch_json=fetch_json,
         )
     except CandidateCandidacyFetchError as error:
@@ -1968,6 +2088,10 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
+        "--as-of",
+        help="UTC lifecycle cutoff (default: current UTC time); historical inputs must precede it",
+    )
+    parser.add_argument(
         "--sources",
         type=Path,
         default=DEFAULT_SOURCES_PATH,
@@ -2002,6 +2126,7 @@ def main(argv: list[str] | None = None) -> int:
     result = fetch_candidate_candidacy_status(
         previous_registry=previous_registry,
         curated_sources=load_curated_candidacy_sources(args.sources),
+        as_of=args.as_of,
     )
     write_payload_atomic(result.payload, args.output)
     counts: dict[str, int] = {}
