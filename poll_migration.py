@@ -1299,8 +1299,15 @@ def _reviewed_ineligible_first_round_table(table: object) -> bool:
                 or metadata[-1].xpath(".//a")):
             return False
         for cell in metadata[3:-1]:
-            if text(cell) or any(not link.startswith("/wiki/Fichier:")
-                                 for link in cell.xpath(".//a/@href")):
+            if text(cell) or any(
+                not link.startswith(
+                    (
+                        "/wiki/Fichier:",
+                        "https://fr.wikipedia.org/wiki/Fichier:",
+                    )
+                )
+                for link in cell.xpath(".//a/@href")
+            ):
                 return False
         for cell, expected_name in zip(names, expected):
             links = cell.xpath(".//a/@href")
@@ -1668,6 +1675,147 @@ def _french_other_candidates(cell: object) -> list[dict[str, Any]]:
     return result
 
 
+def _apply_reviewed_ifop_10314_arthaud_zero_correction(
+    record: dict[str, Any],
+) -> dict[str, Any]:
+    """Remove only two reviewed spurious Arthaud=0 renderings.
+
+    Notice 10314 contains four first-round configurations.
+    Two configurations do not include Nathalie Arthaud, but a later
+    French-Wikipedia rendering exposed her as 0 in those rows.
+
+    The two exact candidate/score fingerprints below are reviewed.
+    The other notice-10314 configurations remain untouched.
+    Unknown changes at these reviewed source rows fail closed.
+    """
+
+    source_url = (
+        "https://www.commission-des-sondages.fr/notices/files/"
+        "notices/2026/octobre/"
+        "10314-pres-climat-politique-post-primaire-"
+        "ps-pp-ifop-lci-14-octobre.pdf"
+    )
+
+    if record.get("source_url") != source_url:
+        return record
+
+    try:
+        key = exact_factual_key(
+            record,
+            sample_scope=record.get(
+                "sample_scope",
+                "reported",
+            ),
+        )
+    except ValueError:
+        return record
+
+    if (
+        key.round != FIRST_ROUND
+        or key.pollster_identity != "ifop"
+        or key.fieldwork_start != "2026-10-12"
+        or key.fieldwork_end != "2026-10-14"
+        or key.sample_size != 1390
+        or key.sample_scope != "reported"
+    ):
+        return record
+
+    reviewed = (
+        {
+            "bruno-retailleau": "5",
+            "david-lisnard": "6",
+            "dominique-de-villepin": "1.5",
+            "edouard-philippe": "13",
+            "eric-zemmour": "3",
+            "fabien-roussel": "2",
+            "francois-ruffin": "2",
+            "gabriel-attal": "5",
+            "jean-luc-melenchon": "16",
+            "marine-le-pen": "32",
+            "marine-tondelier": "2",
+            "nicolas-dupont-aignan": "1",
+            "raphael-glucksmann": "11.5",
+        },
+        {
+            "bruno-retailleau": "6.5",
+            "edouard-philippe": "14",
+            "eric-zemmour": "3",
+            "fabien-roussel": "2.5",
+            "gabriel-attal": "6",
+            "jean-luc-melenchon": "16",
+            "marine-le-pen": "34",
+            "marine-tondelier": "2",
+            "nicolas-dupont-aignan": "2",
+            "raphael-glucksmann": "14",
+        },
+    )
+
+    canonical_keys = [
+        tuple(sorted(scenario.items()))
+        for scenario in reviewed
+    ]
+
+    erroneous_keys = []
+
+    for scenario in reviewed:
+        expanded = dict(scenario)
+        expanded["nathalie-arthaud"] = "0"
+
+        erroneous_keys.append(
+            tuple(sorted(expanded.items()))
+        )
+
+    # Source repaired: leave canonical facts untouched.
+    if key.candidates in canonical_keys:
+        return record
+
+    if key.candidates in erroneous_keys:
+        scenario_index = erroneous_keys.index(
+            key.candidates
+        )
+
+        corrected = copy.deepcopy(record)
+
+        corrected["candidates"] = [
+            candidate
+            for candidate in corrected["candidates"]
+            if candidate_identity(
+                candidate["name"]
+            ) != "nathalie-arthaud"
+        ]
+
+        corrected_key = exact_factual_key(
+            corrected,
+            sample_scope=corrected.get(
+                "sample_scope",
+                "reported",
+            ),
+        )
+
+        if (
+            corrected_key.candidates
+            != canonical_keys[scenario_index]
+        ):
+            raise ValueError(
+                "reviewed Ifop 10314 correction did not "
+                "produce canonical candidate facts"
+            )
+
+        return corrected
+
+    # These are the two currently reviewed rendered positions.
+    # A different representation at either one requires review.
+    if record.get("source_locator") in {
+        "FR-T0R4",
+        "FR-T0R7",
+    }:
+        raise ValueError(
+            "reviewed Ifop 10314 source representation changed"
+        )
+
+    return record
+
+
 def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
     """Parse the two audited French table families from frozen rendered HTML."""
 
@@ -1805,16 +1953,19 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
                 continue
             if len(candidates) < 3:
                 continue
+            record = _frozen_record(
+                locator=locator,
+                round_name=FIRST_ROUND,
+                pollster=pollster,
+                start=start,
+                end=end,
+                sample_size=sample_size,
+                candidates=candidates,
+                source_url=urljoin("https://fr.wikipedia.org", source_url),
+            )
             first_round.append(
-                _frozen_record(
-                    locator=locator,
-                    round_name=FIRST_ROUND,
-                    pollster=pollster,
-                    start=start,
-                    end=end,
-                    sample_size=sample_size,
-                    candidates=candidates,
-                    source_url=urljoin("https://fr.wikipedia.org", source_url),
+                _apply_reviewed_ifop_10314_arthaud_zero_correction(
+                    record
                 )
             )
 
