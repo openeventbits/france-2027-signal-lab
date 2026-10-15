@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError, fields
+from dataclasses import FrozenInstanceError, fields, replace
 import importlib
 from pathlib import Path
 import socket
@@ -94,6 +94,20 @@ class CampaignEventAttributionTests(unittest.TestCase):
         assert attributed is not None
         self.assertEqual(attributed.candidate_ids, expected)
         return attributed
+
+    def test_structured_single_and_batch_attribution_use_each_event_time(self):
+        before = structured_event("Meeting public", participants=("Jérôme Guedj",))
+        after = replace(before, scheduled_start="2026-10-12T19:00:00+02:00")
+        self.assertEqual(self.attribute(before).candidate_ids, ("jerome-guedj",))
+        self.assertEqual(self.attribute(after).candidate_ids, ())
+        batch = attribute_structured_events((after, before), source=EXPLICIT_SOURCE)
+        self.assertEqual([row.candidate_ids for row in batch.accepted], [(), ("jerome-guedj",)])
+        self.assertEqual(batch.accepted[0].structured_event.participants, ("Jérôme Guedj",))
+        owned = source("candidate_owned_campaign", source_type="candidate_first_party",
+                       candidate_ids=["jerome-guedj"])
+        self.assertEqual(self.attribute(before, owned).candidate_ids, ("jerome-guedj",))
+        with self.assertRaises(CandidateAttributionConfigurationError):
+            self.attribute(after, owned)
 
     def test_plain_name_mentions_do_not_attribute(self):
         for title in (

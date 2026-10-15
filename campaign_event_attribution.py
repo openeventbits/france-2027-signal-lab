@@ -10,6 +10,7 @@ from typing import Any, Iterable, Literal
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
     active_candidate_records,
+    active_candidate_records_as_of,
     load_candidate_candidacy_status,
 )
 from candidate_identity import CandidateIdentityError, normalized_candidate_key
@@ -169,12 +170,29 @@ def _candidate_sort_key(candidate: _Candidate) -> tuple[str, str]:
     return candidate.candidate_name.casefold(), candidate.candidate_id
 
 
+def _load_candidate_registry(path: str | Path) -> dict[str, Any]:
+    try:
+        return load_candidate_candidacy_status(path)
+    except (OSError, json.JSONDecodeError, CandidateCandidacyStatusError) as error:
+        raise CandidateAttributionConfigurationError(
+            f"candidate registry is unavailable or invalid: {error}"
+        ) from error
+
+
 def _load_active_candidates(
-    path: str | Path,
+    path: str | Path, effective_at: str | None = None,
+) -> tuple[tuple[_Candidate, ...], dict[str, _Candidate]]:
+    return _candidates_as_of(_load_candidate_registry(path), effective_at)
+
+
+def _candidates_as_of(
+    registry: dict[str, Any], effective_at: str | None,
 ) -> tuple[tuple[_Candidate, ...], dict[str, _Candidate]]:
     try:
-        registry = load_candidate_candidacy_status(path)
-        active_records = active_candidate_records(registry)
+        active_records = (
+            active_candidate_records(registry) if effective_at is None
+            else active_candidate_records_as_of(registry, effective_at)
+        )
     except (OSError, json.JSONDecodeError, CandidateCandidacyStatusError) as error:
         raise CandidateAttributionConfigurationError(
             f"candidate registry is unavailable or invalid: {error}"
@@ -211,11 +229,12 @@ def _load_active_candidates(
 def match_active_candidate_participants(
     participants: Iterable[str],
     *,
+    effective_at: str,
     candidate_registry_path: str | Path = _DEFAULT_CANDIDATE_REGISTRY,
 ) -> tuple[tuple[str, str], ...]:
-    """Return exact canonical active-candidate matches for participant labels."""
+    """Return exact canonical participant matches eligible at the event time."""
 
-    active_candidates, _ = _load_active_candidates(candidate_registry_path)
+    active_candidates, _ = _load_active_candidates(candidate_registry_path, effective_at)
     try:
         supplied = tuple(participants)
     except TypeError as error:
@@ -507,8 +526,10 @@ def attribute_structured_event(
     """Attribute one record, returning ``None`` for a normal no-match result."""
 
     policy = _source_policy(source)
+    if not isinstance(event, StructuredEventRecord):
+        raise CandidateAttributionConfigurationError("event must be a StructuredEventRecord")
     active_candidates, active_by_id = _load_active_candidates(
-        candidate_registry_path
+        candidate_registry_path, event.scheduled_start
     )
     return _attribute_with_context(
         event,
@@ -528,9 +549,7 @@ def attribute_structured_events(
     """Attribute a deterministic batch and count ordinary no-match records."""
 
     policy = _source_policy(source)
-    active_candidates, active_by_id = _load_active_candidates(
-        candidate_registry_path
-    )
+    registry = _load_candidate_registry(candidate_registry_path)
     try:
         supplied_events = tuple(events)
     except TypeError as error:
@@ -541,6 +560,11 @@ def attribute_structured_events(
     accepted: list[AttributedStructuredEvent] = []
     rejected_records = 0
     for event in supplied_events:
+        if not isinstance(event, StructuredEventRecord):
+            raise CandidateAttributionConfigurationError("event must be a StructuredEventRecord")
+        active_candidates, active_by_id = _candidates_as_of(
+            registry, event.scheduled_start
+        )
         attributed = _attribute_with_context(
             event,
             source=source,

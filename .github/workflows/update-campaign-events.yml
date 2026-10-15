@@ -13,6 +13,9 @@ on:
       - "campaign_events_contract.py"
       - "campaign_event_*.py"
       - "candidate_candidacy_status.py"
+      - "candidate_candidacy_sources.json"
+      - "test_candidate_lifecycle.py"
+      - "test_tf1_lci_adapter.py"
       - "la_lettre_expansion_adapter.py"
       - "rn_agenda_adapter.py"
       - "tf1_lci_adapter.py"
@@ -34,6 +37,9 @@ on:
       - "campaign_events_contract.py"
       - "campaign_event_*.py"
       - "candidate_candidacy_status.py"
+      - "candidate_candidacy_sources.json"
+      - "test_candidate_lifecycle.py"
+      - "test_tf1_lci_adapter.py"
       - "la_lettre_expansion_adapter.py"
       - "rn_agenda_adapter.py"
       - "tf1_lci_adapter.py"
@@ -75,6 +81,9 @@ jobs:
             test_update_campaign_event \
             test_import_campaign_events \
             test_build_campaign_events \
+            test_candidate_lifecycle \
+            test_campaign_event_attribution \
+            test_tf1_lci_adapter \
             test_publication_manifest.PublicationManifestTests.test_campaign_events_lane_metadata \
             test_publication_manifest.PublicationManifestTests.test_tracked_campaign_events_lane_metadata \
             test_publication_manifest.PublicationManifestTests.test_manual_workflow_no_churn_sequence_matches_both_tracked_outputs \

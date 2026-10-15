@@ -19,7 +19,7 @@ from campaign_event_observation import build_campaign_event_observations
 from campaign_event_structured import StructuredEventRecord
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
-    active_candidate_ids,
+    active_candidate_records_as_of,
     candidacy_status_by_id,
     load_candidate_candidacy_status,
 )
@@ -279,11 +279,10 @@ def parse_tf1_lci_html(html: bytes | str) -> tuple[StructuredEventRecord, ...]:
 
 def _canonical_candidates(
     candidate_registry_path: str | Path,
-) -> tuple[dict[str, tuple[str, str]], frozenset[str]]:
+) -> tuple[dict[str, tuple[str, str]], dict[str, Any]]:
     try:
         registry = load_candidate_candidacy_status(candidate_registry_path)
         by_id = candidacy_status_by_id(registry)
-        active_ids = set(active_candidate_ids(registry))
     except (OSError, ValueError, CandidateCandidacyStatusError) as error:
         raise CandidateAttributionConfigurationError(
             f"canonical candidate registry is unavailable or invalid: {error}"
@@ -297,7 +296,7 @@ def _canonical_candidates(
                 f"TF1/LCI identity: {candidate_id} -> {expected_name}"
             )
         resolved[candidate_id] = (candidate_id, entry["candidate_name"])
-    return resolved, frozenset(active_ids)
+    return resolved, registry
 
 
 def _attributed_record(
@@ -342,7 +341,7 @@ def attribute_tf1_lci_events(
             _SECOND_DEBATE_CANDIDATE_IDS,
         ),
     )
-    candidates, active_ids = _canonical_candidates(candidate_registry_path)
+    candidates, registry = _canonical_candidates(candidate_registry_path)
     accepted: list[AttributedStructuredEvent] = []
     rejected_records = 0
     for event, (scheduled_start, organization, candidate_ids) in zip(
@@ -356,6 +355,15 @@ def attribute_tf1_lci_events(
             raise Tf1LciAdapterError(
                 "TF1/LCI custom attribution received unexpected event facts"
             )
+        try:
+            active_ids = {
+                row["candidate_id"]
+                for row in active_candidate_records_as_of(registry, event.scheduled_start)
+            }
+        except CandidateCandidacyStatusError as error:
+            raise CandidateAttributionConfigurationError(
+                f"canonical candidate lifecycle is invalid: {error}"
+            ) from error
         active_candidate_ids = tuple(
             candidate_id
             for candidate_id in candidate_ids

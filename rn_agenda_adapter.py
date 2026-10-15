@@ -12,7 +12,10 @@ from typing import Any, Callable, Iterator
 from zoneinfo import ZoneInfo
 
 from campaign_events_contract import campaign_event_id
-from candidate_candidacy_status import load_candidate_candidacy_status
+from candidate_candidacy_status import (
+    active_candidate_records_as_of,
+    load_candidate_candidacy_status,
+)
 from http_fetch import HttpFetchResult, fetch_news_route
 
 __all__ = [
@@ -389,7 +392,7 @@ def _extract_card(card: _Node, index: int) -> dict[str, Any]:
     }
 
 
-def _canonical_candidate_mapping() -> dict[str, str]:
+def _canonical_candidate_mapping() -> tuple[dict[str, str], dict[str, Any]]:
     try:
         registry = load_candidate_candidacy_status(_CANDIDATE_REGISTRY)
     except (OSError, ValueError) as error:
@@ -399,7 +402,7 @@ def _canonical_candidate_mapping() -> dict[str, str]:
     return {
         candidate["candidate_name"]: candidate["candidate_id"]
         for candidate in registry["candidates"]
-    }
+    }, registry
 
 
 def _contains_full_name(text: str, name: str) -> bool:
@@ -513,13 +516,22 @@ def parse_rn_agenda_html(
     except (ValueError, AssertionError) as error:
         raise RnAgendaAdapterError(f"RN agenda HTML is malformed: {error}") from error
 
-    canonical_candidates = _canonical_candidate_mapping()
+    canonical_candidates, registry = _canonical_candidate_mapping()
 
     events_by_key: dict[str, tuple[dict[str, Any], tuple[str, str]]] = {}
     for index, node in enumerate(_agenda_cards(parser.root)):
         card = _extract_card(node, index)
         event = _build_event(card, canonical_observed_at, canonical_candidates)
         if event is None:
+            continue
+        try:
+            eligible_ids = {
+                row["candidate_id"]
+                for row in active_candidate_records_as_of(registry, event["scheduled_start"])
+            }
+        except ValueError as error:
+            raise RnAgendaAdapterError(f"candidate lifecycle is invalid: {error}") from error
+        if not set(event["candidate_ids"]).issubset(eligible_ids):
             continue
         identity = event["event_key"]
         semantics = (repr(event), card["description"])

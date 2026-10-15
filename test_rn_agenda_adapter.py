@@ -1,11 +1,14 @@
 import copy
 import importlib
 import json
+from pathlib import Path
 import socket
 import sys
 import unittest
+from dataclasses import replace
 from unittest import mock
 
+from candidate_candidacy_status import load_curated_candidacy_sources
 from http_fetch import HttpFetchResult
 from rn_agenda_adapter import (
     RN_AGENDA_URL,
@@ -166,6 +169,19 @@ class RnAgendaAdapterTests(unittest.TestCase):
                 ],
             },
         )
+
+    def test_future_withdrawal_preserves_past_linkage_but_excludes_later_event(self):
+        base = next(source for source in load_curated_candidacy_sources() if source.effective_at)
+        withdrawal = replace(base, candidate_id="marine-le-pen", candidate_name="Marine Le Pen",
+                             event_type="withdrawal", status="withdrawn", prior_status="declared",
+                             effective_at="2026-08-28T12:00:00Z")
+        with mock.patch("candidate_candidacy_status.load_curated_candidacy_sources",
+                        return_value=(withdrawal,)):
+            self.assertEqual(self.parse()[0]["candidate_ids"], ["marine-le-pen"])
+        earlier = replace(withdrawal, effective_at="2026-08-26T12:00:00Z")
+        with mock.patch("candidate_candidacy_status.load_curated_candidacy_sources",
+                        return_value=(earlier,)):
+            self.assertEqual(self.parse(), [])
 
     def test_global_header_and_footer_dates_are_ignored(self):
         event = self.parse()[0]
@@ -360,14 +376,7 @@ class RnAgendaAdapterTests(unittest.TestCase):
         )
 
     def test_canonical_marine_le_pen_pair_is_accepted(self):
-        registry = {
-            "candidates": [
-                {
-                    "candidate_name": "Marine Le Pen",
-                    "candidate_id": "marine-le-pen",
-                }
-            ]
-        }
+        registry = json.loads(Path(__file__).with_name("candidate_candidacy_status.json").read_text(encoding="utf-8"))
         with mock.patch(
             "rn_agenda_adapter.load_candidate_candidacy_status",
             return_value=registry,
@@ -398,14 +407,6 @@ class RnAgendaAdapterTests(unittest.TestCase):
             self.assert_parser_error(page(card()), "must contain exactly")
 
     def test_candidate_registry_loads_once_for_multiple_cards(self):
-        registry = {
-            "candidates": [
-                {
-                    "candidate_name": "Marine Le Pen",
-                    "candidate_id": "marine-le-pen",
-                }
-            ]
-        }
         winter_description = (
             "Marine Le Pen participera à un débat de la campagne présidentielle "
             "le 15 janvier 2027 à 19h30."
@@ -417,6 +418,7 @@ class RnAgendaAdapterTests(unittest.TestCase):
             title="Marine Le Pen en débat en janvier",
             description=winter_description,
         )
+        registry = json.loads(Path(__file__).with_name("candidate_candidacy_status.json").read_text(encoding="utf-8"))
         with mock.patch(
             "rn_agenda_adapter.load_candidate_candidacy_status",
             return_value=registry,

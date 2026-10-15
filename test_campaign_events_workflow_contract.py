@@ -32,6 +32,9 @@ class CampaignEventsWorkflowContractTests(unittest.TestCase):
         for dependency_path in (
             "campaign_event_*.py",
             "candidate_candidacy_status.py",
+            "candidate_candidacy_sources.json",
+            "test_candidate_lifecycle.py",
+            "test_tf1_lci_adapter.py",
             "la_lettre_expansion_adapter.py",
             "rn_agenda_adapter.py",
             "tf1_lci_adapter.py",
@@ -65,6 +68,9 @@ class CampaignEventsWorkflowContractTests(unittest.TestCase):
             "test_update_campaign_event",
             "test_import_campaign_events",
             "test_build_campaign_events",
+            "test_candidate_lifecycle",
+            "test_campaign_event_attribution",
+            "test_tf1_lci_adapter",
             "test_publication_manifest",
             "test_campaign_events_workflow_contract",
         ):

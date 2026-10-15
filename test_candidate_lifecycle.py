@@ -17,6 +17,8 @@ from candidate_candidacy_status import (
     active_candidate_ids,
     active_candidate_names,
     active_candidate_records,
+    active_candidate_records_as_of,
+    candidate_state_as_of,
     semantic_sha256,
 )
 from candidate_page_contract import project_candidate_page_lifecycle
@@ -122,6 +124,33 @@ class CandidateLifecycleTests(unittest.TestCase):
             previous=reactivated, sources=sources, as_of=declaration.effective_at,
         ))
 
+    def test_as_of_projection_handles_withdrawal_and_missing_prior_evidence(self):
+        registry = self.build()
+        source = next(row for row in self.sources if row.candidate_name == LOSERS[0])
+        candidate = next(row for row in registry["candidates"] if row["candidate_id"] == source.candidate_id)
+        for status, event_type in (("withdrawn", "withdrawal"), ("ruled_out", "ruled_out"),
+                                   ("party_selected", "selection"), ("declared", "declaration")):
+            event = replace(source, status=status, event_type=event_type, prior_status="declared")
+            with self.subTest(status=status):
+                self.assertEqual(candidate_state_as_of(candidate, BEFORE, sources=(event,)), "declared")
+                self.assertEqual(candidate_state_as_of(candidate, EFFECTIVE, sources=(event,)), status)
+        unknown = replace(source, prior_status=None)
+        self.assertIsNone(candidate_state_as_of(candidate, BEFORE, sources=(unknown,)))
+        self.assertNotIn(candidate, active_candidate_records_as_of(registry, BEFORE, sources=(unknown,)))
+
+    def test_as_of_projection_uses_paris_date_boundary_not_utc_date(self):
+        registry = self.build()
+        source = next(row for row in self.sources if row.candidate_name == LOSERS[0])
+        # This UTC evening instant is already October 12 in Paris.
+        event = replace(source, effective_at="2026-10-11T22:30:00Z")
+        self.assertIn(source.candidate_id, [row["candidate_id"] for row in
+                      active_candidate_records_as_of(registry, "2026-10-12", sources=(event,))])
+        self.assertNotIn(source.candidate_id, [row["candidate_id"] for row in
+                         active_candidate_records_as_of(registry, "2026-10-13", sources=(event,))])
+        at_midnight = replace(source, effective_at="2026-10-11T22:00:00Z")
+        self.assertNotIn(source.candidate_id, [row["candidate_id"] for row in
+                         active_candidate_records_as_of(registry, "2026-10-12", sources=(at_midnight,))])
+
     def test_visibility_observations_do_not_change_with_current_status(self):
         before = self.build(as_of=BEFORE)
         after = self.build()
@@ -179,6 +208,8 @@ class CandidateLifecycleTests(unittest.TestCase):
             {"event_type": "declaration"},
             {"event_type": []},
             {"status": "declared"},
+            {"prior_status": "unknown"},
+            {"prior_status": []},
         ):
             variants.append({**event, **update})
         with tempfile.TemporaryDirectory() as directory:
@@ -200,11 +231,16 @@ class CandidateLifecycleTests(unittest.TestCase):
             "status": "declared", "event_type": "declaration",
             "source_date": "2026-10-20", "status_as_of": "2026-10-20",
             "effective_at": "2026-10-20T12:00:00Z",
+            "prior_status": "primary_eliminated",
         }
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "sources.json"
             path.write_text(json.dumps({**payload, "sources": [declaration, event]}), encoding="utf-8")
             sources = collector.load_curated_candidacy_sources(path)
+            inconsistent = {**declaration, "prior_status": "declared"}
+            path.write_text(json.dumps({**payload, "sources": [event, inconsistent]}), encoding="utf-8")
+            with self.assertRaisesRegex(collector.CandidateCandidacyFetchError, "inconsistent prior_status"):
+                collector.load_curated_candidacy_sources(path)
         self.assertEqual([source.source_id for source in sources], [event["source_id"], "later-declaration"])
 
     def test_future_legacy_source_does_not_rewrite_historical_state(self):

@@ -238,6 +238,7 @@ def _normalize_event(
     try:
         candidate_pairs = match_active_candidate_participants(
             participants,
+            effective_at=scheduled_start,
             candidate_registry_path=candidate_registry_path,
         )
     except CandidateAttributionConfigurationError as error:

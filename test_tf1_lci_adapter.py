@@ -4,6 +4,7 @@ import json
 import socket
 import sys
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -11,9 +12,11 @@ from campaign_event_attribution import CandidateAttributionConfigurationError
 from campaign_event_sources import load_campaign_event_source_registry
 from campaign_event_structured import StructuredEventRecord
 from candidate_candidacy_status import (
+    CandidateCandidacyStatusError,
     active_candidate_ids,
     candidacy_status_by_id,
     load_candidate_candidacy_status,
+    load_curated_candidacy_sources,
 )
 from http_fetch import HttpFetchResult
 from tf1_lci_adapter import (
@@ -106,6 +109,24 @@ class Tf1LciAdapterTests(unittest.TestCase):
             "https://www.tf1info.fr/politique/election-presidentielle-2027-lci-organisera-le-27-aout-un-grand-debat-avec-sept-candidats-declares-ou-pressentis-2455591.html",
         )
 
+    def test_custom_attribution_uses_event_time_for_later_withdrawal(self):
+        base = next(source for source in load_curated_candidacy_sources() if source.effective_at)
+        withdrawal = replace(base, candidate_id="edouard-philippe", candidate_name="Édouard Philippe",
+                             event_type="withdrawal", status="withdrawn", prior_status="declared",
+                             effective_at="2026-08-28T12:00:00Z")
+        with mock.patch("candidate_candidacy_status.load_curated_candidacy_sources",
+                        return_value=(withdrawal,)):
+            batch = attribute_tf1_lci_events(parse_tf1_lci_html(page()))
+        self.assertEqual(len(batch.accepted), 1)
+        self.assertIn("edouard-philippe", batch.accepted[0].candidate_ids)
+        self.assertEqual(batch.rejected_records, 1)
+
+    def test_invalid_lifecycle_inventory_remains_configuration_error(self):
+        with mock.patch("tf1_lci_adapter.active_candidate_records_as_of",
+                        side_effect=CandidateCandidacyStatusError("invalid inventory")):
+            with self.assertRaises(CandidateAttributionConfigurationError):
+                attribute_tf1_lci_events(parse_tf1_lci_html(page()))
+
     def test_news_article_body_yields_two_structured_records(self):
         records = parse_tf1_lci_html(page())
         self.assertEqual(len(records), 2)
@@ -159,8 +180,8 @@ class Tf1LciAdapterTests(unittest.TestCase):
             "tf1_lci_adapter.candidacy_status_by_id",
             return_value=by_id,
         ), mock.patch(
-            "tf1_lci_adapter.active_candidate_ids",
-            return_value=active_ids,
+            "tf1_lci_adapter.active_candidate_records_as_of",
+            return_value=[by_id[identifier] for identifier in active_ids if identifier in by_id],
         ):
             return attribute_tf1_lci_events(parse_tf1_lci_html(page()))
 

@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 import shutil
 import socket
 import unittest
@@ -16,6 +17,7 @@ from campaign_events_contract import (
 )
 from campaign_event_updates_manual import campaign_event_update_id
 from rn_agenda_adapter import RnAgendaAdapterError
+from candidate_candidacy_status import load_curated_candidacy_sources
 
 
 ROOT = Path(__file__).resolve().parent
@@ -375,6 +377,93 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(published["candidate_ids"], ["david-lisnard"])
         self.assertEqual(published["candidate_names"], ["David Lisnard"])
 
+    def lifecycle_event(self, day, *, time=None, participants=None):
+        event = manual_event(participants=participants or ["Jérôme Guedj"])
+        event.update(date=day, last_verified_at="2026-10-22T12:00:00Z")
+        if time is not None:
+            event["time"] = time
+        return event
+
+    def test_later_elimination_preserves_historical_manual_linkage(self):
+        registry = json.loads((ROOT / "candidate_candidacy_status.json").read_text(encoding="utf-8"))
+        before_registry = json.loads(json.dumps(registry))
+        for row in before_registry["candidates"]:
+            if row["candidate_id"] == "jerome-guedj":
+                row.update(status="primary_contender", display_tier="main")
+        path = self.write_manual_events(self.lifecycle_event("2026-09-03"))
+        before_path = self.temporary_root / "before.json"
+        before = self.build(manual_events_path=path, output_path=before_path,
+                            candidate_registry_path=self.write_json("before-registry.json", before_registry))
+        before_bytes = before_path.read_bytes()
+        after = self.build(manual_events_path=path, generated_at="2099-01-01T00:00:00Z",
+                           preserve_generated_at_from=before_path)
+        self.assertEqual(after, before)
+        self.assertEqual(self.output.read_bytes(), before_bytes)
+        self.assertEqual(after["campaign_events"][0]["candidate_ids"], ["jerome-guedj"])
+        self.assertEqual(after["campaign_events"][0]["candidate_names"], ["Jérôme Guedj"])
+
+    def test_event_time_elimination_boundary_and_raw_participants(self):
+        cases = (("2026-10-10", None, True), ("2026-10-11", None, True),
+                 ("2026-10-12", None, False), ("2026-10-11", "18:29", True),
+                 ("2026-10-11", "18:30", False), ("2026-10-11", "18:31", False))
+        for day, time, linked in cases:
+            with self.subTest(day=day, time=time):
+                artifact = self.build(manual_events_path=self.write_manual_events(
+                    self.lifecycle_event(day, time=time)))
+                event = artifact["campaign_events"][0]
+                self.assertEqual(event["participants"], ["Jérôme Guedj"])
+                self.assertEqual(event["candidate_ids"], ["jerome-guedj"] if linked else [])
+                self.assertEqual(event["candidate_names"], ["Jérôme Guedj"] if linked else [])
+
+    def test_primary_winner_remains_linked_before_and_after_selection(self):
+        for day in ("2026-09-23", "2026-10-12"):
+            with self.subTest(day=day):
+                artifact = self.build(manual_events_path=self.write_manual_events(
+                    self.lifecycle_event(day, participants=["Raphaël Glucksmann"])))
+                event = artifact["campaign_events"][0]
+                self.assertEqual(event["candidate_ids"], ["raphael-glucksmann"])
+                self.assertEqual(event["candidate_names"], ["Raphaël Glucksmann"])
+
+    def test_reactivation_links_later_events_and_preserves_inactive_interval(self):
+        sources = load_curated_candidacy_sources(ROOT / "candidate_candidacy_sources.json")
+        eliminated = next(source for source in sources if source.candidate_id == "jerome-guedj")
+        declaration = replace(eliminated, source_id="later-declaration", event_type="declaration",
+                              source_type="candidate_first_party", status="declared",
+                              prior_status="primary_eliminated", source_date="2026-10-20",
+                              status_as_of="2026-10-20", effective_at="2026-10-20T12:00:00Z")
+        with mock.patch("candidate_candidacy_status.load_curated_candidacy_sources",
+                        return_value=(*sources, declaration)):
+            for day, time, linked in (("2026-09-03", None, True), ("2026-10-12", None, False),
+                                      ("2026-10-20", None, False), ("2026-10-20", "14:00", True),
+                                      ("2026-10-21", None, True)):
+                with self.subTest(day=day, time=time):
+                    artifact = self.build(manual_events_path=self.write_manual_events(
+                        self.lifecycle_event(day, time=time)))
+                    self.assertEqual(artifact["campaign_events"][0]["candidate_ids"],
+                                     ["jerome-guedj"] if linked else [])
+
+    def test_tracked_pre_primary_associations_and_repeated_build_are_byte_identical(self):
+        tracked_path = ROOT / "campaign_events.json"
+        tracked = json.loads(tracked_path.read_text(encoding="utf-8"))
+        rebuilt = self.build(manual_events_path=ROOT / "campaign_events_manual.json",
+                             event_updates_path=ROOT / "campaign_event_updates_manual.json",
+                             generated_at="2099-01-01T00:00:00Z", preserve_generated_at_from=tracked_path)
+        # The Windows checkout uses CRLF; the committed artifact and generator use LF.
+        self.assertEqual(self.output.read_bytes(), tracked_path.read_text(encoding="utf-8").encode("utf-8"))
+        for identifier in ("emmanuel-maurel", "jerome-guedj", "olivier-faure", "segolene-royal",
+                           "raphael-glucksmann"):
+            def associations(payload):
+                return [(row["event_id"], row["scheduled_start"], row["candidate_names"])
+                        for row in payload["campaign_events"] if identifier in row["candidate_ids"]]
+            with self.subTest(candidate=identifier):
+                self.assertTrue(associations(tracked))
+                self.assertEqual(associations(rebuilt), associations(tracked))
+        first_bytes = self.output.read_bytes()
+        self.build(manual_events_path=ROOT / "campaign_events_manual.json",
+                   event_updates_path=ROOT / "campaign_event_updates_manual.json",
+                   generated_at="2099-02-01T00:00:00Z", preserve_generated_at_from=self.output)
+        self.assertEqual(self.output.read_bytes(), first_bytes)
+
     def test_normal_build_never_dispatches_dynamic_collectors_or_network(self):
         path = self.write_manual_events(manual_event())
         with mock.patch.object(builder, "_collect_dynamic_campaign_events", side_effect=AssertionError("dynamic collection invoked")), mock.patch.object(builder, "_dispatch_campaign_event_collection", side_effect=AssertionError("collection dispatch invoked")), mock.patch.object(socket, "create_connection", side_effect=AssertionError("network access attempted")), mock.patch.object(socket, "socket", side_effect=AssertionError("network access attempted")):
@@ -399,7 +488,9 @@ class BuildCampaignEventsTests(unittest.TestCase):
         self.assertEqual(candidate, existing)
         self.assertEqual(candidate_path.read_bytes(), existing_bytes)
 
-    def test_active_to_hidden_manual_participant_changes_linkage_then_stabilizes(self):
+    def test_already_inactive_manual_participant_changes_linkage_then_stabilizes(self):
+        # This undated fixture records inactivity on August 1, before the event.
+        # A later effective-dated transition has a separate preservation test.
         registry_payload = {
             "schema_version": "1.0",
             "status_as_of": "2026-08-01",

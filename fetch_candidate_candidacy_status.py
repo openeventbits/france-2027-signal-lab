@@ -21,6 +21,10 @@ from urllib.request import Request, urlopen
 
 from candidate_candidacy_status import (
     CandidateCandidacyStatusError,
+    CuratedCandidacySource,
+    parse_candidacy_instant as _canonical_utc_instant,
+    load_curated_candidacy_sources as _load_curated_candidacy_sources,
+    apply_lifecycle_events as _apply_lifecycle_events,
     active_candidate_ids,
     display_tier_for_status,
     load_candidate_candidacy_status,
@@ -215,225 +219,31 @@ def effective_rule_for_candidate(
     return section_rule_for_candidate(candidate)
 
 
-@dataclass(frozen=True)
-class CuratedCandidacySource:
-    source_id: str
-    candidate_id: str
-    candidate_name: str
-    source_type: str
-    publisher: str
-    url: str
-    source_date: str
-    source_title: str
-    status: str
-    status_as_of: str
-    status_note: str
-    effective_at: str | None = None
-    event_type: str | None = None
-
-
 def _utc_instant(value: str) -> datetime:
-    if not isinstance(value, str) or not _REVISION_TIMESTAMP.fullmatch(value):
-        _fail("lifecycle timestamp must be canonical UTC YYYY-MM-DDTHH:MM:SSZ")
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as error:
-        raise CandidateCandidacyFetchError("invalid lifecycle timestamp") from error
+        return _canonical_utc_instant(value)
+    except CandidateCandidacyStatusError as error:
+        raise CandidateCandidacyFetchError(str(error)) from error
 
 
 def load_curated_candidacy_sources(
     path: str | Path = DEFAULT_SOURCES_PATH,
 ) -> tuple[CuratedCandidacySource, ...]:
-    """Load curated evidence, including effective-dated authoritative events."""
+    """Compatibility entry point for the canonical candidacy evidence loader."""
     try:
-        payload = json.loads(Path(path).read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise CandidateCandidacyFetchError(
-            f"could not load candidacy source inventory: {error}"
-        ) from error
-
-    if type(payload) is not dict or set(payload) != {"schema_version", "sources"}:
-        _fail("candidacy source inventory must contain schema_version and sources")
-    if payload["schema_version"] != "1.0":
-        _fail("candidacy source inventory schema_version must be exactly '1.0'")
-    if not isinstance(payload["sources"], list):
-        _fail("candidacy source inventory sources must be a list")
-
-    expected_keys = {
-        "source_id",
-        "candidate_id",
-        "candidate_name",
-        "source_type",
-        "publisher",
-        "url",
-        "source_date",
-        "source_title",
-        "status",
-        "status_as_of",
-        "status_note",
-        "enabled",
-    }
-    allowed_source_types = {"candidate_first_party", "party_first_party"}
-    records: list[CuratedCandidacySource] = []
-    seen_source_ids: set[str] = set()
-    seen_candidate_ids: set[str] = set()
-    seen_event_instants: set[tuple[str, str]] = set()
-
-    for index, value in enumerate(payload["sources"]):
-        context = f"candidacy source inventory sources[{index}]"
-        is_event = isinstance(value, dict) and "effective_at" in value
-        keys = expected_keys | {"effective_at", "event_type"} if is_event else expected_keys
-        if type(value) is not dict or set(value) != keys:
-            _fail(f"{context} has invalid keys")
-        if type(value["enabled"]) is not bool:
-            _fail(f"{context}.enabled must be a boolean")
-        if not value["enabled"]:
-            continue
-
-        for field in (
-            "source_id",
-            "candidate_id",
-            "candidate_name",
-            "publisher",
-            "url",
-            "source_date",
-            "source_title",
-            "status",
-            "status_as_of",
-            "status_note",
-        ):
-            if not isinstance(value[field], str) or not value[field].strip():
-                _fail(f"{context}.{field} must be non-empty text")
-
-        if value["source_type"] not in allowed_source_types and not (
-            is_event and value["source_type"] == "primary_result_report"
-            and value["event_type"] == "primary_result"
-        ):
-            _fail(f"{context}.source_type must be first-party or a primary-result report")
-        if not value["url"].startswith("https://"):
-            _fail(f"{context}.url must use HTTPS")
-
-        try:
-            source_date = datetime.strptime(
-                value["source_date"], "%Y-%m-%d"
-            ).date()
-            status_as_of = datetime.strptime(
-                value["status_as_of"], "%Y-%m-%d"
-            ).date()
-        except ValueError as error:
-            raise CandidateCandidacyFetchError(
-                f"{context} has an invalid ISO date"
-            ) from error
-        if status_as_of < source_date:
-            _fail(f"{context}.status_as_of cannot precede source_date")
-
-        if is_event:
-            if not isinstance(value["event_type"], str):
-                _fail(f"{context}.event_type must be text")
-            effective = _utc_instant(value["effective_at"])
-            if not source_date <= effective.date() <= status_as_of:
-                _fail(f"{context}.effective_at must fall between source_date and status_as_of")
-            event_statuses = {
-                "primary_result": {"party_selected", "primary_eliminated"},
-                "declaration": {"declared"},
-                "withdrawal": {"withdrawn"},
-                "selection": {"party_selected"},
-                "ruled_out": {"ruled_out"},
-            }
-            if value["status"] not in event_statuses.get(value["event_type"], set()):
-                _fail(f"{context} has incompatible event_type and status")
-            event_key = (value["candidate_id"], value["effective_at"])
-            if event_key in seen_event_instants:
-                _fail(f"ambiguous simultaneous lifecycle events: {event_key}")
-            seen_event_instants.add(event_key)
-
-        try:
-            candidate_id(value["candidate_name"])
-            display_tier_for_status(value["status"])
-        except (CandidateIdentityError, CandidateCandidacyStatusError) as error:
-            raise CandidateCandidacyFetchError(
-                f"{context} is invalid: {error}"
-            ) from error
-        if re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", value["candidate_id"]) is None:
-            _fail(f"{context}.candidate_id must be lowercase ASCII kebab-case")
-
-        if value["source_id"] in seen_source_ids:
-            _fail(f"duplicate candidacy source_id: {value['source_id']}")
-        if not is_event and value["candidate_id"] in seen_candidate_ids:
-            _fail(
-                "multiple enabled curated candidacy sources for candidate: "
-                f"{value['candidate_id']}"
-            )
-        seen_source_ids.add(value["source_id"])
-        if not is_event:
-            seen_candidate_ids.add(value["candidate_id"])
-
-        records.append(
-            CuratedCandidacySource(
-                source_id=value["source_id"],
-                candidate_id=value["candidate_id"],
-                candidate_name=value["candidate_name"],
-                source_type=value["source_type"],
-                publisher=value["publisher"],
-                url=value["url"],
-                source_date=value["source_date"],
-                source_title=value["source_title"],
-                status=value["status"],
-                status_as_of=value["status_as_of"],
-                status_note=value["status_note"],
-                effective_at=value.get("effective_at"),
-                event_type=value.get("event_type"),
-            )
-        )
-
-    return tuple(sorted(records, key=lambda item: (item.candidate_id, item.effective_at or "")))
+        return _load_curated_candidacy_sources(path)
+    except CandidateCandidacyStatusError as error:
+        raise CandidateCandidacyFetchError(str(error)) from error
 
 
 def apply_lifecycle_events(
-    records: list[dict[str, Any]],
-    sources: tuple[CuratedCandidacySource, ...],
-    *,
-    as_of: str,
+    records: list[dict[str, Any]], sources: tuple[CuratedCandidacySource, ...], *, as_of: str,
 ) -> None:
-    """Apply the latest effective authoritative event, independently of page presence.
-
-    Wikipedia revision dates describe page edits, not new candidacy decisions.
-    Only a newer dated authoritative event supersedes an accepted lifecycle event.
-    Historical rebuilds must use a last-good registry from that historical period.
-    """
-    instant = _utc_instant(as_of)
-    by_id = {record["candidate_id"]: record for record in records}
-    latest: dict[str, CuratedCandidacySource] = {}
-    seen_instants: set[tuple[str, str]] = set()
-    for source in sources:
-        if source.effective_at is None:
-            continue
-        event_key = (source.candidate_id, source.effective_at)
-        if event_key in seen_instants:
-            _fail(f"ambiguous simultaneous lifecycle events: {event_key}")
-        seen_instants.add(event_key)
-        if _utc_instant(source.effective_at) > instant:
-            continue
-        previous = latest.get(source.candidate_id)
-        if previous is None or source.effective_at > previous.effective_at:
-            latest[source.candidate_id] = source
-    for identifier, source in latest.items():
-        record = by_id.get(identifier)
-        if record is None or normalized_candidate_key(source.candidate_name) not in {
-            normalized_candidate_key(name)
-            for name in [record["candidate_name"], *record["previous_names"]]
-        }:
-            _fail(f"lifecycle event does not match a registered identity: {identifier}")
-        record.update({
-            "status": source.status,
-            "display_tier": display_tier_for_status(source.status),
-            "status_as_of": source.effective_at[:10],
-            "source_date": source.source_date,
-            "source_url": source.url,
-            "source_title": source.source_title,
-            "source_publisher": source.publisher,
-            "status_note": source.status_note,
-        })
+    """Use the canonical lifecycle projection when reconciling fetched records."""
+    try:
+        _apply_lifecycle_events(records, sources, as_of=as_of)
+    except CandidateCandidacyStatusError as error:
+        raise CandidateCandidacyFetchError(str(error)) from error
 
 
 @dataclass(frozen=True)
