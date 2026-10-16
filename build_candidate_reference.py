@@ -668,6 +668,83 @@ def _agenda_daily_topic_count(
     return 0
 
 
+def _resolve_featured_poll_observation(
+    signals_payload: dict[str, Any],
+    signals: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Resolve current polling evidence from the featured poll package.
+
+    Poll history is chronological and is not an authority for selecting
+    the Race-at-a-Glance current package. Multiple packages can share the
+    latest fieldwork-end date, so the history tail is not necessarily the
+    featured package.
+    """
+
+    polling = signals["polling"]
+
+    if polling["evidence_state"] != "reported":
+        return None
+
+    poll_history = signals["poll_history"]
+    poll_observations = poll_history.get("observations", [])
+
+    if not poll_observations:
+        raise CandidateReferenceError(
+            "reported polling state has no candidate poll-history observation"
+        )
+
+    featured_package = signals_payload.get(
+        "featured_polling_package"
+    )
+
+    if not isinstance(featured_package, dict):
+        raise CandidateReferenceError(
+            "featured polling package identity is unavailable"
+        )
+
+    featured_package_key = featured_package.get(
+        "package_key"
+    )
+
+    if (
+        not isinstance(featured_package_key, str)
+        or not featured_package_key.strip()
+    ):
+        raise CandidateReferenceError(
+            "featured polling package identity is unavailable"
+        )
+
+    matches = [
+        observation
+        for observation in poll_observations
+        if observation.get("package_key")
+        == featured_package_key
+    ]
+
+    if len(matches) != 1:
+        raise CandidateReferenceError(
+            "featured polling package does not resolve to exactly "
+            "one candidate poll-history observation"
+        )
+
+    current_poll_observation = matches[0]
+
+    if (
+        current_poll_observation["range_min"]
+        != polling["range_min"]
+        or current_poll_observation["range_max"]
+        != polling["range_max"]
+        or current_poll_observation["hypothesis_count"]
+        != polling["hypothesis_count"]
+    ):
+        raise CandidateReferenceError(
+            "current polling state does not reconcile to "
+            "featured candidate observation"
+        )
+
+    return current_poll_observation
+
+
 def build_projection(
     sources: dict[str, Any],
     root: Path = ROOT,
@@ -730,28 +807,13 @@ def build_projection(
         attention = _attention_snapshot
 
     polling = signals["polling"]
-    poll_history = signals["poll_history"]
-    poll_observations = poll_history.get("observations", [])
 
-    current_poll_observation = None
-
-    if polling["evidence_state"] == "reported":
-        if not poll_observations:
-            raise CandidateReferenceError(
-                "reported polling state has no candidate poll-history observation"
-            )
-
-        current_poll_observation = poll_observations[-1]
-
-        if (
-            current_poll_observation["range_min"] != polling["range_min"]
-            or current_poll_observation["range_max"] != polling["range_max"]
-            or current_poll_observation["hypothesis_count"]
-            != polling["hypothesis_count"]
-        ):
-            raise CandidateReferenceError(
-                "current polling state does not reconcile to latest candidate observation"
-            )
+    current_poll_observation = (
+        _resolve_featured_poll_observation(
+            signals_payload,
+            signals,
+        )
+    )
 
     poll_fieldwork_start = (
         current_poll_observation["fieldwork_start"]

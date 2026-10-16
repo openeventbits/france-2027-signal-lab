@@ -293,6 +293,185 @@ class CandidateReferenceTests(unittest.TestCase):
             "2 hypothèses",
         )
 
+    def test_featured_poll_observation_resolution_is_package_keyed_and_fail_closed(
+        self,
+    ):
+        featured = {
+            "featured_polling_package": {
+                "package_key": "featured-package",
+            },
+        }
+
+        featured_observation = {
+            "package_key": "featured-package",
+            "pollster": "Ifop",
+            "fieldwork_start": "2026-10-12",
+            "fieldwork_end": "2026-10-14",
+            "sample_size": 1390,
+            "hypothesis_count": 4,
+            "selected_score": 36,
+            "range_min": 32,
+            "range_max": 36,
+            "source_urls": ["https://example.test/ifop"],
+        }
+
+        later_history_tail = {
+            "package_key": "chronological-tail",
+            "pollster": "OpinionWay",
+            "fieldwork_start": "2026-10-13",
+            "fieldwork_end": "2026-10-14",
+            "sample_size": 1043,
+            "hypothesis_count": 2,
+            "selected_score": 37,
+            "range_min": 35,
+            "range_max": 37,
+            "source_urls": ["https://example.test/opinionway"],
+        }
+
+        signals = {
+            "polling": {
+                "evidence_state": "reported",
+                "hypothesis_count": 4,
+                "range_min": 32,
+                "range_max": 36,
+            },
+            "poll_history": {
+                "observations": [
+                    featured_observation,
+                    later_history_tail,
+                ],
+            },
+        }
+
+        self.assertEqual(
+            reference._resolve_featured_poll_observation(
+                featured,
+                signals,
+            ),
+            featured_observation,
+        )
+
+        missing = copy.deepcopy(signals)
+        missing["poll_history"]["observations"] = [
+            later_history_tail,
+        ]
+
+        with self.assertRaisesRegex(
+            reference.CandidateReferenceError,
+            "does not resolve to exactly one",
+        ):
+            reference._resolve_featured_poll_observation(
+                featured,
+                missing,
+            )
+
+        duplicate = copy.deepcopy(signals)
+        duplicate["poll_history"]["observations"].insert(
+            1,
+            copy.deepcopy(featured_observation),
+        )
+
+        with self.assertRaisesRegex(
+            reference.CandidateReferenceError,
+            "does not resolve to exactly one",
+        ):
+            reference._resolve_featured_poll_observation(
+                featured,
+                duplicate,
+            )
+
+        drifted = copy.deepcopy(signals)
+        drifted["poll_history"]["observations"][0][
+            "range_max"
+        ] = 35
+
+        with self.assertRaisesRegex(
+            reference.CandidateReferenceError,
+            "does not reconcile to featured",
+        ):
+            reference._resolve_featured_poll_observation(
+                featured,
+                drifted,
+            )
+
+        not_observed = {
+            "polling": {
+                "evidence_state": "not_observed",
+            },
+            "poll_history": {
+                "observations": [],
+            },
+        }
+
+        self.assertIsNone(
+            reference._resolve_featured_poll_observation(
+                featured,
+                not_observed,
+            )
+        )
+
+    def test_current_polling_resolves_featured_package_identity(
+        self,
+    ):
+        signals = next(
+            candidate
+            for candidate in self.sources[
+                "candidate_signals"
+            ]["candidates"]
+            if candidate["candidate_id"]
+            == reference.CANDIDATE_ID
+        )
+
+        featured = self.sources[
+            "candidate_signals"
+        ]["featured_polling_package"]
+
+        matching = [
+            observation
+            for observation in signals[
+                "poll_history"
+            ]["observations"]
+            if observation["package_key"]
+            == featured["package_key"]
+        ]
+
+        self.assertEqual(
+            len(matching),
+            1,
+        )
+
+        current = self.projection[
+            "polling"
+        ]["current"]
+
+        self.assertEqual(
+            (
+                current["pollster"],
+                current["fieldwork_start"],
+                current["fieldwork_end"],
+                current["sample_size"],
+            ),
+            (
+                featured["pollster"],
+                featured["fieldwork_start"],
+                featured["fieldwork_end"],
+                featured["sample_size"],
+            ),
+        )
+
+        self.assertEqual(
+            (
+                current["hypothesis_count"],
+                current["range_min"],
+                current["range_max"],
+            ),
+            (
+                matching[0]["hypothesis_count"],
+                matching[0]["range_min"],
+                matching[0]["range_max"],
+            ),
+        )
+
     def test_poll_history_projection_data_is_unchanged_and_ordered(self):
         published = self.published["polling"]["first_round_history"]
         projected = self.projection["polling"]["first_round_history"]
