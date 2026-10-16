@@ -1684,9 +1684,11 @@ def _apply_reviewed_ifop_10314_arthaud_zero_correction(
     Two configurations do not include Nathalie Arthaud, but a later
     French-Wikipedia rendering exposed her as 0 in those rows.
 
-    The two exact candidate/score fingerprints below are reviewed.
-    The other notice-10314 configurations remain untouched.
-    Unknown changes at these reviewed source rows fail closed.
+    The two correction fingerprints and two ordinary fingerprints below form
+    the closed reviewed source universe. Ordinary rows remain untouched only
+    when their complete candidate/score mapping matches.
+    Unknown changes in this reviewed source universe fail closed, independently
+    of the rendered table/row positions.
     """
 
     source_url = (
@@ -1803,17 +1805,44 @@ def _apply_reviewed_ifop_10314_arthaud_zero_correction(
 
         return corrected
 
-    # These are the two currently reviewed rendered positions.
-    # A different representation at either one requires review.
-    if record.get("source_locator") in {
-        "FR-T0R4",
-        "FR-T0R7",
-    }:
-        raise ValueError(
-            "reviewed Ifop 10314 source representation changed"
-        )
+    # The two other published ballots require exact semantic matches too.
+    # A changed correction target can have an ordinary row's candidate names
+    # while retaining different scores, so lineup-only acceptance is unsafe.
+    ordinary = (
+        {
+            "bruno-retailleau": "8",
+            "eric-zemmour": "3",
+            "fabien-roussel": "2.5",
+            "gabriel-attal": "13",
+            "jean-luc-melenchon": "17",
+            "marine-le-pen": "36",
+            "marine-tondelier": "2",
+            "nathalie-arthaud": "0.5",
+            "nicolas-dupont-aignan": "2",
+            "raphael-glucksmann": "16",
+        },
+        {
+            "bruno-retailleau": "6.5",
+            "edouard-philippe": "18",
+            "eric-zemmour": "3",
+            "fabien-roussel": "3",
+            "jean-luc-melenchon": "16",
+            "marine-le-pen": "35",
+            "marine-tondelier": "2.5",
+            "nathalie-arthaud": "0.5",
+            "nicolas-dupont-aignan": "2",
+            "raphael-glucksmann": "13.5",
+        },
+    )
+    ordinary_keys = {
+        tuple(sorted(scenario.items())) for scenario in ordinary
+    }
+    if key.candidates in ordinary_keys:
+        return record
 
-    return record
+    raise ValueError(
+        "reviewed Ifop 10314 source representation changed"
+    )
 
 
 def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:

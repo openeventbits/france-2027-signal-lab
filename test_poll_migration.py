@@ -2526,6 +2526,219 @@ class FrozenFixtureTests(unittest.TestCase):
                          ["Xavier Bertrand","Dominique de Villepin","François Ruffin","David Lisnard"])
 
 
+    def _ifop_10314_source(self, revision=240408882):
+        return load_mediawiki_fixture(
+            ROOT / f"test_fixtures/fr27_polling/fr_mediawiki_{revision}.json",
+            revision,
+        )
+
+    def _ifop_10314_semantics(self, parsed):
+        return [
+            {key: value for key, value in row.items() if key != "source_locator"}
+            for row in parse_french_frozen_fixture(parsed)[FIRST_ROUND]
+            if "10314-pres-" in row["source_url"]
+        ]
+
+    def _ifop_10314_dom_rows(self, document):
+        first = document.xpath(
+            '//a[contains(@href,"10314-pres-")]/ancestor::tr[1]'
+        )[0]
+        return [first, *list(first.itersiblings("tr"))[:3]]
+
+    def test_ifop_10314_historical_and_live_revisions_preserve_reviewed_facts(self):
+        # Captured from the successful old parser BEFORE the identity fix.
+        expected_digest = "016c29648f45b03bd630628f1f587d8361340a4fb091b34d5f0d6478ce1fd2ee"
+        for revision in (240408882, 240418689):
+            with self.subTest(revision=revision):
+                rows = self._ifop_10314_semantics(self._ifop_10314_source(revision))
+                self.assertEqual(len(rows), 4)
+                encoded = json.dumps(
+                    rows, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+                ).encode()
+                self.assertEqual(hashlib.sha256(encoded).hexdigest(), expected_digest)
+
+    def test_ifop_10314_real_cnews_insertion_changes_no_ifop_facts(self):
+        parsed = self._ifop_10314_source()
+        expected = self._ifop_10314_semantics(parsed)
+        document = lxml_html.fromstring(parsed["text"])
+        live_document = lxml_html.fromstring(self._ifop_10314_source(240418689)["text"])
+        cnews = live_document.xpath(
+            '//a[contains(@href,"10319-pres-iv-opinionway-cnews")]/ancestor::tr[1]'
+        )[0]
+        presitrack = document.xpath(
+            '//a[contains(@href,"Vague%203")]/ancestor::tr[1]'
+        )[0]
+        presitrack.addprevious(copy.deepcopy(cnews))
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        self.assertEqual(self._ifop_10314_semantics(parsed), expected)
+
+    def test_ifop_10314_moving_source_block_preserves_corrections(self):
+        parsed = self._ifop_10314_source()
+        expected = self._ifop_10314_semantics(parsed)
+        document = lxml_html.fromstring(parsed["text"])
+        rows = self._ifop_10314_dom_rows(document)
+        # Move the complete rowspan-owned source block after all unrelated rows.
+        parent = rows[0].getparent()
+        for row in rows:
+            parent.append(row)
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        self.assertEqual(self._ifop_10314_semantics(parsed), expected)
+        locators = [r["source_locator"] for r in parse_french_frozen_fixture(parsed)[FIRST_ROUND]
+                    if "10314-pres-" in r["source_url"]]
+        self.assertNotIn("FR-T0R4", locators)
+        self.assertNotIn("FR-T0R7", locators)
+
+    def test_ifop_10314_ordinary_ballots_ignore_all_locators(self):
+        from poll_migration import _apply_reviewed_ifop_10314_arthaud_zero_correction
+        rows = self._ifop_10314_semantics(self._ifop_10314_source())
+        for row in rows[1:3]:
+            for locator in ("FR-T0R4", "FR-T0R6", "FR-T0R7", "FR-T42R999"):
+                with self.subTest(locator=locator, candidates=row["candidates"]):
+                    record = {**copy.deepcopy(row), "source_locator": locator}
+                    self.assertEqual(
+                        _apply_reviewed_ifop_10314_arthaud_zero_correction(record), record,
+                    )
+
+    def test_ifop_10314_changed_targets_fail_after_position_shift(self):
+        for target_index in (0, 3):
+            for change in ("score", "arthaud", "lineup"):
+                with self.subTest(target=target_index, change=change):
+                    parsed = self._ifop_10314_source(240418689)
+                    document = lxml_html.fromstring(parsed["text"])
+                    row = self._ifop_10314_dom_rows(document)[target_index]
+                    offset = 3 if target_index == 0 else 0
+                    # Mutate real source cells, then run the entire parser.
+                    column = {"score": 4, "arthaud": 0, "lineup": 2}[change]
+                    cell = row.xpath("./td")[offset + column]
+                    cell.clear()
+                    cell.text = {"score": "12", "arthaud": "0,5", "lineup": "—"}[change]
+                    parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+                    with self.assertRaisesRegex(ValueError, "reviewed Ifop 10314 source representation changed"):
+                        parse_french_frozen_fixture(parsed)
+
+    def test_ifop_10314_unknown_same_source_lineup_still_fails_closed(self):
+        parsed = self._ifop_10314_source()
+        document = lxml_html.fromstring(parsed["text"])
+        ordinary = self._ifop_10314_dom_rows(document)[1]
+        cell = ordinary.xpath("./td")[2]  # Roussel is no longer tested.
+        cell.clear()
+        cell.text = "—"
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        with self.assertRaisesRegex(ValueError, "reviewed Ifop 10314 source representation changed"):
+            parse_french_frozen_fixture(parsed)
+
+    def test_ifop_10314_attal_removal_from_second_target_fails_closed(self):
+        for revision in (240408882, 240418689):
+            with self.subTest(revision=revision):
+                parsed = self._ifop_10314_source(revision)
+                document = lxml_html.fromstring(parsed["text"])
+                target = self._ifop_10314_dom_rows(document)[3]
+                cell = target.xpath("./td")[5]  # Attal; keep the source Arthaud=0.
+                cell.clear()
+                cell.text = "—"
+                parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+                with self.assertRaisesRegex(ValueError, "reviewed Ifop 10314 source representation changed"):
+                    parse_french_frozen_fixture(parsed)
+
+    def test_ifop_10314_symmetric_target_to_ordinary_collisions_fail_closed(self):
+        for target_index, centrist_column in ((3, 6), (0, 5), (0, 6)):
+            with self.subTest(target=target_index, centrist=centrist_column):
+                parsed = self._ifop_10314_source(240418689)
+                document = lxml_html.fromstring(parsed["text"])
+                target = self._ifop_10314_dom_rows(document)[target_index]
+                cells = target.xpath("./td")
+                offset = 3 if target_index == 0 else 0
+                if target_index == 0:
+                    # Remove the three explicitly listed extras, so this target
+                    # too collapses to an ordinary candidate-name set.
+                    cells[-1].clear()
+                    cells[-1].text = "—"
+                cells[offset + centrist_column].clear()
+                cells[offset + centrist_column].text = "—"
+                parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+                with self.assertRaisesRegex(ValueError, "reviewed Ifop 10314 source representation changed"):
+                    parse_french_frozen_fixture(parsed)
+
+    def test_ifop_10314_ordinary_semantic_mutations_fail_closed(self):
+        for ordinary_index in (1, 2):
+            for change in ("score", "remove", "add", "substitute"):
+                with self.subTest(ordinary=ordinary_index, change=change):
+                    parsed = self._ifop_10314_source(240418689)
+                    document = lxml_html.fromstring(parsed["text"])
+                    cells = self._ifop_10314_dom_rows(document)[ordinary_index].xpath("./td")
+                    if change in {"score", "remove", "substitute"}:
+                        cell = cells[4 if change == "score" else 2]
+                        cell.clear()
+                        cell.text = "12" if change == "score" else "—"
+                    if change in {"add", "substitute"}:
+                        cell = cells[-1]
+                        cell.clear()
+                        cell.text = "1 "
+                        link = lxml_html.Element("a", href="/wiki/David_Lisnard")
+                        link.text = "Lisnard"
+                        cell.append(link)
+                    parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+                    with self.assertRaisesRegex(ValueError, "reviewed Ifop 10314 source representation changed"):
+                        parse_french_frozen_fixture(parsed)
+
+    def test_ifop_10314_repaired_source_keeps_exact_corrected_output(self):
+        parsed = self._ifop_10314_source(240418689)
+        expected = self._ifop_10314_semantics(parsed)
+        document = lxml_html.fromstring(parsed["text"])
+        rows = self._ifop_10314_dom_rows(document)
+        for target_index, column in ((0, 3), (3, 0)):
+            cell = rows[target_index].xpath("./td")[column]
+            cell.clear()
+            cell.text = "—"
+        parsed["text"] = lxml_html.tostring(document, encoding="unicode")
+        self.assertEqual(self._ifop_10314_semantics(parsed), expected)
+
+    def test_ifop_10314_fingerprints_ignore_candidate_presentation_order(self):
+        from poll_migration import _apply_reviewed_ifop_10314_arthaud_zero_correction
+        records = self._ifop_10314_semantics(self._ifop_10314_source())
+        records.append(self._ifop_10314_expanded_row())
+        for record in records:
+            with self.subTest(candidates=record["candidates"]):
+                reordered = copy.deepcopy(record)
+                reordered["candidates"].reverse()
+                before = _apply_reviewed_ifop_10314_arthaud_zero_correction(record)
+                after = _apply_reviewed_ifop_10314_arthaud_zero_correction(reordered)
+                self.assertEqual(exact_factual_key(before), exact_factual_key(after))
+
+    def test_ifop_10314_unrelated_provenance_cannot_receive_correction(self):
+        from poll_migration import _apply_reviewed_ifop_10314_arthaud_zero_correction
+        changes = (
+            {"source_url": "https://example.org/10314.pdf"},
+            {"pollster": "OpinionWay"},
+            {"fieldwork_start": "2026-10-11"},
+            {"fieldwork_end": "2026-10-15"},
+            {"sample_size": 1391},
+            {"sample_scope": "registered"},
+        )
+        for fields in changes:
+            with self.subTest(fields=fields):
+                record = {**self._ifop_10314_expanded_row(), **fields}
+                self.assertEqual(
+                    _apply_reviewed_ifop_10314_arthaud_zero_correction(record), record,
+                )
+
+    def test_ifop_10314_replay_keeps_censored_ballots_and_other_records_exact(self):
+        old = parse_french_frozen_fixture(self._ifop_10314_source())
+        new = parse_french_frozen_fixture(self._ifop_10314_source(240418689))
+        for round_name in (FIRST_ROUND, SECOND_ROUND):
+            self.assertEqual(
+                {exact_factual_key(row) for row in old[round_name]},
+                {exact_factual_key(row) for row in new[round_name]},
+            )
+        self.assertEqual((len(new[FIRST_ROUND]), len(new[SECOND_ROUND])), (269, 86))
+        self.assertEqual(len(old["rejected"]), 14)
+        self.assertEqual(len(new["rejected"]), 15)
+        self.assertEqual(sum(r["reason_code"] == "censored_score" for r in new["rejected"]), 10)
+        cnews = [r for r in new["rejected"] if "10319-pres-" in r["source_url"]]
+        self.assertEqual(len(cnews), 1)
+        self.assertEqual(cnews[0]["reason_code"], "censored_score")
+
+
 class RegistryBuilderTests(unittest.TestCase):
     def test_generation_is_deterministic_and_matches_committed_bytes(self) -> None:
         first = registry_builder.canonical_registry_bytes(
