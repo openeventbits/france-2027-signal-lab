@@ -384,22 +384,22 @@
   function consentCopy() {
     if (locale() === "en") {
       return {
-        title: "OPTIONAL ANALYTICS",
+        title: "OPTIONAL POSTHOG ANALYTICS",
         body:
-          "PostHog analytics, hosted in the EU, use a first-party browser identifier to measure visits, feature use and return visits. No advertising tracking.",
-        allow: "ALLOW ANALYTICS",
+          "FR27 uses limited server-side audience measurement without cookies or a persistent browser identifier. It records page visits with a pseudonymous identifier that resets daily; raw IP addresses and user agents are not stored in that dataset, which is retained for up to three months. PostHog analytics, hosted in the EU, are separate and optional; allow or decline them below.",
+        allow: "ALLOW POSTHOG",
         decline: "DECLINE",
-        settings: "ANALYTICS SETTINGS"
+        settings: "POSTHOG SETTINGS"
       };
     }
 
     return {
-      title: "STATISTIQUES FACULTATIVES",
+      title: "STATISTIQUES POSTHOG FACULTATIVES",
       body:
-        "Les statistiques PostHog, hébergées dans l’UE, utilisent un identifiant analytique dans votre navigateur pour mesurer les visites, l’usage des fonctions et les retours. Aucun traçage publicitaire.",
-      allow: "AUTORISER",
+        "FR27 utilise une mesure d’audience limitée côté serveur, sans cookie ni identifiant persistant. Elle enregistre les consultations avec un identifiant pseudonyme renouvelé chaque jour ; les adresses IP et user-agents bruts ne sont pas conservés dans ce jeu de données, qui est conservé jusqu’à trois mois. Les statistiques PostHog, hébergées dans l’UE, sont distinctes et facultatives ; vous pouvez les autoriser ou les refuser ci-dessous.",
+      allow: "AUTORISER POSTHOG",
       decline: "REFUSER",
-      settings: "PARAMÈTRES ANALYTIQUES"
+      settings: "PARAMÈTRES POSTHOG"
     };
   }
 

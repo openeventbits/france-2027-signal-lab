@@ -117,6 +117,10 @@ separately lists 100,000 writes/day and 10,000 read queries/day on Free, with a
 current billing-availability caveat. Recheck current limits/pricing before
 activation. No account/plan changes are authorized by this guide.
 
+[Analytics Engine limits](https://developers.cloudflare.com/analytics/analytics-engine/limits/)
+currently documents three months of data retention. Recheck the current retention
+period before production activation.
+
 ## Local validation
 
 From `infra/cloudflare/fr27-traffic`, using Node 22 or later:
