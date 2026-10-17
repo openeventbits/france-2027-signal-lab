@@ -343,6 +343,18 @@ def complete_inputs(root):
     write_json(root, "polymarket_candidate_markets.json", json.loads(
         (ROOT / "polymarket_candidate_markets.json").read_text(encoding="utf-8")
     ))
+    # Every fixture snapshot has an independently validated matching history lane.
+    import importlib
+    for provider, mapping_name in (
+        ("polymarket", "polymarket_candidate_markets.json"),
+        ("youtube", "youtube_candidate_channels.json"),
+        ("bluesky", "bluesky_candidate_accounts.json"),
+    ):
+        module = importlib.import_module("candidate_" + provider + "_history")
+        snapshot = json.loads((root / ("candidate_" + provider + ".json")).read_text(encoding="utf-8"))
+        mapping = json.loads((root / mapping_name).read_text(encoding="utf-8"))
+        write_json(root, "candidate_" + provider + "_history.json",
+                   module.build_history(snapshot, mapping, registry_ids))
     write_json(
         root,
         "candidate_candidacy_status.json",
@@ -584,8 +596,11 @@ class PublicationManifestTests(unittest.TestCase):
                 "campaign_events",
                 "candidate_attention",
                 "candidate_polymarket",
+                "candidate_polymarket_history",
                 "candidate_youtube",
+                "candidate_youtube_history",
                 "candidate_bluesky",
+                "candidate_bluesky_history",
                 "candidate_agenda_history",
                 "candidate_signals",
                 "candidate_visibility_history",
@@ -769,10 +784,13 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidate_agenda_history",
                 "candidate_attention",
                 "candidate_bluesky",
+                "candidate_bluesky_history",
                 "candidate_polymarket",
+                "candidate_polymarket_history",
                 "candidate_signals",
                 "candidate_visibility_history",
                 "candidate_youtube",
+                "candidate_youtube_history",
                 "claims",
                 "news",
                 "polls",

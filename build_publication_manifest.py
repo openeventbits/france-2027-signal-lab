@@ -45,6 +45,16 @@ from candidate_polymarket import (
 )
 from candidate_youtube import CandidateYouTubeError, validate_candidate_youtube
 from candidate_bluesky import CandidateBlueskyError, validate_candidate_bluesky
+from candidate_polymarket_history import validate_candidate_polymarket_history
+from candidate_youtube_history import validate_candidate_youtube_history
+from candidate_bluesky_history import validate_candidate_bluesky_history
+
+PROVIDER_HISTORY_VALIDATORS = {
+    "candidate_polymarket_history": validate_candidate_polymarket_history,
+    "candidate_youtube_history": validate_candidate_youtube_history,
+    "candidate_bluesky_history": validate_candidate_bluesky_history,
+}
+
 from candidate_visibility_history_contract import (
     CandidateVisibilityHistoryContractError,
     validate_candidate_visibility_history,
@@ -80,8 +90,11 @@ LANE_FILES = {
     "candidacy_status": ("candidate_candidacy_status.json",),
     "campaign_events": ("campaign_events.json",),
     "candidate_attention": ("candidate_attention.json",),
+    "candidate_polymarket_history": ("candidate_polymarket_history.json", "polymarket_candidate_markets.json", "candidate_polymarket.json"),
     "candidate_polymarket": ("candidate_polymarket.json", "polymarket_candidate_markets.json"),
+    "candidate_youtube_history": ("candidate_youtube_history.json", "youtube_candidate_channels.json", "candidate_youtube.json"),
     "candidate_youtube": ("candidate_youtube.json", "youtube_candidate_channels.json"),
+    "candidate_bluesky_history": ("candidate_bluesky_history.json", "bluesky_candidate_accounts.json", "candidate_bluesky.json"),
     "candidate_bluesky": ("candidate_bluesky.json", "bluesky_candidate_accounts.json"),
     "candidate_agenda_history": ("candidate_agenda_history.json",),
     "candidate_signals": ("candidate_signals.json",),
@@ -1219,6 +1232,8 @@ def _timestamp_fields(
     payload: Any,
     warnings: list[str],
 ) -> tuple[dict[str, str], str]:
+    if lane_name in PROVIDER_HISTORY_VALIDATORS:
+        return {}, "known"
     if lane_name == "polls":
         return {}, "unknown"
     if lane_name == "candidacy_status":
@@ -1265,6 +1280,12 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
         return False
 
     payload = sources[0]["payload"]
+    if lane_name in PROVIDER_HISTORY_VALIDATORS:
+        try:
+            PROVIDER_HISTORY_VALIDATORS[lane_name](payload, mapping=sources[1]["payload"], snapshot=sources[2]["payload"])
+        except (ValueError, TypeError, KeyError):
+            return False
+        return True
     if lane_name == "candidate_bluesky":
         try:
             validate_candidate_bluesky(payload, mapping=sources[1]["payload"])
@@ -1356,6 +1377,8 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
 
 
 def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
+    if lane_name in PROVIDER_HISTORY_VALIDATORS:
+        return [point["observed_at"] for row in payload["candidates"] for point in row["points"]]
     if lane_name == "candidate_bluesky":
         return [payload["observed_at"]]
     if lane_name == "candidate_youtube":
@@ -1543,6 +1566,9 @@ def _build_lane(
                         "unavailable_candidate_count": attention["validation"]["unavailable_candidate_count"],
                     }
                 )
+        if lane_name in PROVIDER_HISTORY_VALIDATORS:
+            lane["record_count"] = len(primary["payload"]["candidates"])
+            lane["point_count"] = sum(len(r["points"]) for r in primary["payload"]["candidates"])
         if lane_name == "candidate_youtube":
             lane["record_count"] = len(primary["payload"]["candidates"])
         if lane_name == "candidate_bluesky":
@@ -1803,6 +1829,17 @@ def build_manifest(
         if lanes["source_health"]["valid"]
         else None
     )
+    for history_name, validator in PROVIDER_HISTORY_VALIDATORS.items():
+        history_sources = lane_sources[history_name]
+        try:
+            if any(source["error"] for source in history_sources):
+                raise ValueError("history, mapping or snapshot is missing/malformed")
+            validator(history_sources[0]["payload"], mapping=history_sources[1]["payload"],
+                      snapshot=history_sources[2]["payload"],
+                      candidate_ids={r["candidate_id"] for r in registry_payload["candidates"]})
+        except (ValueError, TypeError, KeyError) as error:
+            raise ManifestError(f"{history_name} invalid publication: {error}") from error
+
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "snapshot_id": _snapshot_id(lane_sources),

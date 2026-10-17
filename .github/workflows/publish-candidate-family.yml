@@ -24,6 +24,20 @@ on:
       - "test_candidate_youtube.py"
       - "candidate_bluesky.json"
       - "bluesky_candidate_accounts.json"
+      - "candidate_history.py"
+      - "history_test_support.py"
+      - "candidate_polymarket_history.json"
+      - "candidate_polymarket_history.py"
+      - "build_candidate_polymarket_history.py"
+      - "test_candidate_polymarket_history.py"
+      - "candidate_youtube_history.json"
+      - "candidate_youtube_history.py"
+      - "build_candidate_youtube_history.py"
+      - "test_candidate_youtube_history.py"
+      - "candidate_bluesky_history.json"
+      - "candidate_bluesky_history.py"
+      - "build_candidate_bluesky_history.py"
+      - "test_candidate_bluesky_history.py"
       - "candidate_bluesky.py"
       - "build_candidate_bluesky.py"
       - "test_candidate_bluesky.py"
@@ -337,6 +351,16 @@ jobs:
           python -B build_candidate_bluesky.py
           echo "published_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
+      - name: Update candidate provider histories
+        if: >-
+          steps.dependencies.outputs.ready == 'true' &&
+          (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        run: |
+          python -B -m unittest -v test_candidate_polymarket_history test_candidate_youtube_history test_candidate_bluesky_history
+          python -B build_candidate_polymarket_history.py --incremental
+          python -B build_candidate_youtube_history.py
+          python -B build_candidate_bluesky_history.py
+
       - name: Build and validate candidate publication
         id: build
         if: steps.dependencies.outputs.ready == 'true'
@@ -352,6 +376,9 @@ jobs:
             publication_time="$(python -B -c 'import json; print(json.load(open("publication_manifest.json"))["published_at"])')"
           fi
           echo "publication_time=$publication_time" >> "$GITHUB_OUTPUT"
+          python -B build_candidate_polymarket_history.py --check
+          python -B build_candidate_youtube_history.py --check
+          python -B build_candidate_bluesky_history.py --check
           python -B build_publication_manifest.py --published-at "$publication_time"
           python -B build_candidate_reference.py --all-active
           python -B build_candidate_reference.py --all-active --check
@@ -377,6 +404,9 @@ jobs:
             test_candidate_polymarket \
             test_candidate_youtube \
             test_candidate_bluesky \
+            test_candidate_polymarket_history \
+            test_candidate_youtube_history \
+            test_candidate_bluesky_history \
             test_candidate_public_signals \
             test_candidate_page_contract \
             test_candidate_reference \
@@ -396,6 +426,7 @@ jobs:
           set -euo pipefail
 
           if [[ -z "$(git status --porcelain -- \
+            candidate_polymarket_history.json candidate_youtube_history.json candidate_bluesky_history.json \
             candidate_bluesky.json candidate_polymarket.json candidate_youtube.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
@@ -411,6 +442,7 @@ jobs:
             "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add -- \
+            candidate_polymarket_history.json candidate_youtube_history.json candidate_bluesky_history.json \
             candidate_bluesky.json candidate_polymarket.json candidate_youtube.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
@@ -432,6 +464,9 @@ jobs:
           git fetch origin main
           git rebase origin/main
 
+          python -B build_candidate_polymarket_history.py --check
+          python -B build_candidate_youtube_history.py --check
+          python -B build_candidate_bluesky_history.py --check
           python -B build_publication_manifest.py --published-at "$PUBLICATION_TIME"
           python -B build_candidate_reference.py --all-active
           python -B build_candidate_reference.py --all-active --check
@@ -456,6 +491,9 @@ jobs:
             test_candidate_polymarket \
             test_candidate_youtube \
             test_candidate_bluesky \
+            test_candidate_polymarket_history \
+            test_candidate_youtube_history \
+            test_candidate_bluesky_history \
             test_candidate_public_signals \
             test_candidate_page_contract \
             test_candidate_reference \
@@ -468,6 +506,7 @@ jobs:
           git diff --check
 
           git add -- \
+            candidate_polymarket_history.json candidate_youtube_history.json candidate_bluesky_history.json \
             candidate_bluesky.json candidate_polymarket.json candidate_youtube.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
@@ -479,6 +518,7 @@ jobs:
           fi
 
           if [[ -n "$(git status --porcelain -- \
+            candidate_polymarket_history.json candidate_youtube_history.json candidate_bluesky_history.json \
             candidate_bluesky.json candidate_polymarket.json candidate_youtube.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
@@ -486,7 +526,8 @@ jobs:
             index.html en/index.html)" ]]; then
             echo "Candidate publication artifacts are not clean before push."
             git status --short -- \
-              candidate_bluesky.json candidate_polymarket.json candidate_youtube.json publication_manifest.json \
+              candidate_polymarket_history.json candidate_youtube_history.json candidate_bluesky_history.json \
+            candidate_bluesky.json candidate_polymarket.json candidate_youtube.json publication_manifest.json \
               candidates en/candidates \
               route_registry.json sitemap.xml sitemap-candidates.xml \
               sitemap-core.xml sitemap-polls.xml \
