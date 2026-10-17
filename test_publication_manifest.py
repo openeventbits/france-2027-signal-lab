@@ -328,6 +328,12 @@ def complete_inputs(root):
     )
     agenda_history = candidate_agenda_history_payload()
     write_json(root, "candidate_signals.json", candidate_signals_payload())
+    write_json(root, "candidate_polymarket.json", json.loads(
+        (ROOT / "candidate_polymarket.json").read_text(encoding="utf-8")
+    ))
+    write_json(root, "polymarket_candidate_markets.json", json.loads(
+        (ROOT / "polymarket_candidate_markets.json").read_text(encoding="utf-8")
+    ))
     write_json(
         root,
         "candidate_candidacy_status.json",
@@ -550,6 +556,7 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidacy_status",
                 "campaign_events",
                 "candidate_attention",
+                "candidate_polymarket",
                 "candidate_agenda_history",
                 "candidate_signals",
                 "candidate_visibility_history",
@@ -732,6 +739,7 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidacy_status",
                 "candidate_agenda_history",
                 "candidate_attention",
+                "candidate_polymarket",
                 "candidate_signals",
                 "candidate_visibility_history",
                 "claims",

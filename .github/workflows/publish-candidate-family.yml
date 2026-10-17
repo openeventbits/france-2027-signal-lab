@@ -12,6 +12,11 @@ on:
       - "candidate_visibility_history.json"
       - "candidate_agenda_history.json"
       - "candidate_attention.json"
+      - "candidate_polymarket.json"
+      - "polymarket_candidate_markets.json"
+      - "candidate_polymarket.py"
+      - "build_candidate_polymarket.py"
+      - "test_candidate_polymarket.py"
       - "candidate_candidacy_status.json"
       - "claims_under_scrutiny.json"
       - "recent_changes.json"
@@ -289,6 +294,16 @@ jobs:
                       )
           PY
 
+      - name: Collect candidate prediction-market evidence
+        id: polymarket
+        if: >-
+          steps.dependencies.outputs.ready == 'true' &&
+          (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        run: |
+          python -B -m unittest -v test_candidate_polymarket
+          python -B build_candidate_polymarket.py
+          echo "published_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
       - name: Build and validate candidate publication
         id: build
         if: steps.dependencies.outputs.ready == 'true'
@@ -299,6 +314,12 @@ jobs:
           effective_date="$(date -u +'%Y-%m-%d')"
           echo "effective_date=$effective_date" >> "$GITHUB_OUTPUT"
 
+          publication_time="${{ steps.polymarket.outputs.published_at }}"
+          if [[ -z "$publication_time" ]]; then
+            publication_time="$(python -B -c 'import json; print(json.load(open("publication_manifest.json"))["published_at"])')"
+          fi
+          echo "publication_time=$publication_time" >> "$GITHUB_OUTPUT"
+          python -B build_publication_manifest.py --published-at "$publication_time"
           python -B build_candidate_reference.py --all-active
           python -B build_candidate_reference.py --all-active --check
 
@@ -320,6 +341,7 @@ jobs:
           python -B build_sitemaps.py --check
 
           python -B -m unittest -v \
+            test_candidate_polymarket \
             test_candidate_page_contract \
             test_candidate_reference \
             test_candidate_poll_links \
@@ -338,6 +360,7 @@ jobs:
           set -euo pipefail
 
           if [[ -z "$(git status --porcelain -- \
+            candidate_polymarket.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
             sitemap-core.xml sitemap-polls.xml \
@@ -352,6 +375,7 @@ jobs:
             "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add -- \
+            candidate_polymarket.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
             sitemap-core.xml sitemap-polls.xml \
@@ -364,6 +388,7 @@ jobs:
         if: steps.commit.outputs.changed == 'true'
         env:
           ROUTE_EFFECTIVE_DATE: ${{ steps.build.outputs.effective_date }}
+          PUBLICATION_TIME: ${{ steps.build.outputs.publication_time }}
         shell: bash
         run: |
           set -euo pipefail
@@ -371,6 +396,7 @@ jobs:
           git fetch origin main
           git rebase origin/main
 
+          python -B build_publication_manifest.py --published-at "$PUBLICATION_TIME"
           python -B build_candidate_reference.py --all-active
           python -B build_candidate_reference.py --all-active --check
 
@@ -391,6 +417,7 @@ jobs:
           python -B build_sitemaps.py --check
 
           python -B -m unittest -v \
+            test_candidate_polymarket \
             test_candidate_page_contract \
             test_candidate_reference \
             test_candidate_poll_links \
@@ -402,6 +429,7 @@ jobs:
           git diff --check
 
           git add -- \
+            candidate_polymarket.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
             sitemap-core.xml sitemap-polls.xml \
@@ -412,12 +440,14 @@ jobs:
           fi
 
           if [[ -n "$(git status --porcelain -- \
+            candidate_polymarket.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
             sitemap-core.xml sitemap-polls.xml \
             index.html en/index.html)" ]]; then
             echo "Candidate publication artifacts are not clean before push."
             git status --short -- \
+              candidate_polymarket.json publication_manifest.json \
               candidates en/candidates \
               route_registry.json sitemap.xml sitemap-candidates.xml \
               sitemap-core.xml sitemap-polls.xml \

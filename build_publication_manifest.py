@@ -39,6 +39,10 @@ from candidate_attention_contract import (
     CandidateAttentionContractError,
     validate_candidate_attention,
 )
+from candidate_polymarket import (
+    CandidatePolymarketError, validate_candidate_polymarket,
+    validate_mapping as validate_polymarket_mapping,
+)
 from candidate_visibility_history_contract import (
     CandidateVisibilityHistoryContractError,
     validate_candidate_visibility_history,
@@ -74,6 +78,7 @@ LANE_FILES = {
     "candidacy_status": ("candidate_candidacy_status.json",),
     "campaign_events": ("campaign_events.json",),
     "candidate_attention": ("candidate_attention.json",),
+    "candidate_polymarket": ("candidate_polymarket.json", "polymarket_candidate_markets.json"),
     "candidate_agenda_history": ("candidate_agenda_history.json",),
     "candidate_signals": ("candidate_signals.json",),
     "candidate_visibility_history": (
@@ -1256,6 +1261,12 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
         return False
 
     payload = sources[0]["payload"]
+    if lane_name == "candidate_polymarket":
+        try:
+            validate_candidate_polymarket(payload, mapping=sources[1]["payload"])
+        except CandidatePolymarketError:
+            return False
+        return True
     if lane_name == "candidacy_status":
         _validate_candidacy_status_public(payload)
         return True
@@ -1329,6 +1340,8 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
 
 
 def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
+    if lane_name == "candidate_polymarket":
+        return [payload["observed_at"]]
     if lane_name == "candidacy_status":
         return [payload["status_as_of"]]
     if lane_name == "candidate_attention":
@@ -1675,6 +1688,18 @@ def build_manifest(
     )
 
     registry_payload = lane_sources["candidacy_status"][0]["payload"]
+    polymarket_mapping = lane_sources["candidate_polymarket"][1]
+    try:
+        if polymarket_mapping["error"]:
+            raise CandidatePolymarketError(polymarket_mapping["error"])
+        validate_candidate_polymarket(
+            lane_sources["candidate_polymarket"][0]["payload"],
+            mapping=polymarket_mapping["payload"],
+        )
+        validate_polymarket_mapping(polymarket_mapping["payload"],
+                                   {row["candidate_id"] for row in registry_payload["candidates"]})
+    except CandidatePolymarketError as error:
+        raise ManifestError(f"candidate_polymarket invalid publication: {error}") from error
 
     history_payload = (
         lane_sources["candidate_visibility_history"][0]["payload"]

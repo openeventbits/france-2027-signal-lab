@@ -29,6 +29,10 @@ from build_poll_pages import PollPageError, validate_explorer
 from campaign_events_contract import validate_campaign_events_artifact
 from candidate_agenda_history_contract import validate_candidate_agenda_history
 from candidate_attention_contract import validate_candidate_attention
+from candidate_polymarket import (
+    candidate_record, validate_candidate_polymarket, validate_candidate_polymarket_projection,
+    validate_mapping as validate_polymarket_mapping,
+)
 from candidate_candidacy_status import (
     active_candidate_records,
     validate_candidate_candidacy_status,
@@ -77,6 +81,8 @@ SOURCE_FILES = {
     "candidate_visibility_history": "candidate_visibility_history.json",
     "candidate_agenda_history": "candidate_agenda_history.json",
     "candidate_attention": "candidate_attention.json",
+    "candidate_polymarket": "candidate_polymarket.json",
+    "polymarket_candidate_markets": "polymarket_candidate_markets.json",
     "candidate_candidacy_status": "candidate_candidacy_status.json",
     "claims_under_scrutiny": "claims_under_scrutiny.json",
     "recent_changes": "recent_changes.json",
@@ -298,6 +304,12 @@ def validate_sources(sources: dict[str, Any], root: Path = ROOT) -> None:
     claims = sources["claims_under_scrutiny"]
 
     validate_candidate_candidacy_status(status)
+    validate_candidate_polymarket(
+        sources["candidate_polymarket"],
+        mapping=sources["polymarket_candidate_markets"],
+    )
+    validate_polymarket_mapping(sources["polymarket_candidate_markets"],
+                               {row["candidate_id"] for row in status["candidates"]})
     validate_candidate_signals(
         signals,
         polls=polls,
@@ -1145,6 +1157,13 @@ def build_projection(
                 "status_note": candidate_status["status_note"],
             },
         },
+        "polymarket": {
+            **candidate_record(sources["candidate_polymarket"], candidate_id),
+            "provider": "polymarket",
+            "event_id": sources["candidate_polymarket"]["event_id"],
+            "observed_at": sources["candidate_polymarket"]["observed_at"],
+            "stale_after_hours": sources["candidate_polymarket"]["stale_after_hours"],
+        },
         "attention": {
             key: attention[key]
             for key in (
@@ -1201,6 +1220,8 @@ def validate_projection(
 ) -> None:
     if not isinstance(payload, dict) or payload.get("schema_version") != SCHEMA_VERSION:
         raise CandidateReferenceError("projection schema_version is invalid")
+    if "polymarket" in payload:
+        validate_candidate_polymarket_projection(payload["polymarket"], payload.get("candidate_id"))
 
     projected_candidate_id = payload.get("candidate_id")
     if not isinstance(projected_candidate_id, str) or not projected_candidate_id:
@@ -2577,6 +2598,7 @@ def _render_candidate_structure_html(
         <article class="candidate-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>PAGES VUES WIKIPÉDIA</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les pages vues Wikipédia" aria-describedby="attention-summary-note">i</button><span class="candidate-section-tooltip" id="attention-summary-note" role="tooltip">Les pages vues Wikipédia mesurent la consultation de l’article. Elles ne mesurent ni soutien, ni sentiment, ni approbation, ni intention de vote.</span></span></div><span>pages vues</span></div><div class="candidate-panel-body">{attention_summary_body}</div></article>
         <article class="candidate-panel candidate-chart-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DES PAGES VUES</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique des pages vues" aria-describedby="attention-history-note">i</button><span class="candidate-section-tooltip" id="attention-history-note" role="tooltip">Pages vues quotidiennes de l’article Wikipédia en français. Des visites répétées peuvent être incluses.</span></span></div><span>{attention_history_meta}</span></div><div class="candidate-panel-body">{attention_history_body}</div></article>
       </div>
+      <!-- candidate-polymarket -->
     </section>
 
     <section class="candidate-section" id="events" aria-labelledby="events-title">
@@ -3856,6 +3878,60 @@ def _candidate_apply_language_shell(
     return document
 
 
+def render_polymarket(payload: dict[str, Any], lang: str) -> str:
+    """Small independent evidence unit beside Wikipedia, with no ranking/deltas."""
+    row = payload.get("polymarket") or {}
+    fr = lang == "fr"
+    label = "Probabilité implicite Polymarket" if fr else "Polymarket implied probability"
+    disclaimer = (
+        "Marché prédictif — ne constitue ni une intention de vote ni une prévision FR27."
+        if fr else "Prediction market — not voting intention and not an FR27 forecast."
+    )
+    value = row.get("implied_probability")
+    available = row.get("status") == "observed" and type(value) in (int, float)
+    formatted = f"{value * 100:.1f}" if available else ""
+    if fr:
+        formatted = formatted.replace(".", ",")
+    value_html = f"<strong>{formatted}%</strong>" if available else (
+        '<strong>Indisponible</strong>' if fr else '<strong>Unavailable</strong>'
+    )
+    context = "Vainqueur de l’élection, second tour inclus" if fr else "Election winner, including any runoff"
+    observed = row.get("observed_at")
+    freshness = ""
+    if observed:
+        freshness = (
+            f'<span>{"Collecté le" if fr else "Collected"} '
+            f'<time datetime="{_h(observed)}">{_h(observed)} (UTC)</time></span>'
+            f'<span data-polymarket-freshness data-observed-at="{_h(observed)}" '
+            f'data-source-updated-at="{_h(row.get("source_updated_at") or observed)}" '
+            f'data-stale-after-hours="{row.get("stale_after_hours", 48)}" aria-live="polite">'
+            f'{"Fraîcheur à vérifier (48 h)" if fr else "Check freshness (48h)"}</span>'
+        )
+    link = _source_link(row["source_url"], "Polymarket ↗") if row.get("source_url") else ""
+    unavailable = "" if available else (
+        '<p>Aucun prix exploitable publié pour cette candidature ; une absence ne signifie pas 0%.</p>'
+        if fr else '<p>No usable published price for this candidate; absence does not mean 0%.</p>'
+    )
+    method = (
+        "Valeur tierce, non calculée par FR27. Les participants ne sont pas un échantillon représentatif "
+        "des électeurs français. La liquidité et les conditions de négociation peuvent influencer les prix. "
+        "FR27 ne combine pas ce signal avec les sondages, Wikipédia, les médias, l’agenda ou d’autres "
+        "éléments dans un score synthétique."
+        if fr else
+        "Third-party value, not calculated by FR27. Participants are not a representative sample of French "
+        "voters. Liquidity and trading conditions may influence prices. FR27 does not combine this signal "
+        "with polling, Wikipedia, media, agenda or other evidence into a synthetic score."
+    )
+    return (
+        f'<aside class="candidate-polymarket" aria-labelledby="polymarket-label">'
+        f'<h3 id="polymarket-label">{label}</h3><p>{context} · {value_html}</p>'
+        f'<p class="candidate-method-note">{disclaimer}</p>{unavailable}'
+        f'<div class="candidate-polymarket-context">{freshness}{link}</div>'
+        f'<details><summary>{"Méthode et limites" if fr else "Method and limitations"}</summary>'
+        f'<p>{method}</p></details></aside>'
+    )
+
+
 def render_html(
     payload: dict[str, Any],
     hud_metrics: dict[str, int] | None = None,
@@ -3915,6 +3991,7 @@ def render_html(
         )
 
     if lang == "fr":
+        raw = raw.replace("<!-- candidate-polymarket -->", render_polymarket(payload, lang))
         return install_section_launcher(raw, lang).encode("utf-8")
 
     parser = _CandidateEnglishHTMLParser()
@@ -3964,6 +4041,7 @@ def render_html(
             "English candidate data URL drifted"
         )
 
+    rendered = rendered.replace("<!-- candidate-polymarket -->", render_polymarket(payload, lang))
     return install_section_launcher(rendered, lang).encode("utf-8")
 
 

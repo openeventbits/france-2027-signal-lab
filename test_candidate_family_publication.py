@@ -236,6 +236,7 @@ class CandidateFamilyPublicationWorkflowTests(
         )
         self.assertEqual(len(blocks), 2)
         expected = {
+            "candidate_polymarket.json", "publication_manifest.json",
             "candidates", "en/candidates", "route_registry.json",
             "sitemap.xml", "sitemap-candidates.xml", "sitemap-core.xml",
             "sitemap-polls.xml", "index.html", "en/index.html",
@@ -258,6 +259,7 @@ class CandidateFamilyPublicationWorkflowTests(
         commit_start = self.text.index("- name: Commit generated candidate publication")
         reconciliation_start = self.text.index("- name: Rebase, reconcile and push")
         expected = [
+            'build_publication_manifest.py --published-at "$publication_time"',
             "build_candidate_reference.py --all-active",
             "build_candidate_reference.py --all-active --check",
             "build_route_registry.py",
@@ -279,7 +281,10 @@ class CandidateFamilyPublicationWorkflowTests(
                 commands = [line.strip().removeprefix("python -B ").rstrip(" \\")
                             for line in block.splitlines()
                             if line.strip().startswith("python -B ")]
-                self.assertEqual(commands, expected)
+                phase_expected = expected.copy()
+                if name == "reconciliation":
+                    phase_expected[0] = 'build_publication_manifest.py --published-at "$PUBLICATION_TIME"'
+                self.assertEqual(commands, phase_expected)
                 self.assertEqual(block.count(f'--effective-date "{date_variable}"'), 2)
 
     def test_rebase_rebuilds_before_push(self):
