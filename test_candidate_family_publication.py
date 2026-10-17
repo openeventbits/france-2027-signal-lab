@@ -236,7 +236,7 @@ class CandidateFamilyPublicationWorkflowTests(
         )
         self.assertEqual(len(blocks), 2)
         expected = {
-            "candidate_polymarket.json", "candidate_youtube.json", "publication_manifest.json",
+            "candidate_bluesky.json", "candidate_polymarket.json", "candidate_youtube.json", "publication_manifest.json",
             "candidates", "en/candidates", "route_registry.json",
             "sitemap.xml", "sitemap-candidates.xml", "sitemap-core.xml",
             "sitemap-polls.xml", "index.html", "en/index.html",

@@ -37,6 +37,10 @@ from candidate_youtube import (
     candidate_projection as youtube_projection, validate_candidate_youtube,
     validate_candidate_youtube_projection,
 )
+from candidate_bluesky import (
+    candidate_projection as bluesky_projection, validate_candidate_bluesky,
+    validate_candidate_bluesky_projection,
+)
 from candidate_candidacy_status import (
     active_candidate_records,
     validate_candidate_candidacy_status,
@@ -89,6 +93,8 @@ SOURCE_FILES = {
     "polymarket_candidate_markets": "polymarket_candidate_markets.json",
     "candidate_youtube": "candidate_youtube.json",
     "youtube_candidate_channels": "youtube_candidate_channels.json",
+    "candidate_bluesky": "candidate_bluesky.json",
+    "bluesky_candidate_accounts": "bluesky_candidate_accounts.json",
     "candidate_candidacy_status": "candidate_candidacy_status.json",
     "claims_under_scrutiny": "claims_under_scrutiny.json",
     "recent_changes": "recent_changes.json",
@@ -310,6 +316,10 @@ def validate_sources(sources: dict[str, Any], root: Path = ROOT) -> None:
     claims = sources["claims_under_scrutiny"]
 
     validate_candidate_candidacy_status(status)
+    validate_candidate_bluesky(
+        sources["candidate_bluesky"], mapping=sources["bluesky_candidate_accounts"],
+        candidate_ids={row["candidate_id"] for row in status["candidates"]},
+    )
     validate_candidate_youtube(
         sources["candidate_youtube"], mapping=sources["youtube_candidate_channels"],
         candidate_ids={row["candidate_id"] for row in status["candidates"]},
@@ -1168,6 +1178,7 @@ def build_projection(
             },
         },
         "youtube": youtube_projection(sources["candidate_youtube"], candidate_id),
+        "bluesky": bluesky_projection(sources["candidate_bluesky"], candidate_id),
         "polymarket": {
             **candidate_record(sources["candidate_polymarket"], candidate_id),
             "provider": "polymarket",
@@ -1235,6 +1246,8 @@ def validate_projection(
         validate_candidate_polymarket_projection(payload["polymarket"], payload.get("candidate_id"))
     if "youtube" in payload:
         validate_candidate_youtube_projection(payload["youtube"], payload.get("candidate_id"))
+    if "bluesky" in payload:
+        validate_candidate_bluesky_projection(payload["bluesky"], payload.get("candidate_id"))
 
     projected_candidate_id = payload.get("candidate_id")
     if not isinstance(projected_candidate_id, str) or not projected_candidate_id:

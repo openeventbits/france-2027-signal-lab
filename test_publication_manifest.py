@@ -334,6 +334,9 @@ def complete_inputs(root):
     )["candidates"]}
     write_json(root, "candidate_youtube.json", fixture_payload(registry_ids))
     write_json(root, "youtube_candidate_channels.json", fixture_mapping())
+    from test_candidate_bluesky import fixture_mapping as bluesky_mapping, fixture_payload as bluesky_payload
+    write_json(root, "candidate_bluesky.json", bluesky_payload(registry_ids))
+    write_json(root, "bluesky_candidate_accounts.json", bluesky_mapping())
     write_json(root, "candidate_polymarket.json", json.loads(
         (ROOT / "candidate_polymarket.json").read_text(encoding="utf-8")
     ))
@@ -582,6 +585,7 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidate_attention",
                 "candidate_polymarket",
                 "candidate_youtube",
+                "candidate_bluesky",
                 "candidate_agenda_history",
                 "candidate_signals",
                 "candidate_visibility_history",
@@ -764,6 +768,7 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidacy_status",
                 "candidate_agenda_history",
                 "candidate_attention",
+                "candidate_bluesky",
                 "candidate_polymarket",
                 "candidate_signals",
                 "candidate_visibility_history",

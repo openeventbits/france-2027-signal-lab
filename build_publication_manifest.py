@@ -44,6 +44,7 @@ from candidate_polymarket import (
     validate_mapping as validate_polymarket_mapping,
 )
 from candidate_youtube import CandidateYouTubeError, validate_candidate_youtube
+from candidate_bluesky import CandidateBlueskyError, validate_candidate_bluesky
 from candidate_visibility_history_contract import (
     CandidateVisibilityHistoryContractError,
     validate_candidate_visibility_history,
@@ -81,6 +82,7 @@ LANE_FILES = {
     "candidate_attention": ("candidate_attention.json",),
     "candidate_polymarket": ("candidate_polymarket.json", "polymarket_candidate_markets.json"),
     "candidate_youtube": ("candidate_youtube.json", "youtube_candidate_channels.json"),
+    "candidate_bluesky": ("candidate_bluesky.json", "bluesky_candidate_accounts.json"),
     "candidate_agenda_history": ("candidate_agenda_history.json",),
     "candidate_signals": ("candidate_signals.json",),
     "candidate_visibility_history": (
@@ -1263,6 +1265,12 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
         return False
 
     payload = sources[0]["payload"]
+    if lane_name == "candidate_bluesky":
+        try:
+            validate_candidate_bluesky(payload, mapping=sources[1]["payload"])
+        except CandidateBlueskyError:
+            return False
+        return True
     if lane_name == "candidate_youtube":
         try:
             validate_candidate_youtube(payload, mapping=sources[1]["payload"])
@@ -1348,6 +1356,8 @@ def _structurally_valid(lane_name: str, sources: list[dict[str, Any]]) -> bool:
 
 
 def _evidence_values(lane_name: str, payload: Any) -> list[Any]:
+    if lane_name == "candidate_bluesky":
+        return [payload["observed_at"]]
     if lane_name == "candidate_youtube":
         return [payload["observed_at"]]
     if lane_name == "candidate_polymarket":
@@ -1535,6 +1545,8 @@ def _build_lane(
                 )
         if lane_name == "candidate_youtube":
             lane["record_count"] = len(primary["payload"]["candidates"])
+        if lane_name == "candidate_bluesky":
+            lane["record_count"] = len(primary["payload"]["candidates"])
         if lane_name == "candidate_agenda_history":
             lane["record_count"] = len(primary["payload"]["candidates"])
         if lane_name == "candidate_visibility_history":
@@ -1700,6 +1712,16 @@ def build_manifest(
     )
 
     registry_payload = lane_sources["candidacy_status"][0]["payload"]
+    try:
+        if lane_sources["candidate_bluesky"][1]["error"]:
+            raise CandidateBlueskyError("Bluesky mapping is missing or invalid")
+        validate_candidate_bluesky(
+            lane_sources["candidate_bluesky"][0]["payload"],
+            mapping=lane_sources["candidate_bluesky"][1]["payload"],
+            candidate_ids={row["candidate_id"] for row in registry_payload["candidates"]},
+        )
+    except CandidateBlueskyError as error:
+        raise ManifestError(f"candidate_bluesky invalid publication: {error}") from error
     try:
         if lane_sources["candidate_youtube"][1]["error"]:
             raise CandidateYouTubeError("YouTube mapping is missing or invalid")
