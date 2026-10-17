@@ -3446,16 +3446,63 @@
   }
 }
 /* === END FR27 CANDIDATE EXPLORE FURTHER === */
-/* Independent prediction-market evidence, subordinate to the polling panels. */
-.candidate-page .candidate-polymarket {
-  margin-top: 1rem;
-  padding: 1rem;
-  border-top: 1px solid var(--line, #324354);
+
+
+/* Public sources reuse candidate panels, KPI type and section/panel info controls. */
+.candidate-page .candidate-public-signals-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 8px;
+}
+.candidate-page .candidate-public-signal {
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
   overflow-wrap: anywhere;
 }
-.candidate-page .candidate-polymarket h3 { font-size: 0.9rem; margin: 0 0 0.5rem; }
-.candidate-page .candidate-polymarket p { font-size: 0.85rem; line-height: 1.6; }
-.candidate-page .candidate-polymarket-context { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.75rem; }
-.candidate-page .candidate-polymarket details { margin-top: 0.75rem; font-size: 0.8rem; }
-.candidate-page .candidate-polymarket summary { cursor: pointer; }
-.candidate-page .candidate-polymarket [data-state="stale"] { color: #ffbf4b; }
+.candidate-page .candidate-public-signal > .candidate-panel-head {
+  position: relative;
+  overflow: visible;
+}
+.candidate-page .candidate-public-signal > .candidate-panel-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.candidate-page .candidate-public-signal-subtitle,
+.candidate-page .candidate-public-signal-unit {
+  margin: 0;
+  color: var(--final-muted);
+  font-size: var(--fr27-type-meta);
+}
+.candidate-page .candidate-public-signal-value {
+  margin: 8px 0 3px;
+  color: #eef7fa;
+  font-size: var(--fr27-num-kpi);
+  font-weight: 710;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.candidate-page .candidate-public-signal-value strong { font-weight: inherit; }
+.candidate-page .candidate-public-signal[data-state="unavailable"] .candidate-public-signal-value {
+  font-size: var(--fr27-type-body);
+  line-height: 1.4;
+}
+.candidate-page .candidate-public-signal-support {
+  margin: 6px 0 0;
+  color: var(--final-muted);
+  font-size: var(--fr27-type-meta);
+  line-height: 1.4;
+}
+.candidate-page .candidate-public-signal .candidate-source-link {
+  align-self: flex-start;
+  margin-top: auto;
+  padding-top: 8px;
+}
+@media (min-width: 1350px) {
+  .candidate-page .candidate-public-signals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 759.98px) {
+  .candidate-page .candidate-public-signals-grid { grid-template-columns: minmax(0, 1fr); }
+}

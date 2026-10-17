@@ -359,7 +359,7 @@ class YouTubeTests(unittest.TestCase):
             self.assertEqual(lane["sha256"], hashlib.sha256((root / "candidate_youtube.json").read_bytes()).hexdigest())
             self.assertEqual(lane["related_files"][0]["sha256"], hashlib.sha256((root / "youtube_candidate_channels.json").read_bytes()).hexdigest())
 
-    def test_candidate_builder_projection_and_no_html_component(self):
+    def test_candidate_builder_projection_and_public_signal_card(self):
         import build_candidate_reference as reference
         sources = {k: json.loads((ROOT / name).read_text(encoding="utf-8")) for k, name in reference.SOURCE_FILES.items()
                    if k not in {"candidate_youtube", "youtube_candidate_channels"}}
@@ -373,8 +373,14 @@ class YouTubeTests(unittest.TestCase):
             with_youtube = reference.render_html(projected, metrics, lang=lang)
             without = copy.deepcopy(projected)
             without.pop("youtube")
-            self.assertEqual(with_youtube, reference.render_html(without, metrics, lang=lang))
-            self.assertNotIn(b"youtube", with_youtube.lower())
+            without_html = reference.render_html(without, metrics, lang=lang)
+            self.assertNotEqual(with_youtube, without_html)
+            self.assertEqual(with_youtube.count(b'data-provider="'), 3)
+            card = with_youtube.split(b'data-provider="youtube"', 1)[1].split(b'</article>', 1)[0]
+            self.assertIn(("123\u202f000" if lang == "fr" else "123,000").encode(), card)
+            self.assertIn(projected["youtube"]["channel_url"].encode(), card)
+            unavailable = without_html.split(b'data-provider="youtube"', 1)[1].split(b'</article>', 1)[0]
+            self.assertNotIn(b'href=', unavailable)
 
     def test_workflow_contract_and_publication_time_fallback(self):
         workflow = (ROOT / ".github/workflows/publish-candidate-family.yml").read_text(encoding="utf-8")
@@ -517,8 +523,8 @@ class TaskOnePreservationTests(unittest.TestCase):
         "build_candidate_polymarket.py": "cbadf171faa42fd582414417b61665c8db1d62611b931889bf2df602e1b890a3",
         "polymarket_candidate_markets.json": "8842f38c2115a3e5ad7de4dbf622f90e56ff4100526e97b718e94c56c092eec8",
         "docs/candidate-polymarket.md": "ada260d174dc0a55edb92cf7e1273136e6cd1f80fd871e6afefef89aeebdc883",
-        "assets/candidate-page.css": "5422107a66fc2011fa12415ad8eead87fb9fdb7a6b61c26cfdf07e54e0d35a7d",
-        "assets/candidate-page.js": "7bfc5e5f16d7f455fcb4c4e0012830ba40a8d47246b92f8a60dc05815fe0b2c5",
+        "assets/candidate-page.css": "13bcdfe678c0c9ba7253bf361cc0a39ecb9c4a722fbcb9f4fd0059102c397547",
+        "assets/candidate-page.js": "219efa69fecc5974af541c00cb36d817b2bf7fcb7177eb70e58893775eea6262",
     }
 
     def test_protected_files_unchanged(self):

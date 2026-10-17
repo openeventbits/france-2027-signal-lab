@@ -3067,6 +3067,7 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             "agenda",
             "scrutiny",
             "attention",
+            "public-signals",
             "events",
             "related-candidates",
         ]

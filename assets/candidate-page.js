@@ -6,7 +6,7 @@
   // freshness; upstream updatedAt is provenance, not a price/trade timestamp.
   // Never fetch provider data here.
   const updatePolymarketFreshness = () => {
-    document.querySelectorAll("[data-polymarket-freshness]").forEach(element => {
+    document.querySelectorAll("[data-polymarket-freshness], [data-public-signal-freshness]").forEach(element => {
       const observedAt = Date.parse(element.dataset.observedAt);
       const stale = !Number.isFinite(observedAt)
         || Date.now() - observedAt > Number(element.dataset.staleAfterHours) * 3600000;

@@ -377,7 +377,7 @@ class BlueskyPublicationTests(unittest.TestCase):
             (root / "bluesky_candidate_accounts.json").unlink()
             with self.assertRaises(manifest.ManifestError): manifest.build_manifest(root, published_at=OBSERVED)
 
-    def test_candidate_projection_and_no_visible_html_change(self):
+    def test_candidate_projection_and_public_signal_card(self):
         import build_candidate_reference as reference
         sources = {key: json.loads((ROOT / name).read_text(encoding="utf-8"))
                    for key, name in reference.SOURCE_FILES.items()
@@ -394,9 +394,14 @@ class BlueskyPublicationTests(unittest.TestCase):
         without.pop("bluesky")
         for lang in ("fr", "en"):
             rendered = reference.render_html(projected, metrics, lang=lang)
-            self.assertEqual(rendered, reference.render_html(without, metrics, lang=lang))
-            self.assertNotIn(b"bsky.app", rendered.lower())
-            self.assertNotIn(b"bluesky", rendered.lower())
+            without_html = reference.render_html(without, metrics, lang=lang)
+            self.assertNotEqual(rendered, without_html)
+            self.assertEqual(rendered.count(b'data-provider="'), 3)
+            card = rendered.split(b'data-provider="bluesky"', 1)[1].split(b'</article>', 1)[0]
+            self.assertIn(("12\u202f345" if lang == "fr" else "12,345").encode(), card)
+            self.assertIn(projected["bluesky"]["profile_url"].encode(), card)
+            unavailable = without_html.split(b'data-provider="bluesky"', 1)[1].split(b'</article>', 1)[0]
+            self.assertNotIn(b'href=', unavailable)
 
     def test_workflow_collection_gated_and_publication_time_fallback(self):
         workflow = (ROOT / ".github/workflows/publish-candidate-family.yml").read_text(encoding="utf-8")

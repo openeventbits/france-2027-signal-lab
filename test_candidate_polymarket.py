@@ -209,15 +209,15 @@ class PolymarketTests(unittest.TestCase):
     def test_localized_static_available_and_unavailable(self):
         import build_candidate_reference as reference
         for lang, label, disclaimer, unavailable in [
-            ("fr", "Probabilité implicite Polymarket", "ni une intention de vote ni une prévision FR27", "Indisponible"),
-            ("en", "Polymarket implied probability", "not voting intention and not an FR27 forecast", "Unavailable")
+            ("fr", "Probabilité implicite", "ni une intention de vote ni une prévision FR27", "Indisponible"),
+            ("en", "Implied probability", "not voting intention and not an FR27 forecast", "Unavailable")
         ]:
             row = self.row()
             row.update(observed_at=OBSERVED, stale_after_hours=48)
             rendered = reference.render_polymarket({"polymarket": row}, lang)
             self.assertIn(label, rendered)
             self.assertIn(disclaimer, rendered)
-            self.assertIn("17,4%" if lang == "fr" else "17.4%", rendered)
+            self.assertIn("17,4\u00a0%" if lang == "fr" else "17.4%", rendered)
             self.assertIn(row["source_url"], rendered)
             self.assertIn('data-polymarket-freshness', rendered)
             self.assertIn(OBSERVED, rendered)

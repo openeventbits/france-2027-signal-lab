@@ -1760,6 +1760,7 @@ def _render_candidate_structure_html(
     dossier = payload["dossier"]
     current_poll = payload["polling"]["current"]
     media = payload["media"]
+
     attention = payload["attention"]
 
     candidate_name = candidate["candidate_name"]
@@ -2624,8 +2625,8 @@ def _render_candidate_structure_html(
         <article class="candidate-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>PAGES VUES WIKIPÉDIA</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur les pages vues Wikipédia" aria-describedby="attention-summary-note">i</button><span class="candidate-section-tooltip" id="attention-summary-note" role="tooltip">Les pages vues Wikipédia mesurent la consultation de l’article. Elles ne mesurent ni soutien, ni sentiment, ni approbation, ni intention de vote.</span></span></div><span>pages vues</span></div><div class="candidate-panel-body">{attention_summary_body}</div></article>
         <article class="candidate-panel candidate-chart-panel"><div class="candidate-panel-head"><div class="candidate-panel-title-row"><h3>HISTORIQUE DES PAGES VUES</h3><span class="candidate-section-info-wrap candidate-panel-info-wrap"><button class="candidate-section-info" type="button" aria-label="Informations sur l’historique des pages vues" aria-describedby="attention-history-note">i</button><span class="candidate-section-tooltip" id="attention-history-note" role="tooltip">Pages vues quotidiennes de l’article Wikipédia en français. Des visites répétées peuvent être incluses.</span></span></div><span>{attention_history_meta}</span></div><div class="candidate-panel-body">{attention_history_body}</div></article>
       </div>
-      <!-- candidate-polymarket -->
     </section>
+    <!-- candidate-public-signals -->
 
     <section class="candidate-section" id="events" aria-labelledby="events-title">
       <header class="candidate-section-head"><div class="candidate-section-title-row"><h2 id="events-title">ÉVÉNEMENTS</h2><span class="candidate-section-info-wrap"><button class="candidate-section-info" type="button" aria-label="Contexte de cette section" aria-describedby="events-note">i</button><span class="candidate-section-tooltip" id="events-note" role="tooltip">{_h(events_definition)}</span></span></div></header>
@@ -2696,6 +2697,7 @@ _CANDIDATE_TEXT_EN = {
     "AGENDA": "AGENDA",
     "VÉRIFICATIONS": "SCRUTINY",
     "ATTENTION": "ATTENTION",
+    "SIGNAUX PUBLICS": "PUBLIC SIGNALS",
     "ÉVÉNEMENTS": "EVENTS",
     "DERNIÈRES ACTUALITÉS": "LATEST NEWS",
     "CE QUI A CHANGÉ": "WHAT CHANGED",
@@ -3904,57 +3906,183 @@ def _candidate_apply_language_shell(
     return document
 
 
+def _public_signal_number(value: int, lang: str) -> str:
+    return f"{value:,}".replace(",", "\u202f") if lang == "fr" else f"{value:,}"
+
+
+def _public_signal_source(url: Any, provider: str, label: str) -> str:
+    """Only existing provider URLs become links; unavailable states invent none."""
+    from urllib.parse import urlsplit
+    if not isinstance(url, str):
+        return ""
+    try:
+        parsed = urlsplit(url)
+        port = parsed.port
+    except ValueError:
+        return ""
+    hosts, prefix = {
+        "polymarket": ({"polymarket.com"}, "/event/"),
+        "youtube": ({"www.youtube.com"}, "/channel/"),
+        "bluesky": ({"bsky.app"}, "/profile/"),
+    }[provider]
+    if (parsed.scheme != "https" or parsed.hostname not in hosts or parsed.username
+            or parsed.password or port not in (None, 443) or not parsed.path.startswith(prefix)):
+        return ""
+    return _source_link(url, label)
+
+
+def _public_signal_freshness(row: dict, provider: str, lang: str) -> str:
+    observed = row.get("observed_at")
+    if not observed:
+        return ""
+    fr = lang == "fr"
+    instant = datetime.fromisoformat(observed.replace("Z", "+00:00"))
+    display = instant.strftime("%d/%m/%Y %H:%M UTC" if fr else "%d %b %Y %H:%M UTC")
+    hook = ' data-polymarket-freshness' if provider == "polymarket" else ' data-public-signal-freshness'
+    return (
+        f'<span>{"Collecte FR27" if fr else "FR27 observation"} : '
+        f'<time datetime="{_h(observed)}">{_h(display)}</time>. '
+        f'<span{hook} data-observed-at="{_h(observed)}" '
+        f'data-stale-after-hours="{row.get("stale_after_hours", 48)}" aria-live="polite">'
+        f'{"Fraîcheur à vérifier (48 h)" if fr else "Check freshness (48h)"}</span></span>'
+    )
+
+
+def _candidate_info_tooltip(note_id: str, label: str, body: str, *, panel: bool = False) -> str:
+    """Use the existing candidate section/panel info markup and its shared CSS behavior."""
+    classes = "candidate-section-info-wrap" + (" candidate-panel-info-wrap" if panel else "")
+    return (
+        f'<span class="{classes}"><button class="candidate-section-info" type="button" '
+        f'aria-label="{_h(label)}" aria-describedby="{_h(note_id)}">i</button>'
+        f'<span class="candidate-section-tooltip" id="{_h(note_id)}" role="tooltip">{body}</span></span>'
+    )
+
+
+def _public_signal_card(provider: str, *, name: str, subtitle: str, value: str,
+                        unit: str, support: str, method: str, source: str,
+                        freshness: str, lang: str, unavailable: bool = False) -> str:
+    heading_id = "polymarket-label" if provider == "polymarket" else f"public-signal-{provider}-title"
+    state = "unavailable" if unavailable else "observed"
+    info = _candidate_info_tooltip(f"public-signal-{provider}-note",
+        ("Méthode et provenance — " if lang == "fr" else "Method and provenance — ") + name,
+        _h(method) + ("<br><br>" + freshness if freshness else ""), panel=True)
+    unit_html = f'<p class="candidate-public-signal-unit">{_h(unit)}</p>' if not unavailable else ""
+    support_html = f'<p class="candidate-public-signal-support">{_h(support)}</p>' if support else ""
+    return (
+        f'<article class="candidate-panel candidate-public-signal" data-provider="{provider}" data-state="{state}" '
+        f'aria-labelledby="{heading_id}">'
+        f'<header class="candidate-panel-head"><div class="candidate-panel-title-row">'
+        f'<h3 id="{heading_id}">{_h(name)}</h3>{info}</div></header>'
+        '<div class="candidate-panel-body">'
+        f'<p class="candidate-public-signal-subtitle">{_h(subtitle)}</p>'
+        f'<p class="candidate-public-signal-value"><strong>{_h(value)}</strong></p>'
+        f'{unit_html}{support_html}{source}</div></article>'
+    )
+
+
 def render_polymarket(payload: dict[str, Any], lang: str) -> str:
-    """Small independent evidence unit beside Wikipedia, with no ranking/deltas."""
+    """The prediction-market peer card; percentages remain source probabilities."""
     row = payload.get("polymarket") or {}
     fr = lang == "fr"
-    label = "Probabilité implicite Polymarket" if fr else "Polymarket implied probability"
-    disclaimer = (
-        "Marché prédictif — ne constitue ni une intention de vote ni une prévision FR27."
-        if fr else "Prediction market — not voting intention and not an FR27 forecast."
-    )
-    value = row.get("implied_probability")
-    available = row.get("status") == "observed" and type(value) in (int, float)
-    formatted = f"{value * 100:.1f}" if available else ""
-    if fr:
-        formatted = formatted.replace(".", ",")
-    value_html = f"<strong>{formatted}%</strong>" if available else (
-        '<strong>Indisponible</strong>' if fr else '<strong>Unavailable</strong>'
-    )
-    context = "Vainqueur de l’élection, second tour inclus" if fr else "Election winner, including any runoff"
-    observed = row.get("observed_at")
-    freshness = ""
-    if observed:
-        freshness = (
-            f'<span>{"Collecté le" if fr else "Collected"} '
-            f'<time datetime="{_h(observed)}">{_h(observed)} (UTC)</time></span>'
-            f'<span data-polymarket-freshness data-observed-at="{_h(observed)}" '
-            f'data-source-updated-at="{_h(row.get("source_updated_at") or observed)}" '
-            f'data-stale-after-hours="{row.get("stale_after_hours", 48)}" aria-live="polite">'
-            f'{"Fraîcheur à vérifier (48 h)" if fr else "Check freshness (48h)"}</span>'
-        )
-    link = _source_link(row["source_url"], "Polymarket ↗") if row.get("source_url") else ""
-    unavailable = "" if available else (
-        '<p>Aucun prix exploitable publié pour cette candidature ; une absence ne signifie pas 0%.</p>'
-        if fr else '<p>No usable published price for this candidate; absence does not mean 0%.</p>'
-    )
+    probability = row.get("implied_probability")
+    available = row.get("status") == "observed" and type(probability) in (float, int)
+    formatted = f"{probability * 100:.1f}" if available else ""
+    value = ((formatted.replace(".", ",") + "\u00a0%" if fr else formatted + "%")
+             if available else ("Indisponible" if fr else "Unavailable"))
     method = (
+        "Vainqueur de l’élection, second tour inclus. Marché prédictif — ne constitue ni une intention de vote ni une prévision FR27. "
         "Valeur tierce, non calculée par FR27. Les participants ne sont pas un échantillon représentatif "
         "des électeurs français. La liquidité et les conditions de négociation peuvent influencer les prix. "
         "FR27 ne combine pas ce signal avec les sondages, Wikipédia, les médias, l’agenda ou d’autres "
-        "éléments dans un score synthétique."
+        "éléments dans un score synthétique. Une absence ne signifie pas 0%."
         if fr else
-        "Third-party value, not calculated by FR27. Participants are not a representative sample of French "
-        "voters. Liquidity and trading conditions may influence prices. FR27 does not combine this signal "
-        "with polling, Wikipedia, media, agenda or other evidence into a synthetic score."
+        "Election winner, including any runoff. Prediction market — not voting intention and not an FR27 forecast. Third-party value, not "
+        "calculated by FR27. Participants are not a representative sample of French voters. Liquidity "
+        "and trading conditions may influence prices. FR27 does not combine this signal with polling, "
+        "Wikipedia, media, agenda or other evidence into a synthetic score. Absence does not mean 0%."
     )
+    return _public_signal_card("polymarket", name="Polymarket",
+        subtitle="Marché prédictif" if fr else "Prediction market", value=value,
+        unit="Probabilité implicite" if fr else "Implied probability",
+        support="",
+        method=method,
+        source=_public_signal_source(row.get("source_url"), "polymarket", "Polymarket ↗") if available else "",
+        freshness=_public_signal_freshness(row, "polymarket", lang), lang=lang, unavailable=not available)
+
+
+def render_public_signals(payload: dict[str, Any], lang: str) -> str:
+    """Three independent measures, adjacent to the unchanged Wikipedia section."""
+    fr = lang == "fr"
+    youtube = payload.get("youtube") or {}
+    yt_observed = youtube.get("status") == "observed"
+    hidden = yt_observed and youtube.get("hidden_subscriber_count") is True
+    yt_value = (_public_signal_number(youtube["subscriber_count"], lang) if yt_observed and not hidden
+                else ("Abonnés masqués" if fr else "Subscribers hidden") if hidden
+                else ("Chaîne officielle non établie" if fr else "Official channel not established")
+                if youtube.get("status") in (None, "unavailable_no_channel")
+                else ("Chaîne indisponible" if fr else "Channel unavailable"))
+    yt_support = ""
+    if yt_observed:
+        if youtube.get("recent_window_complete") is True and youtube.get("uploads_last_7d") is not None:
+            uploads = youtube["uploads_last_7d"]
+            activity_label = (" vidéo publiée sur 7 j" if uploads == 1 else " vidéos publiées sur 7 j") if fr else (
+                " upload in 7d" if uploads == 1 else " uploads in 7d")
+            yt_support = _public_signal_number(uploads, lang) + activity_label
+        elif youtube.get("recent_window_complete") is False:
+            yt_support = "Activité récente partielle" if fr else "Recent activity incomplete"
+    yt_card = _public_signal_card("youtube", name="YouTube",
+        subtitle="Audience de la chaîne" if fr else "Channel audience", value=yt_value,
+        unit="Abonnés" if fr else "Subscribers", support=yt_support,
+        method=("Chaîne personnelle ou de campagne vérifiée à partir de sources officielles et identifiée par un ID stable. "
+                "Abonnés de la chaîne officielle, pas un soutien électoral. YouTube arrondit le nombre d’abonnés "
+                "à la baisse à trois chiffres significatifs. Les vidéos publiées dans les sept jours précédant la collecte "
+                "sont comptées selon leur date de publication, bornes incluses, uniquement si la liste complète est vérifiée. "
+                "Une activité partielle ne fournit pas de compte exact."
+                if fr else "Reviewed personal/campaign channel established from first-party sources and pinned to a stable channel ID. "
+                "Official-channel subscribers, not electoral support. YouTube rounds subscriber "
+                "counts down to three significant figures. Uploads use video publication times within the seven days "
+                "before observation, including both boundaries, only when the full playlist is verified. "
+                "Incomplete activity does not provide an exact count."),
+        source=_public_signal_source(youtube.get("channel_url"), "youtube",
+            "Chaîne YouTube ↗" if fr else "YouTube channel ↗") if yt_observed else "",
+        freshness=_public_signal_freshness(youtube, "youtube", lang), lang=lang, unavailable=not yt_observed or hidden)
+    bluesky = payload.get("bluesky") or {}
+    bsky_observed = bluesky.get("status") == "observed"
+    bsky_value = (_public_signal_number(bluesky["followers_count"], lang) if bsky_observed else
+        ("Données publiques non affichées" if fr else "Public data not displayed")
+        if bluesky.get("status") == "unavailable_public_web_opt_out" else
+        ("Compte indisponible" if fr else "Account unavailable")
+        if bluesky.get("status") == "unavailable_account_missing" else
+        ("Compte officiel non établi" if fr else "Official account not established"))
+    bsky_card = _public_signal_card("bluesky", name="Bluesky",
+        subtitle="Audience du compte" if fr else "Account audience", value=bsky_value,
+        unit="Abonnés" if fr else "Followers", support="@" + bluesky["handle"] if bsky_observed else "",
+        method=("Compte personnel ou de campagne vérifié à partir de sources officielles. "
+                "Le DID identifie durablement le compte ; le handle peut changer. "
+                "Abonnés du compte officiel sur Bluesky, pas des électeurs ou une mesure de soutien. "
+                "Les préférences de non-affichage public sont respectées."
+                if fr else "Reviewed personal/campaign account established from first-party sources. "
+                "The DID is the persistent identity; the handle may change. "
+                "Official-account followers on Bluesky, not voters or a measure of support. "
+                "Public-web visibility opt-outs are respected."),
+        source=_public_signal_source(bluesky.get("profile_url"), "bluesky",
+            "Profil Bluesky ↗" if fr else "Bluesky profile ↗") if bsky_observed else "",
+        freshness=_public_signal_freshness(bluesky, "bluesky", lang), lang=lang, unavailable=not bsky_observed)
+    explanation = (
+        "Ces indicateurs proviennent de sources indépendantes et ne mesurent pas la même chose. "
+        "Ils ne constituent ni un score de popularité ni une intention de vote."
+        if fr else "These indicators come from independent sources and do not measure the same thing. "
+        "They are neither a popularity score nor voting intention."
+    )
+    info = _candidate_info_tooltip("public-signals-note",
+        "Informations sur les signaux publics" if fr else "Public signals information", _h(explanation))
     return (
-        f'<aside class="candidate-polymarket" aria-labelledby="polymarket-label">'
-        f'<h3 id="polymarket-label">{label}</h3><p>{context} · {value_html}</p>'
-        f'<p class="candidate-method-note">{disclaimer}</p>{unavailable}'
-        f'<div class="candidate-polymarket-context">{freshness}{link}</div>'
-        f'<details><summary>{"Méthode et limites" if fr else "Method and limitations"}</summary>'
-        f'<p>{method}</p></details></aside>'
+        '<section class="candidate-section candidate-public-signals" id="public-signals" aria-labelledby="public-signals-title">'
+        '<header class="candidate-section-head"><div class="candidate-section-title-row">'
+        f'<h2 id="public-signals-title">{"SIGNAUX PUBLICS" if fr else "PUBLIC SIGNALS"}</h2>{info}'
+        '</div></header>'
+        f'<div class="candidate-public-signals-grid">{render_polymarket(payload, lang)}{yt_card}{bsky_card}</div>'
+        '</section>'
     )
 
 
@@ -4017,7 +4145,7 @@ def render_html(
         )
 
     if lang == "fr":
-        raw = raw.replace("<!-- candidate-polymarket -->", render_polymarket(payload, lang))
+        raw = raw.replace("<!-- candidate-public-signals -->", render_public_signals(payload, lang))
         return install_section_launcher(raw, lang).encode("utf-8")
 
     parser = _CandidateEnglishHTMLParser()
@@ -4067,7 +4195,7 @@ def render_html(
             "English candidate data URL drifted"
         )
 
-    rendered = rendered.replace("<!-- candidate-polymarket -->", render_polymarket(payload, lang))
+    rendered = rendered.replace("<!-- candidate-public-signals -->", render_public_signals(payload, lang))
     return install_section_launcher(rendered, lang).encode("utf-8")
 
 
