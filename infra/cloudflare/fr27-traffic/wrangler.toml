@@ -2,10 +2,10 @@ name = "fr27-traffic"
 main = "src/index.js"
 compatibility_date = "2026-10-17"
 workers_dev = true
+# Validation only. No production route is enabled by this configuration.
+# The reviewed activation edit and required route fail-open setting are in README.md.
+routes = []
 
 [[analytics_engine_datasets]]
 binding = "TRAFFIC"
 dataset = "fr27_traffic"
-
-[analytics]
-binding = "ANALYTICS_SQL"

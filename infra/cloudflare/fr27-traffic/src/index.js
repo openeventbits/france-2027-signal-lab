@@ -1,5 +1,5 @@
 const BOT_RE =
-  /\b(bot|crawler|spider|slurp|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|telegrambot|whatsapp|headlesschrome|lighthouse)\b/i;
+  /bot\b|crawler|spider|slurp|facebookexternalhit|whatsapp|headlesschrome|lighthouse/i;
 
 const encoder = new TextEncoder();
 
@@ -34,35 +34,25 @@ export default {
     const response = await fetch(request);
 
     /*
-     * Fail closed:
+     * Skip analytics unless eligible. Analytics errors must not affect FR27.
      *
      * - only qualifying HTML page requests
      * - only if the analytics secret exists
      * - never allow analytics failure to affect FR27
      */
-    if (
-      shouldTrack(request, response) &&
-      env.FR27_ANALYTICS_SALT
-    ) {
-      ctx.waitUntil(
-        recordPageview(
-          request,
-          response,
-          env
-        ).catch(() => {
-          /*
-           * Analytics must never break or delay
-           * the public FR27 response.
-           */
-        })
-      );
+    try {
+      if (shouldTrack(request, response) && env.FR27_ANALYTICS_SALT) {
+        ctx.waitUntil(recordPageview(request, response, env).catch(() => {}));
+      }
+    } catch {
+      // Also isolate synchronous filtering/scheduling failures. Never log inputs.
     }
 
     return response;
   }
 };
 
-function shouldTrack(request, response) {
+export function shouldTrack(request, response) {
   if (request.method !== "GET") {
     return false;
   }
@@ -74,7 +64,7 @@ function shouldTrack(request, response) {
   const contentType =
     response.headers.get("content-type") || "";
 
-  if (!contentType.includes("text/html")) {
+  if (contentType.split(";", 1)[0].trim().toLowerCase() !== "text/html") {
     return false;
   }
 
@@ -137,11 +127,7 @@ async function recordPageview(
       request.headers.get("user-agent") || ""
     );
 
-  const locale =
-    url.pathname === "/en/" ||
-    url.pathname.startsWith("/en/")
-      ? "en"
-      : "fr";
+  const locale = localeClass(url.pathname);
 
   /*
    * Analytics Engine schema:
@@ -173,9 +159,10 @@ async function recordPageview(
   });
 }
 
-async function dailyVisitorId(
+export async function dailyVisitorId(
   request,
-  secret
+  secret,
+  now = new Date()
 ) {
   const ip =
     request.headers.get("cf-connecting-ip") ||
@@ -190,7 +177,7 @@ async function dailyVisitorId(
    * UTC date deliberately rotates identity daily.
    */
   const day =
-    new Date().toISOString().slice(0, 10);
+    now.toISOString().slice(0, 10);
 
   const key =
     await crypto.subtle.importKey(
@@ -228,7 +215,7 @@ async function dailyVisitorId(
     .join("");
 }
 
-function normalizePath(pathname) {
+export function normalizePath(pathname) {
   if (!pathname) {
     return "/";
   }
@@ -239,7 +226,7 @@ function normalizePath(pathname) {
   return pathname.slice(0, 300);
 }
 
-function referrerDomain(
+export function referrerDomain(
   referrer,
   currentHostname
 ) {
@@ -248,15 +235,20 @@ function referrerDomain(
   }
 
   try {
+    const url = new URL(referrer);
+    if (!["http:", "https:"].includes(url.protocol) || !url.hostname) {
+      return "(unknown)";
+    }
     const hostname =
-      new URL(referrer)
-        .hostname
+      url.hostname
         .toLowerCase()
+        .replace(/\.$/, "")
         .replace(/^www\./, "");
 
     const current =
       currentHostname
         .toLowerCase()
+        .replace(/\.$/, "")
         .replace(/^www\./, "");
 
     if (hostname === current) {
@@ -272,7 +264,11 @@ function referrerDomain(
   }
 }
 
-function deviceClass(userAgent) {
+export function localeClass(pathname) {
+  return pathname === "/en" || pathname.startsWith("/en/") ? "en" : "fr";
+}
+
+export function deviceClass(userAgent) {
   if (
     /iPad|Tablet|Android(?!.*Mobile)/i
       .test(userAgent)
