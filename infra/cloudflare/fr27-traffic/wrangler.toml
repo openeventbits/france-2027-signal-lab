@@ -4,7 +4,9 @@ compatibility_date = "2026-10-17"
 workers_dev = true
 # Validation only. No production route is enabled by this configuration.
 # The reviewed activation edit and required route fail-open setting are in README.md.
-routes = []
+routes = [
+  { pattern = "france2027.app/*", zone_name = "france2027.app" }
+]
 
 [[analytics_engine_datasets]]
 binding = "TRAFFIC"
