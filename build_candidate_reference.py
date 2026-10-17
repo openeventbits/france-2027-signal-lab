@@ -33,6 +33,10 @@ from candidate_polymarket import (
     candidate_record, validate_candidate_polymarket, validate_candidate_polymarket_projection,
     validate_mapping as validate_polymarket_mapping,
 )
+from candidate_youtube import (
+    candidate_projection as youtube_projection, validate_candidate_youtube,
+    validate_candidate_youtube_projection,
+)
 from candidate_candidacy_status import (
     active_candidate_records,
     validate_candidate_candidacy_status,
@@ -83,6 +87,8 @@ SOURCE_FILES = {
     "candidate_attention": "candidate_attention.json",
     "candidate_polymarket": "candidate_polymarket.json",
     "polymarket_candidate_markets": "polymarket_candidate_markets.json",
+    "candidate_youtube": "candidate_youtube.json",
+    "youtube_candidate_channels": "youtube_candidate_channels.json",
     "candidate_candidacy_status": "candidate_candidacy_status.json",
     "claims_under_scrutiny": "claims_under_scrutiny.json",
     "recent_changes": "recent_changes.json",
@@ -304,6 +310,10 @@ def validate_sources(sources: dict[str, Any], root: Path = ROOT) -> None:
     claims = sources["claims_under_scrutiny"]
 
     validate_candidate_candidacy_status(status)
+    validate_candidate_youtube(
+        sources["candidate_youtube"], mapping=sources["youtube_candidate_channels"],
+        candidate_ids={row["candidate_id"] for row in status["candidates"]},
+    )
     validate_candidate_polymarket(
         sources["candidate_polymarket"],
         mapping=sources["polymarket_candidate_markets"],
@@ -1157,6 +1167,7 @@ def build_projection(
                 "status_note": candidate_status["status_note"],
             },
         },
+        "youtube": youtube_projection(sources["candidate_youtube"], candidate_id),
         "polymarket": {
             **candidate_record(sources["candidate_polymarket"], candidate_id),
             "provider": "polymarket",
@@ -1222,6 +1233,8 @@ def validate_projection(
         raise CandidateReferenceError("projection schema_version is invalid")
     if "polymarket" in payload:
         validate_candidate_polymarket_projection(payload["polymarket"], payload.get("candidate_id"))
+    if "youtube" in payload:
+        validate_candidate_youtube_projection(payload["youtube"], payload.get("candidate_id"))
 
     projected_candidate_id = payload.get("candidate_id")
     if not isinstance(projected_candidate_id, str) or not projected_candidate_id:

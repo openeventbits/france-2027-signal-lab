@@ -17,6 +17,11 @@ on:
       - "candidate_polymarket.py"
       - "build_candidate_polymarket.py"
       - "test_candidate_polymarket.py"
+      - "candidate_youtube.json"
+      - "youtube_candidate_channels.json"
+      - "candidate_youtube.py"
+      - "build_candidate_youtube.py"
+      - "test_candidate_youtube.py"
       - "candidate_candidacy_status.json"
       - "claims_under_scrutiny.json"
       - "recent_changes.json"
@@ -304,6 +309,18 @@ jobs:
           python -B build_candidate_polymarket.py
           echo "published_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
+      - name: Collect candidate YouTube evidence
+        id: youtube
+        if: >-
+          steps.dependencies.outputs.ready == 'true' &&
+          (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          python -B -m unittest -v test_candidate_youtube
+          python -B build_candidate_youtube.py
+          echo "published_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
       - name: Build and validate candidate publication
         id: build
         if: steps.dependencies.outputs.ready == 'true'
@@ -314,7 +331,7 @@ jobs:
           effective_date="$(date -u +'%Y-%m-%d')"
           echo "effective_date=$effective_date" >> "$GITHUB_OUTPUT"
 
-          publication_time="${{ steps.polymarket.outputs.published_at }}"
+          publication_time="${{ steps.youtube.outputs.published_at || steps.polymarket.outputs.published_at }}"
           if [[ -z "$publication_time" ]]; then
             publication_time="$(python -B -c 'import json; print(json.load(open("publication_manifest.json"))["published_at"])')"
           fi
@@ -342,6 +359,7 @@ jobs:
 
           python -B -m unittest -v \
             test_candidate_polymarket \
+            test_candidate_youtube \
             test_candidate_page_contract \
             test_candidate_reference \
             test_candidate_poll_links \
@@ -360,7 +378,7 @@ jobs:
           set -euo pipefail
 
           if [[ -z "$(git status --porcelain -- \
-            candidate_polymarket.json publication_manifest.json \
+            candidate_polymarket.json candidate_youtube.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
             sitemap-core.xml sitemap-polls.xml \
@@ -375,7 +393,7 @@ jobs:
             "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add -- \
-            candidate_polymarket.json publication_manifest.json \
+            candidate_polymarket.json candidate_youtube.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
             sitemap-core.xml sitemap-polls.xml \
@@ -418,6 +436,7 @@ jobs:
 
           python -B -m unittest -v \
             test_candidate_polymarket \
+            test_candidate_youtube \
             test_candidate_page_contract \
             test_candidate_reference \
             test_candidate_poll_links \
@@ -429,7 +448,7 @@ jobs:
           git diff --check
 
           git add -- \
-            candidate_polymarket.json publication_manifest.json \
+            candidate_polymarket.json candidate_youtube.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
             sitemap-core.xml sitemap-polls.xml \
@@ -440,14 +459,14 @@ jobs:
           fi
 
           if [[ -n "$(git status --porcelain -- \
-            candidate_polymarket.json publication_manifest.json \
+            candidate_polymarket.json candidate_youtube.json publication_manifest.json \
             candidates en/candidates \
             route_registry.json sitemap.xml sitemap-candidates.xml \
             sitemap-core.xml sitemap-polls.xml \
             index.html en/index.html)" ]]; then
             echo "Candidate publication artifacts are not clean before push."
             git status --short -- \
-              candidate_polymarket.json publication_manifest.json \
+              candidate_polymarket.json candidate_youtube.json publication_manifest.json \
               candidates en/candidates \
               route_registry.json sitemap.xml sitemap-candidates.xml \
               sitemap-core.xml sitemap-polls.xml \
