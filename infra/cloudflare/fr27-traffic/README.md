@@ -1,10 +1,10 @@
 # FR27 traffic Worker
 
-Repository preparation only: **no production route is active in this configuration**.
-`wrangler.toml` explicitly has `routes = []`. Do not deploy as part of validation.
-The existing validation deployment is https://fr27-traffic.driftsignals.workers.dev.
-Keep all repository work on `feat/cloudflare-traffic-v1`; do not merge/rebase main
-or activate production as part of this preparation.
+The reviewed production route is now versioned in `wrangler.toml`, but it is **not
+active until an approved `npx wrangler deploy` is performed**. The existing
+validation deployment remains https://fr27-traffic.driftsignals.workers.dev.
+Production activation, fail-open verification and rollback remain manual steps
+documented below.
 
 ## Architecture and privacy
 
@@ -231,9 +231,10 @@ credentials and is not part of offline validation.
    and GitHub Pages remains healthy through Cloudflare. Do not alter DNS, SSL,
    zone/account settings or secrets. Confirm the existing salt's installation
    without printing its value. Resolve any uncertainty before proceeding.
-2. Obtain separate approval for production deployment/routing. The exact proposed
-   **repository edit** replaces top-level `routes = []` with the following,
-   immediately after `workers_dev = true` and before any TOML table:
+2. Obtain separate approval for production deployment/routing. Confirm that the
+   reviewed repository configuration still contains exactly the route below.
+   Its presence in the repository does not activate it; activation occurs only
+   when the approved Wrangler deployment in step 3 is performed:
 
    ```toml
    routes = [

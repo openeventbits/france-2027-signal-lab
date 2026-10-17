@@ -2,8 +2,8 @@ name = "fr27-traffic"
 main = "src/index.js"
 compatibility_date = "2026-10-17"
 workers_dev = true
-# Validation only. No production route is enabled by this configuration.
-# The reviewed activation edit and required route fail-open setting are in README.md.
+# The reviewed production route is versioned here but is not active until an approved Wrangler deploy.
+# Required fail-open verification and rollback procedures are documented in README.md.
 routes = [
   { pattern = "france2027.app/*", zone_name = "france2027.app" }
 ]
