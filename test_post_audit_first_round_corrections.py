@@ -501,6 +501,163 @@ if __name__ == "__main__":
     unittest.main()
 
 
+
+class ReviewedCandidateExpansionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from reviewed_candidate_expansions import REGISTRY
+        cls.payload = json.loads(REGISTRY.read_text(encoding="utf-8"))
+        cls.records = cls.payload["expansions"]
+        cls.rows = [copy.deepcopy(r["incoming_row"]) for r in cls.records]
+        cls.previous = json.loads(
+            (ROOT / "polls.json").read_text(encoding="utf-8")
+        )
+
+    def run_expansion(self, rows=None, previous=None, revision=240470913,
+                      registry_path=None):
+        from reviewed_candidate_expansions import (
+            REGISTRY, reconcile_reviewed_candidate_expansions,
+        )
+        return reconcile_reviewed_candidate_expansions(
+            self.rows if rows is None else rows,
+            revision,
+            self.previous if previous is None else previous,
+            registry_path=REGISTRY if registry_path is None else registry_path,
+        )
+
+    def test_exact_three_successors_and_313_other_events_preserved(self):
+        result = self.run_expansion()
+        old_ids = {r["previous_event"]["event_id"] for r in self.records}
+        new_ids = {r["canonical_event_id"] for r in self.records}
+        before = {e["event_id"]: e for e in self.previous}
+        after = {e["event_id"]: e for e in result.events}
+
+        self.assertEqual((result.applied, result.already_applied), (3, 0))
+        self.assertEqual(len(before), 316)
+        self.assertEqual(len(after), 316)
+        self.assertEqual(set(before) - set(after), old_ids)
+        self.assertEqual(set(after) - set(before), new_ids)
+        self.assertEqual(
+            result.superseded_event_ids, sorted(old_ids)
+        )
+        self.assertEqual(result.canonical_event_ids, sorted(new_ids))
+        self.assertEqual(result.covered_persistence_ids, sorted(old_ids))
+
+        for event_id in set(before) & set(after):
+            self.assertEqual(before[event_id], after[event_id])
+
+        for record in self.records:
+            event = after[record["canonical_event_id"]]
+            self.assertEqual(
+                event["supersedes_event_id"],
+                record["previous_event"]["event_id"],
+            )
+            self.assertEqual(event["source_url"], record["incoming_row"]["source_url"])
+            self.assertEqual(event["reported_total"], 100)
+            self.assertEqual(event["completeness_status"], "complete")
+
+        validate_poll_events(result.events)
+
+    def test_idempotent_replay_and_later_revision(self):
+        first = self.run_expansion()
+        again = self.run_expansion(
+            previous=first.events, revision=240470914
+        )
+        self.assertEqual(first.events, again.events)
+        self.assertEqual(again.applied, 0)
+        self.assertEqual(again.already_applied, 3)
+        self.assertEqual(again.superseded_event_ids, [])
+        expected_old = sorted(
+            record["previous_event"]["event_id"]
+            for record in self.records
+        )
+        self.assertEqual(again.covered_persistence_ids, expected_old)
+
+    def test_pre_review_revision_does_not_apply_expansions(self):
+        result = self.run_expansion(revision=240470912)
+        self.assertEqual(result.events, self.previous)
+        self.assertEqual(result.canonical_event_ids, [])
+        self.assertEqual(result.superseded_event_ids, [])
+
+    def test_each_incoming_source_mutation_fails_closed(self):
+        mutations = (
+            lambda r: r["candidates"][0].update(score=99),
+            lambda r: r["candidates"].pop(),
+            lambda r: r["candidates"].append(
+                {"name": "Unreviewed Candidate", "score": 1}
+            ),
+            lambda r: r.update(sample_size=9999),
+            lambda r: r.update(
+                source_url="https://example.org/unreviewed"
+            ),
+            lambda r: r.update(source_locator="FR-T9R999"),
+            lambda r: r.update(fieldwork_end="2026-10-17"),
+        )
+        for index in range(3):
+            for mutate in mutations:
+                rows = copy.deepcopy(self.rows)
+                mutate(rows[index])
+                with self.subTest(index=index, mutate=mutate):
+                    with self.assertRaisesRegex(
+                        ValueError, "source facts/provenance changed"
+                    ):
+                        self.run_expansion(rows=rows)
+
+    def test_unreviewed_historical_change_fails_closed(self):
+        old_id = self.records[0]["previous_event"]["event_id"]
+        events = copy.deepcopy(self.previous)
+        target = next(e for e in events if e["event_id"] == old_id)
+        target["candidates"][0]["score"] = 99
+        with self.assertRaises(ValueError):
+            self.run_expansion(previous=events)
+
+    def test_missing_or_mixed_identity_fails_closed(self):
+        from reviewed_candidate_expansions import _canonical_event
+        old_id = self.records[0]["previous_event"]["event_id"]
+        successor = _canonical_event(self.rows[0], old_id)
+
+        mixed = copy.deepcopy(self.previous) + [successor]
+        with self.assertRaisesRegex(ValueError, "both historical"):
+            self.run_expansion(previous=mixed)
+
+        missing = [
+            e for e in self.previous if e["event_id"] != old_id
+        ]
+        with self.assertRaisesRegex(ValueError, "neither historical"):
+            self.run_expansion(previous=missing)
+
+    def test_unregistered_registry_mutation_fails_closed(self):
+        import tempfile
+
+        modifications = (
+            lambda p: p["expansions"].pop(),
+            lambda p: p["expansions"].append(
+                copy.deepcopy(p["expansions"][0])
+            ),
+            lambda p: p["expansions"][0].update(
+                evidence_page=999
+            ),
+            lambda p: p["expansions"][0].update(
+                canonical_event_id="0" * 64
+            ),
+            lambda p: p.update(reviewed_revision=240470914),
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mutated.json"
+            for modify in modifications:
+                payload = copy.deepcopy(self.payload)
+                modify(payload)
+                path.write_text(
+                    json.dumps(payload, ensure_ascii=False),
+                    encoding="utf-8",
+                )
+                with self.subTest(modify=modify):
+                    with self.assertRaises(ValueError):
+                        self.run_expansion(registry_path=path)
+
+
+
 class StructuredSourceCorrectionTests(unittest.TestCase):
     OLD = "4708b7c647cfa31ad8c8db6a257450ebe22c8f1cbcc455e7a03d3e7d5d23523e"
     EARLIER = "07a06aee6b9812cfbd6e897ae5004c4ad268ef5cf29ce95c8c0ff2afed183a3a"
