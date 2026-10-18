@@ -1590,6 +1590,32 @@ def reconcile_french_production_source(
     first_round_corrections = reconcile_first_round_corrections(
         source_records[FIRST_ROUND], parsed["revid"], previous_first,
     )
+
+    # Three reviewed candidate-list expansions, independently scoped.
+    # Do not weaken the generic expansion/anchor guards below.
+    from reviewed_candidate_expansions import (
+        reconcile_reviewed_candidate_expansions,
+    )
+
+    expansion = reconcile_reviewed_candidate_expansions(
+        source_records[FIRST_ROUND],
+        parsed["revid"],
+        first_round_corrections.events,
+    )
+    first_round_corrections.events = expansion.events
+    first_round_corrections.report["canonical_event_ids"].extend(
+        expansion.canonical_event_ids
+    )
+    first_round_corrections.report["superseded_event_ids"].extend(
+        expansion.superseded_event_ids
+    )
+    first_round_corrections.report["canonical_event_ids"].sort()
+    first_round_corrections.report["superseded_event_ids"].sort()
+    first_round_corrections.report["reviewed_candidate_expansions"] = {
+        "applied": expansion.applied,
+        "already_applied": expansion.already_applied,
+    }
+
     previous_by_round[FIRST_ROUND] = first_round_corrections.events
     previous_ids = {
         round_name: {event["event_id"] for event in events}
@@ -1606,7 +1632,13 @@ def reconcile_french_production_source(
             record["event_id"]
             for record in migration_registry["persistence_obligations"][round_name]
         }
-        if not required <= previous_ids[round_name]:
+        satisfied = set(previous_ids[round_name])
+        if round_name == FIRST_ROUND:
+            # The reviewed expansion validator proves each predecessor
+            # and its exact canonical successor before granting coverage.
+            # This also holds when a previously corrected corpus is replayed.
+            satisfied.update(expansion.covered_persistence_ids)
+        if not required <= satisfied:
             raise RehearsalError(
                 f"{round_name} persistence obligation is missing from prior corpus"
             )
