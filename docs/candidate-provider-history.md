@@ -121,7 +121,7 @@ YouTube/Bluesky histories. Missing history is never zero movement.
 Polymarket differences are percentage points (0.459 minus 0.421 returns 3.8),
 using decimal arithmetic; counts are signed raw subscriber/follower differences.
 There are no relative-growth percentages or normalized deltas. Helpers return
-numbers only; nothing is projected or rendered yet.
+numbers in provider-native units.
 
 ## Publication transaction
 
@@ -137,8 +137,34 @@ The manifest has independent history lanes, each with its history hash, mapping
 and current-snapshot dependency hashes, schema, registry coverage, point count
 and actual latest point timestamp. Missing/corrupt/out-of-date histories block
 publication. Candidate JSON does not duplicate 90-day raw history. The bounded
-artifacts are available for a future static builder (Task 5B); candidate
-projection and all Task-4 HTML/CSS/JS remain unchanged in Task 5A.
+artifacts are consumed by the static candidate-page builder; candidate JSON
+does not acquire history or derived presentation fields.
+
+## Static card presentation
+
+The separate public-signal cards use the existing provider delta helpers for
+seven-day change. Polymarket uses percentage points, YouTube raw subscribers,
+and Bluesky raw followers. The authoritative current snapshot remains the
+headline and terminal chart observation; validation requires history to contain
+that exact timestamp, value and pinned identity. The current CLOB source quote
+never replaces the FR27 snapshot. Rendering does not append or rewrite history.
+
+A valid seven-day baseline enables a compact trendline containing only actual
+observations from the preceding 30 days, including the current point. No valid
+baseline means no movement row, chart or placeholder. A chart also needs two
+visible points. YouTube and Bluesky activate automatically as their histories
+accumulate; their initial one-point histories produce no trends.
+
+The inline SVG uses chronological time spacing and a separate local vertical
+scale for each provider. Its horizontal extent runs from the earliest visible
+observation to the current observation. Vertical padding is ten percent of the
+visible value range, inside four-pixel margins; flat series are centered.
+Gaps longer than 48 hours break the line, with isolated recorded observations
+shown as dots. Missing dates are never filled. Shapes cannot be compared across
+platforms. Accessible descriptions name the provider, native unit and seven-day
+change. The existing FR27 info controls carry these qualifications. All values
+and SVG coordinates are generated at build time, with no browser history/API
+requests and no modification to Wikipedia Attention.
 
 PR/general validation runs offline checks only. Live incremental CLOB requests
 are restricted to the existing scheduled/manual collection branch. No separate

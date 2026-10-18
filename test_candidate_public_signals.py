@@ -1,6 +1,11 @@
 """Separate three-provider presentation, independent semantics and bilingual states."""
 
 import copy
+import json
+import math
+from datetime import timedelta
+from candidate_history import HistoryError, instant, iso
+import candidate_public_signal_trend as trend
 import hashlib
 import re
 import subprocess
@@ -298,7 +303,7 @@ class CandidatePublicSignalsTests(unittest.TestCase):
         self.assertNotIn("clamp(", public_css)
         self.assertNotIn("candidate-section-tooltip", public_css)
 
-    def test_no_movement_deltas_or_sparklines(self):
+    def test_no_movement_or_sparklines_without_supplied_history(self):
         for lang in ("fr", "en"):
             self.assertNotRegex(self.render(lang), r'<(?:svg|canvas|progress|meter)\b|data-(?:delta|trend|movement|sparkline)=')
 
@@ -314,12 +319,264 @@ class CandidatePublicSignalsTests(unittest.TestCase):
 
     def test_rendering_preserves_projection_and_source_artifacts(self):
         paths = [ROOT / name for name in ("candidate_attention.json", "candidate_polymarket.json",
-                                         "candidate_youtube.json", "candidate_bluesky.json")]
+                                         "candidate_youtube.json", "candidate_bluesky.json",
+                                         "candidate_polymarket_history.json", "candidate_youtube_history.json",
+                                         "candidate_bluesky_history.json", "candidates/marine-le-pen/data.json")]
         before = [hashlib.sha256(path.read_bytes()).hexdigest() for path in paths]
         projection = copy.deepcopy(self.data)
         self.render(); self.render("en")
         self.assertEqual(self.data, projection)
         self.assertEqual(before, [hashlib.sha256(path.read_bytes()).hexdigest() for path in paths])
+
+
+class PublicSignalMovementTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.sources = reference.load_sources(ROOT)
+        cls.payload = reference.build_projection(cls.sources, ROOT)
+        cls.histories = trend.load_histories(ROOT)
+
+    def setUp(self):
+        self.data = copy.deepcopy(self.payload)
+        self.history = copy.deepcopy(self.histories)
+
+    def card(self, provider, lang="fr"):
+        tree = html.fromstring(reference.render_public_signals(self.data, lang, self.history))
+        return tree.xpath(f'.//article[@data-provider="{provider}"]')[0]
+
+    def fixture(self, provider, value, baseline):
+        row = self.data[provider]
+        row["status"] = "observed"
+        field = trend.PROVIDERS[provider][2]
+        row[field] = value
+        if provider == "youtube":
+            row["hidden_subscriber_count"] = False
+        if provider == "bluesky":
+            row.update(did="did:plc:" + "a" * 24, handle="official.example.fr",
+                       profile_url="https://bsky.app/profile/did:plc:" + "a" * 24)
+        identities = {old: row[new] for old, new in trend.PROVIDERS[provider][3]}
+        current = instant(row["observed_at"])
+        points = [{"observed_at": iso(current - timedelta(days=days)), field: v}
+                  for days, v in [(8, baseline), (2, baseline), (0, value)]]
+        if provider == "polymarket":
+            for point in points:
+                point["source"] = "fr27_snapshot"
+        self.history[provider][self.data["candidate_id"]] = dict(identities, points=points)
+
+    def change(self, provider, lang="fr"):
+        return self.card(provider, lang).xpath('.//p[@class="candidate-public-signal-change"]')
+
+    def test_polymarket_positive_negative_zero_in_both_locales(self):
+        for value, baseline, french, english in [(.459, .421, "+3,8 pts · 7 j", "+3.8 pts · 7d"),
+                (.400, .421, "−2,1 pts · 7 j", "−2.1 pts · 7d"),
+                (.421, .421, "0,0 pt · 7 j", "0.0 pt · 7d")]:
+            self.fixture("polymarket", value, baseline)
+            for lang, expected in (("fr", french), ("en", english)):
+                self.assertEqual(self.change("polymarket", lang)[0].xpath('./span[@aria-hidden="true"]')[0].text, expected)
+                self.assertIn("points", self.change("polymarket", lang)[0].xpath('./span[@class="visually-hidden"]')[0].text)
+                self.assertNotIn("%", self.change("polymarket", lang)[0].xpath('./span[@aria-hidden="true"]')[0].text)
+
+    def test_current_snapshot_headline_and_terminal_point_not_latest_clob_quote(self):
+        card = self.card("polymarket")
+        self.assertEqual(card.xpath('.//p[@class="candidate-public-signal-value"]')[0].text_content(), "45,9\u00a0%")
+        series, field, _ = trend.current_series("polymarket", self.data["candidate_id"], self.data["polymarket"], self.history)
+        self.assertEqual(series[-1][field], self.data["polymarket"][field])
+        self.assertEqual(series[-1]["source"], "fr27_snapshot")
+        svg = card.xpath('.//*[local-name()="svg"]')[0]
+        expected = html.fromstring(trend.render_movement("polymarket", self.data["candidate_id"], self.data["polymarket"], self.history, "fr"))
+        self.assertEqual(svg.xpath('.//polyline/@points'), expected.xpath('.//polyline/@points'))
+        self.assertTrue(svg.xpath('.//polyline/@points')[-1].split()[-1].startswith("236.00,"))
+
+    def test_all_real_mapped_polymarket_rows_have_delta_and_chart(self):
+        snapshot = self.sources["candidate_polymarket"]
+        observed = [r for r in snapshot["candidates"] if r["status"] == "observed"]
+        self.assertEqual(len(observed), 38)
+        for row in observed:
+            current = dict(row, observed_at=snapshot["observed_at"])
+            rendered = trend.render_movement("polymarket", row["candidate_id"], current, self.histories, "fr")
+            self.assertIn('class="candidate-public-signal-change"', rendered)
+            self.assertIn('<svg', rendered)
+
+    def test_real_youtube_and_bluesky_have_no_movement_or_chart(self):
+        for provider in ("youtube", "bluesky"):
+            snapshot = self.sources[f"candidate_{provider}"]
+            for row in snapshot["candidates"]:
+                current = dict(row, observed_at=snapshot["observed_at"])
+                self.assertEqual(trend.render_movement(provider, row["candidate_id"], current, self.histories, "en"), "")
+
+    def test_future_youtube_baseline_activates_without_flag(self):
+        self.fixture("youtube", 217000, 214000)
+        self.data["youtube"].update(recent_window_complete=True, uploads_last_7d=9)
+        for lang, expected in (("fr", "+3\u202f000 · 7 j"), ("en", "+3,000 · 7d")):
+            card = self.card("youtube", lang)
+            self.assertEqual(self.change("youtube", lang)[0].xpath('./span[@aria-hidden="true"]')[0].text, expected)
+            self.assertIn("abonnés" if lang == "fr" else "subscribers", self.change("youtube", lang)[0].xpath('./span[@class="visually-hidden"]')[0].text)
+            self.assertEqual(len(card.xpath('.//svg')), 1)
+            self.assertIn("9 vidéos" if lang == "fr" else "9 uploads", card.text_content())
+            self.assertNotIn("217,000.0", card.text_content())
+
+    def test_future_bluesky_baseline_activates_and_preserves_handle(self):
+        self.fixture("bluesky", 54158, 53738)
+        for lang, expected in (("fr", "+420 · 7 j"), ("en", "+420 · 7d")):
+            card = self.card("bluesky", lang)
+            self.assertEqual(self.change("bluesky", lang)[0].xpath('./span[@aria-hidden="true"]')[0].text, expected)
+            self.assertEqual(len(card.xpath('.//svg')), 1)
+            self.assertIn("@official.example.fr", card.text_content())
+            self.assertNotIn("did:plc:", card.text_content())
+            self.assertIn("abonnés" if lang == "fr" else "followers", self.change("bluesky", lang)[0].xpath('./span[@class="visually-hidden"]')[0].text)
+
+    def test_count_negative_zero_and_accessible_loss_semantics(self):
+        for provider in ("youtube", "bluesky"):
+            self.fixture(provider, 1000, 1420)
+            self.assertEqual(self.change(provider)[0].xpath('./span[@aria-hidden="true"]')[0].text, "−420 · 7 j")
+            self.assertIn("en moins", self.change(provider)[0].xpath('./span[@class="visually-hidden"]')[0].text)
+            self.assertIn("fewer", self.change(provider, "en")[0].xpath('./span[@class="visually-hidden"]')[0].text)
+            self.fixture(provider, 1000, 1000)
+            self.assertEqual(self.change(provider, "en")[0].xpath('./span[@aria-hidden="true"]')[0].text, "0 · 7d")
+
+    def test_youtube_hidden_null_and_uploads_never_supply_baseline(self):
+        self.fixture("youtube", 217000, 214000)
+        for hidden in (True, False):
+            self.data["youtube"].update(hidden_subscriber_count=hidden, subscriber_count=None)
+            self.assertFalse(self.change("youtube"))
+            self.assertFalse(self.card("youtube").xpath('.//svg'))
+        self.data["youtube"].update(hidden_subscriber_count=False, subscriber_count=217000, uploads_last_7d=100)
+        self.history["youtube"][self.data["candidate_id"]]["points"] = self.history["youtube"][self.data["candidate_id"]]["points"][-1:]
+        self.assertFalse(self.change("youtube"))
+
+    def test_unavailable_providers_and_bluesky_opt_out_have_no_trend(self):
+        for provider in ("polymarket", "youtube", "bluesky"):
+            self.data[provider]["status"] = "unavailable_no_account"
+            self.assertFalse(self.card(provider).xpath('.//svg'))
+            self.assertFalse(self.change(provider))
+        self.data["bluesky"]["status"] = "unavailable_public_web_opt_out"
+        self.assertFalse(self.card("bluesky").xpath('.//svg|.//a'))
+
+    def test_identity_and_terminal_snapshot_mismatch_fail_closed(self):
+        for provider in ("polymarket", "youtube", "bluesky"):
+            self.fixture(provider, .459 if provider == "polymarket" else 217000, .421 if provider == "polymarket" else 214000)
+            key = trend.PROVIDERS[provider][3][0][0]
+            self.history[provider][self.data["candidate_id"]][key] = "wrong"
+            with self.assertRaisesRegex(HistoryError, "identity"):
+                self.card(provider)
+            self.history = copy.deepcopy(self.histories)
+        self.data = copy.deepcopy(self.payload)
+        self.history["polymarket"][self.data["candidate_id"]]["points"][-1]["implied_probability"] = .9
+        with self.assertRaisesRegex(HistoryError, "authoritative"):
+            self.card("polymarket")
+
+    def test_native_tooltips_explain_anchor_units_independent_scales(self):
+        for provider in ("polymarket", "youtube", "bluesky"):
+            for lang in ("fr", "en"):
+                card = self.card(provider, lang)
+                tooltip = card.xpath('.//span[@role="tooltip"]')[0].text_content()
+                self.assertIn("sept jours" if lang == "fr" else "seven days earlier", tooltip)
+                self.assertIn("30 jours" if lang == "fr" else "30 days", tooltip)
+                self.assertIn("propre échelle" if lang == "fr" else "own scale", tooltip)
+                self.assertIn("48 h" if lang == "fr" else "48 hours", tooltip)
+                body = card.xpath('./div[@class="candidate-panel-body"]')[0].text_content()
+                self.assertNotIn("propre échelle", body)
+                self.assertNotIn("own scale", body)
+
+    def test_real_bilingual_trend_structure_parity(self):
+        cards = [self.card("polymarket", lang) for lang in ("fr", "en")]
+        self.assertEqual([n.tag for n in cards[0].iter()], [n.tag for n in cards[1].iter()])
+        self.assertTrue(cards[0].xpath('.//svg/@aria-label')[0])
+        self.assertEqual(cards[0].xpath('.//g/@aria-hidden'), ["true"])
+
+    def test_rendering_does_not_modify_inputs_or_project_raw_history(self):
+        before = copy.deepcopy((self.data, self.history))
+        rendered = reference.render_public_signals(self.data, "en", self.history)
+        self.assertEqual((self.data, self.history), before)
+        self.assertNotIn('"points":', rendered)
+        self.assertNotIn('latest_source_point', rendered)
+        self.assertNotIn('retention_days', rendered)
+        self.assertNotIn('2026-07-', rendered)
+        self.assertNotIn('history', reference.SOURCE_FILES)
+        self.assertFalse(any(k.endswith('_history') and k.startswith('candidate_p') for k in reference.SOURCE_FILES))
+        css = (ROOT / 'assets/candidate-page.css').read_text()
+        public_css = css[css.index('/* Public sources reuse candidate panels'):]
+        self.assertIn('align-items: start', public_css)
+        self.assertNotIn('min-height', public_css)
+        self.assertNotRegex(public_css, r'green|red|gradient|box-shadow')
+
+
+class PublicSignalTrendlineTests(unittest.TestCase):
+    def points(self, values, days=None):
+        end = instant("2026-10-17T12:00:00Z")
+        days = days or list(range(len(values) - 1, -1, -1))
+        return [{"observed_at": iso(end - timedelta(days=d)), "followers_count": value}
+                for d, value in zip(days, values)]
+
+    def render(self, points, label='Trend "sample" <safe>', eligible=True):
+        return trend.render_trendline(points, 'followers_count', label, eligible=eligible)
+
+    def test_one_point_and_ineligible_history_have_no_chart(self):
+        self.assertEqual(self.render(self.points([1])), '')
+        self.assertEqual(self.render(self.points([1, 2], [8, 0]), eligible=False), '')
+        self.assertEqual(self.render(self.points([1, 2], [6, 0])), '')
+        self.assertEqual(self.render([]), '')
+
+    def test_chronological_sort_and_deterministic_coordinates(self):
+        points = self.points([1, 2, 3], [8, 1, 0])
+        self.assertEqual(self.render(points), self.render(list(reversed(points))))
+        self.assertEqual(self.render(points), self.render(points))
+
+    def test_flat_line_is_centered(self):
+        svg = html.fromstring(self.render(self.points([42] * 9)))
+        coords = svg.xpath('.//polyline/@points')[0].split()
+        self.assertTrue(all(pair.endswith(',22.00') for pair in coords))
+
+    def test_increasing_decreasing_and_safe_bounds(self):
+        for values in (list(range(9)), list(reversed(range(9))), [2**53 - 1] * 9):
+            svg = html.fromstring(self.render(self.points(values)))
+            coords = [tuple(map(float, p.split(','))) for p in svg.xpath('.//polyline/@points')[0].split()]
+            self.assertTrue(all(math.isfinite(x) and 4 <= x <= 236 and 4 <= y <= 40 for x, y in coords))
+            self.assertEqual(coords[0][0], 4)
+            self.assertEqual(coords[-1][0], 236)
+            if values[0] != values[-1]:
+                self.assertEqual(coords[0][1] > coords[-1][1], values[0] < values[-1])
+
+    def test_irregular_time_spacing_and_missing_dates_not_synthesized(self):
+        svg = html.fromstring(self.render(self.points([10, 20, 30, 40], [8, 7, 1, 0])))
+        lines = svg.xpath('.//polyline/@points')
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(sum(len(line.split()) for line in lines), 4)
+        self.assertEqual(lines[0].split()[1].split(',')[0], '33.00')
+        self.assertEqual(lines[1].split()[0].split(',')[0], '207.00')
+
+    def test_gap_singleton_is_actual_point_not_connected_line(self):
+        svg = html.fromstring(self.render(self.points([10, 20, 30], [8, 1, 0])))
+        self.assertEqual(len(svg.xpath('.//circle')), 1)
+        self.assertEqual(len(svg.xpath('.//polyline')), 1)
+
+    def test_only_last_thirty_days_render(self):
+        svg = html.fromstring(self.render(self.points(list(range(41)))))
+        self.assertEqual(len(svg.xpath('.//polyline/@points')[0].split()), 31)
+
+    def test_older_baseline_but_only_one_visible_point_has_no_chart(self):
+        self.assertEqual(self.render(self.points([1, 2], [40, 0])), '')
+
+    def test_duplicate_timestamps_rejected(self):
+        with self.assertRaisesRegex(HistoryError, 'duplicate'):
+            self.render(self.points([1, 2], [0, 0]))
+
+    def test_invalid_numbers_and_timestamps_fail_closed(self):
+        for value in (float('nan'), float('inf'), -1, 2**53, True, 1.1):
+            with self.assertRaises(HistoryError):
+                self.render(self.points([1, value], [8, 0]))
+        with self.assertRaises(HistoryError):
+            self.render([dict(observed_at='bad', followers_count=1)])
+
+    def test_accessible_escaped_label_and_no_runtime_chart_library(self):
+        output = self.render(self.points([1] * 9))
+        svg = html.fromstring(output)
+        self.assertEqual(svg.get('aria-label'), 'Trend "sample" <safe>')
+        self.assertEqual(svg.get('role'), 'img')
+        self.assertEqual(svg.get('focusable'), 'false')
+        self.assertEqual(svg.xpath('./g/@aria-hidden'), ['true'])
+        self.assertNotRegex(output, r'<script|foreignObject|NaN|Infinity|onload=')
+        self.assertIn('class="candidate-chart-line"', output)
 
 
 if __name__ == "__main__":

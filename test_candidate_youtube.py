@@ -365,15 +365,20 @@ class YouTubeTests(unittest.TestCase):
                    if k not in {"candidate_youtube", "youtube_candidate_channels"}}
         ids = {r["candidate_id"] for r in sources["candidate_candidacy_status"]["candidates"]}
         sources.update(candidate_youtube=fixture_payload(ids), youtube_candidate_channels=self.mapping)
+        import candidate_youtube_history as history_contract
+        histories = reference.load_signal_histories(ROOT)
+        fixture_history = history_contract.build_history(sources["candidate_youtube"],
+            sources["youtube_candidate_channels"], ids)
+        histories["youtube"] = {r["candidate_id"]: r for r in fixture_history["candidates"]}
         projected = reference.build_projection(sources, ROOT)
         self.assertEqual(projected["youtube"]["subscriber_count"], 123000)
         self.assertNotIn("youtube", projected["candidate_signals"] if "candidate_signals" in projected else {})
         metrics = reference.derive_hud_metrics(sources)
         for lang in ("fr", "en"):
-            with_youtube = reference.render_html(projected, metrics, lang=lang)
+            with_youtube = reference.render_html(projected, metrics, lang=lang, signal_histories=histories)
             without = copy.deepcopy(projected)
             without.pop("youtube")
-            without_html = reference.render_html(without, metrics, lang=lang)
+            without_html = reference.render_html(without, metrics, lang=lang, signal_histories=histories)
             self.assertNotEqual(with_youtube, without_html)
             self.assertEqual(with_youtube.count(b'data-provider="'), 3)
             card = with_youtube.split(b'data-provider="youtube"', 1)[1].split(b'</article>', 1)[0]
@@ -523,7 +528,6 @@ class TaskOnePreservationTests(unittest.TestCase):
         "build_candidate_polymarket.py": "cbadf171faa42fd582414417b61665c8db1d62611b931889bf2df602e1b890a3",
         "polymarket_candidate_markets.json": "8842f38c2115a3e5ad7de4dbf622f90e56ff4100526e97b718e94c56c092eec8",
         "docs/candidate-polymarket.md": "ada260d174dc0a55edb92cf7e1273136e6cd1f80fd871e6afefef89aeebdc883",
-        "assets/candidate-page.css": "13bcdfe678c0c9ba7253bf361cc0a39ecb9c4a722fbcb9f4fd0059102c397547",
         "assets/candidate-page.js": "219efa69fecc5974af541c00cb36d817b2bf7fcb7177eb70e58893775eea6262",
     }
 
@@ -531,6 +535,13 @@ class TaskOnePreservationTests(unittest.TestCase):
         for path, expected in self.HASHES.items():
             with self.subTest(path=path):
                 self.assertEqual(hashlib.sha256((ROOT / path).read_bytes().replace(b"\r\n", b"\n")).hexdigest(), expected)
+
+    def test_original_candidate_css_before_public_signals_unchanged(self):
+        css = (ROOT / "assets/candidate-page.css").read_bytes().replace(b"\r\n", b"\n")
+        original = css.split(b"/* Public sources reuse candidate panels", 1)[0]
+        import subprocess
+        committed = subprocess.check_output(["git", "show", "HEAD:assets/candidate-page.css"], cwd=ROOT)
+        self.assertEqual(original, committed.replace(b"\r\n", b"\n").split(b"/* Public sources reuse candidate panels", 1)[0])
 
     def test_representative_polymarket_values_and_html(self):
         import build_candidate_reference as reference
@@ -543,7 +554,8 @@ class TaskOnePreservationTests(unittest.TestCase):
             row = {**by_id[cid], "observed_at": payload["observed_at"], "stale_after_hours": 48}
             for lang, prefix in (("fr", ""), ("en", "en/")):
                 html = (ROOT / f"{prefix}candidates/{cid}/index.html").read_text(encoding="utf-8")
-                self.assertIn(reference.render_polymarket({"polymarket": row}, lang), html)
+                self.assertIn(reference.render_polymarket({"candidate_id": cid, "polymarket": row}, lang,
+                    reference.load_signal_histories(ROOT)), html)
 
 
 if __name__ == "__main__":

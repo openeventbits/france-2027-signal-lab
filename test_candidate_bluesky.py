@@ -384,6 +384,11 @@ class BlueskyPublicationTests(unittest.TestCase):
                    if key not in {"candidate_bluesky", "bluesky_candidate_accounts"}}
         ids = {row["candidate_id"] for row in sources["candidate_candidacy_status"]["candidates"]}
         sources.update(candidate_bluesky=fixture_payload(ids), bluesky_candidate_accounts=fixture_mapping())
+        import candidate_bluesky_history as history_contract
+        histories = reference.load_signal_histories(ROOT)
+        fixture_history = history_contract.build_history(sources["candidate_bluesky"],
+            sources["bluesky_candidate_accounts"], ids)
+        histories["bluesky"] = {r["candidate_id"]: r for r in fixture_history["candidates"]}
         projected = reference.build_projection(sources, ROOT)
         self.assertEqual(projected["bluesky"]["followers_count"], 12345)
         self.assertNotIn("bluesky", projected["attention"])
@@ -393,8 +398,8 @@ class BlueskyPublicationTests(unittest.TestCase):
         without = copy.deepcopy(projected)
         without.pop("bluesky")
         for lang in ("fr", "en"):
-            rendered = reference.render_html(projected, metrics, lang=lang)
-            without_html = reference.render_html(without, metrics, lang=lang)
+            rendered = reference.render_html(projected, metrics, lang=lang, signal_histories=histories)
+            without_html = reference.render_html(without, metrics, lang=lang, signal_histories=histories)
             self.assertNotEqual(rendered, without_html)
             self.assertEqual(rendered.count(b'data-provider="'), 3)
             card = rendered.split(b'data-provider="bluesky"', 1)[1].split(b'</article>', 1)[0]

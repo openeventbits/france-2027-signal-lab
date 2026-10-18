@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from fr27_section_launcher import install_section_launcher
+from candidate_public_signal_trend import load_histories as load_signal_histories, render_movement, method_note
 
 from build_candidate_signals import validate_candidate_signals
 from build_poll_pages import PollPageError, validate_explorer
@@ -3960,12 +3961,12 @@ def _candidate_info_tooltip(note_id: str, label: str, body: str, *, panel: bool 
 
 def _public_signal_card(provider: str, *, name: str, subtitle: str, value: str,
                         unit: str, support: str, method: str, source: str,
-                        freshness: str, lang: str, unavailable: bool = False) -> str:
+                        freshness: str, lang: str, unavailable: bool = False, trend: str = "") -> str:
     heading_id = "polymarket-label" if provider == "polymarket" else f"public-signal-{provider}-title"
     state = "unavailable" if unavailable else "observed"
     info = _candidate_info_tooltip(f"public-signal-{provider}-note",
         ("Méthode et provenance — " if lang == "fr" else "Method and provenance — ") + name,
-        _h(method) + ("<br><br>" + freshness if freshness else ""), panel=True)
+        _h(method + method_note(provider, lang)) + ("<br><br>" + freshness if freshness else ""), panel=True)
     unit_html = f'<p class="candidate-public-signal-unit">{_h(unit)}</p>' if not unavailable else ""
     support_html = f'<p class="candidate-public-signal-support">{_h(support)}</p>' if support else ""
     return (
@@ -3976,11 +3977,11 @@ def _public_signal_card(provider: str, *, name: str, subtitle: str, value: str,
         '<div class="candidate-panel-body">'
         f'<p class="candidate-public-signal-subtitle">{_h(subtitle)}</p>'
         f'<p class="candidate-public-signal-value"><strong>{_h(value)}</strong></p>'
-        f'{unit_html}{support_html}{source}</div></article>'
+        f'{unit_html}{trend}{support_html}{source}</div></article>'
     )
 
 
-def render_polymarket(payload: dict[str, Any], lang: str) -> str:
+def render_polymarket(payload: dict[str, Any], lang: str, histories=None) -> str:
     """The prediction-market peer card; percentages remain source probabilities."""
     row = payload.get("polymarket") or {}
     fr = lang == "fr"
@@ -4007,16 +4008,17 @@ def render_polymarket(payload: dict[str, Any], lang: str) -> str:
         support="",
         method=method,
         source=_public_signal_source(row.get("source_url"), "polymarket", "Polymarket ↗") if available else "",
-        freshness=_public_signal_freshness(row, "polymarket", lang), lang=lang, unavailable=not available)
+        freshness=_public_signal_freshness(row, "polymarket", lang), lang=lang, unavailable=not available,
+        trend=render_movement("polymarket", payload.get("candidate_id"), row, histories, lang))
 
 
-def render_public_signals(payload: dict[str, Any], lang: str) -> str:
+def render_public_signals(payload: dict[str, Any], lang: str, histories=None) -> str:
     """Three independent measures, adjacent to the unchanged Wikipedia section."""
     fr = lang == "fr"
     youtube = payload.get("youtube") or {}
     yt_observed = youtube.get("status") == "observed"
     hidden = yt_observed and youtube.get("hidden_subscriber_count") is True
-    yt_value = (_public_signal_number(youtube["subscriber_count"], lang) if yt_observed and not hidden
+    yt_value = (_public_signal_number(youtube["subscriber_count"], lang) if yt_observed and not hidden and youtube.get("subscriber_count") is not None
                 else ("Abonnés masqués" if fr else "Subscribers hidden") if hidden
                 else ("Chaîne officielle non établie" if fr else "Official channel not established")
                 if youtube.get("status") in (None, "unavailable_no_channel")
@@ -4045,7 +4047,8 @@ def render_public_signals(payload: dict[str, Any], lang: str) -> str:
                 "Incomplete activity does not provide an exact count."),
         source=_public_signal_source(youtube.get("channel_url"), "youtube",
             "Chaîne YouTube ↗" if fr else "YouTube channel ↗") if yt_observed else "",
-        freshness=_public_signal_freshness(youtube, "youtube", lang), lang=lang, unavailable=not yt_observed or hidden)
+        freshness=_public_signal_freshness(youtube, "youtube", lang), lang=lang, unavailable=not yt_observed or hidden or youtube.get("subscriber_count") is None,
+        trend=render_movement("youtube", payload.get("candidate_id"), youtube, histories, lang))
     bluesky = payload.get("bluesky") or {}
     bsky_observed = bluesky.get("status") == "observed"
     bsky_value = (_public_signal_number(bluesky["followers_count"], lang) if bsky_observed else
@@ -4067,7 +4070,8 @@ def render_public_signals(payload: dict[str, Any], lang: str) -> str:
                 "Public-web visibility opt-outs are respected."),
         source=_public_signal_source(bluesky.get("profile_url"), "bluesky",
             "Profil Bluesky ↗" if fr else "Bluesky profile ↗") if bsky_observed else "",
-        freshness=_public_signal_freshness(bluesky, "bluesky", lang), lang=lang, unavailable=not bsky_observed)
+        freshness=_public_signal_freshness(bluesky, "bluesky", lang), lang=lang, unavailable=not bsky_observed,
+        trend=render_movement("bluesky", payload.get("candidate_id"), bluesky, histories, lang))
     explanation = (
         "Ces indicateurs proviennent de sources indépendantes et ne mesurent pas la même chose. "
         "Ils ne constituent ni un score de popularité ni une intention de vote."
@@ -4081,7 +4085,7 @@ def render_public_signals(payload: dict[str, Any], lang: str) -> str:
         '<header class="candidate-section-head"><div class="candidate-section-title-row">'
         f'<h2 id="public-signals-title">{"SIGNAUX PUBLICS" if fr else "PUBLIC SIGNALS"}</h2>{info}'
         '</div></header>'
-        f'<div class="candidate-public-signals-grid">{render_polymarket(payload, lang)}{yt_card}{bsky_card}</div>'
+        f'<div class="candidate-public-signals-grid">{render_polymarket(payload, lang, histories)}{yt_card}{bsky_card}</div>'
         '</section>'
     )
 
@@ -4093,11 +4097,14 @@ def render_html(
     lang: str = "fr",
     poll_wave_index: dict[tuple[Any, ...], dict[str, Any]] | None = None,
     root: Path = ROOT,
+    signal_histories=None,
 ) -> bytes:
     if lang not in CANDIDATE_LOCALES:
         raise CandidateReferenceError(
             f"unsupported candidate locale: {lang}"
         )
+    if signal_histories is None:
+        signal_histories = load_signal_histories(root)
     if hud_metrics is None:
         hud_metrics = derive_hud_metrics(load_sources(ROOT))
 
@@ -4145,7 +4152,7 @@ def render_html(
         )
 
     if lang == "fr":
-        raw = raw.replace("<!-- candidate-public-signals -->", render_public_signals(payload, lang))
+        raw = raw.replace("<!-- candidate-public-signals -->", render_public_signals(payload, lang, signal_histories))
         return install_section_launcher(raw, lang).encode("utf-8")
 
     parser = _CandidateEnglishHTMLParser()
@@ -4195,7 +4202,7 @@ def render_html(
             "English candidate data URL drifted"
         )
 
-    rendered = rendered.replace("<!-- candidate-public-signals -->", render_public_signals(payload, lang))
+    rendered = rendered.replace("<!-- candidate-public-signals -->", render_public_signals(payload, lang, signal_histories))
     return install_section_launcher(rendered, lang).encode("utf-8")
 
 
@@ -4270,6 +4277,7 @@ def build_all_active_artifacts(
     hud_metrics = derive_hud_metrics(sources)
     poll_wave_index = load_poll_wave_link_index(root)
     artifacts: dict[Path, bytes] = {}
+    signal_histories = load_signal_histories(root)
 
     for projection in projections:
         candidate_id = projection["candidate_id"]
@@ -4281,6 +4289,7 @@ def build_all_active_artifacts(
             hud_metrics,
             lang="fr",
             poll_wave_index=poll_wave_index,
+            root=root, signal_histories=signal_histories,
         )
         artifacts[
             Path("en") / "candidates" / candidate_id / "index.html"
@@ -4289,6 +4298,7 @@ def build_all_active_artifacts(
             hud_metrics,
             lang="en",
             poll_wave_index=poll_wave_index,
+            root=root, signal_histories=signal_histories,
         )
 
     hub_model = build_hub_model(
@@ -4438,6 +4448,10 @@ def main() -> int:
 
         for relative_path, content in artifacts.items():
             target = output_root / relative_path
+            # Preserve unchanged projection bytes (including checkout newlines)
+            # during presentation-only builds.
+            if target.exists() and _newline_equivalent(target.read_bytes(), content):
+                continue
             atomic_write(target, content)
             print(f"wrote {target}")
         return 0
@@ -4446,17 +4460,20 @@ def main() -> int:
     projection = json.loads(serialized)
     hud_metrics = derive_hud_metrics(sources)
     poll_wave_index = load_poll_wave_link_index(args.root)
+    signal_histories = load_signal_histories(args.root)
     rendered_html = render_html(
         projection,
         hud_metrics,
         lang="fr",
         poll_wave_index=poll_wave_index,
+        root=args.root, signal_histories=signal_histories,
     )
     rendered_html_en = render_html(
         projection,
         hud_metrics,
         lang="en",
         poll_wave_index=poll_wave_index,
+        root=args.root, signal_histories=signal_histories,
     )
     output = args.output if args.output.is_absolute() else args.root / args.output
     html_output = (
