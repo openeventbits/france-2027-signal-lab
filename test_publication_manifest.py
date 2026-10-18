@@ -328,6 +328,33 @@ def complete_inputs(root):
     )
     agenda_history = candidate_agenda_history_payload()
     write_json(root, "candidate_signals.json", candidate_signals_payload())
+    from test_candidate_youtube import fixture_mapping, fixture_payload
+    registry_ids = {r["candidate_id"] for r in json.loads(
+        (ROOT / "candidate_candidacy_status.json").read_text(encoding="utf-8")
+    )["candidates"]}
+    write_json(root, "candidate_youtube.json", fixture_payload(registry_ids))
+    write_json(root, "youtube_candidate_channels.json", fixture_mapping())
+    from test_candidate_bluesky import fixture_mapping as bluesky_mapping, fixture_payload as bluesky_payload
+    write_json(root, "candidate_bluesky.json", bluesky_payload(registry_ids))
+    write_json(root, "bluesky_candidate_accounts.json", bluesky_mapping())
+    write_json(root, "candidate_polymarket.json", json.loads(
+        (ROOT / "candidate_polymarket.json").read_text(encoding="utf-8")
+    ))
+    write_json(root, "polymarket_candidate_markets.json", json.loads(
+        (ROOT / "polymarket_candidate_markets.json").read_text(encoding="utf-8")
+    ))
+    # Every fixture snapshot has an independently validated matching history lane.
+    import importlib
+    for provider, mapping_name in (
+        ("polymarket", "polymarket_candidate_markets.json"),
+        ("youtube", "youtube_candidate_channels.json"),
+        ("bluesky", "bluesky_candidate_accounts.json"),
+    ):
+        module = importlib.import_module("candidate_" + provider + "_history")
+        snapshot = json.loads((root / ("candidate_" + provider + ".json")).read_text(encoding="utf-8"))
+        mapping = json.loads((root / mapping_name).read_text(encoding="utf-8"))
+        write_json(root, "candidate_" + provider + "_history.json",
+                   module.build_history(snapshot, mapping, registry_ids))
     write_json(
         root,
         "candidate_candidacy_status.json",
@@ -508,6 +535,24 @@ def complete_inputs(root):
 
 
 class PublicationManifestTests(unittest.TestCase):
+    def test_missing_youtube_mapping_fails_closed(self):
+        (self.root / "youtube_candidate_channels.json").unlink()
+        with self.assertRaisesRegex(manifest_builder.ManifestError, "YouTube mapping"):
+            self.build()
+
+    def test_malformed_youtube_mapping_fails_closed(self):
+        (self.root / "youtube_candidate_channels.json").write_text("{invalid", encoding="utf-8")
+        with self.assertRaisesRegex(manifest_builder.ManifestError, "YouTube mapping"):
+            self.build()
+
+    def test_youtube_registry_coverage_is_required(self):
+        path = self.root / "candidate_youtube.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["candidates"].pop()
+        write_json(self.root, "candidate_youtube.json", payload)
+        with self.assertRaisesRegex(manifest_builder.ManifestError, "candidate universe"):
+            self.build()
+
     def setUp(self):
         self.root = ROOT / f".publication-manifest-test-{uuid.uuid4().hex}"
         self.root.mkdir()
@@ -550,6 +595,12 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidacy_status",
                 "campaign_events",
                 "candidate_attention",
+                "candidate_polymarket",
+                "candidate_polymarket_history",
+                "candidate_youtube",
+                "candidate_youtube_history",
+                "candidate_bluesky",
+                "candidate_bluesky_history",
                 "candidate_agenda_history",
                 "candidate_signals",
                 "candidate_visibility_history",
@@ -732,8 +783,14 @@ class PublicationManifestTests(unittest.TestCase):
                 "candidacy_status",
                 "candidate_agenda_history",
                 "candidate_attention",
+                "candidate_bluesky",
+                "candidate_bluesky_history",
+                "candidate_polymarket",
+                "candidate_polymarket_history",
                 "candidate_signals",
                 "candidate_visibility_history",
+                "candidate_youtube",
+                "candidate_youtube_history",
                 "claims",
                 "news",
                 "polls",

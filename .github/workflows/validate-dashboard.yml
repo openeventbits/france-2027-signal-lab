@@ -21,6 +21,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Python dependencies
+        run: >-
+          python -m pip install --disable-pip-version-check
+          pandas lxml pypdf
+
       - name: Verify Node.js
         run: node --version
 
@@ -31,6 +36,15 @@ jobs:
           python -B -m unittest -v \
             test_fr27_section_launcher \
             test_publication_manifest \
+            test_candidate_polymarket \
+            test_candidate_youtube \
+            test_candidate_bluesky \
+            test_candidate_polymarket_history \
+            test_candidate_youtube_history \
+            test_candidate_bluesky_history \
+            test_candidate_public_signals \
+            test_candidate_refresh_cycle \
+            test_candidate_family_publication \
             test_frontend_facts \
             test_news_corpus_ledger \
             test_hud_corpus_counts \

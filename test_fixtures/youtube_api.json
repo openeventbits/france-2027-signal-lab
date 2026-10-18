@@ -1,0 +1,22 @@
+{
+  "note": "Synthetic offline API fixture; identifiers and counts are not observations.",
+  "channels": {
+    "items": [
+      {"id": "UCaaaaaaaaaaaaaaaaaaaaaa", "snippet": {"title": "Synthetic candidate channel"}, "contentDetails": {"relatedPlaylists": {"uploads": "UUaaaaaaaaaaaaaaaaaaaaaa"}}, "statistics": {"subscriberCount": "123000", "hiddenSubscriberCount": false, "viewCount": "9876543", "videoCount": "300"}},
+      {"id": "UCbbbbbbbbbbbbbbbbbbbbbb", "snippet": {"title": "Synthetic hidden channel"}, "contentDetails": {"relatedPlaylists": {"uploads": "UUbbbbbbbbbbbbbbbbbbbbbb"}}, "statistics": {"hiddenSubscriberCount": true, "viewCount": "42", "videoCount": "2"}}
+    ]
+  },
+  "uploads": {
+    "items": [
+      {"snippet": {"title": "Inside window", "publishedAt": "2020-01-01T00:00:00Z", "videoOwnerChannelId": "UCaaaaaaaaaaaaaaaaaaaaaa"}, "contentDetails": {"videoId": "aaaaaaaaaaa", "videoPublishedAt": "2026-10-16T12:00:00Z"}},
+      {"snippet": {"title": "Exact boundary", "publishedAt": "2026-10-17T00:00:00Z", "videoOwnerChannelId": "UCaaaaaaaaaaaaaaaaaaaaaa"}, "contentDetails": {"videoId": "bbbbbbbbbbb", "videoPublishedAt": "2026-10-10T12:00:00Z"}},
+      {"snippet": {"title": "Older upload", "publishedAt": "2026-10-17T00:00:00Z", "videoOwnerChannelId": "UCaaaaaaaaaaaaaaaaaaaaaa"}, "contentDetails": {"videoId": "ccccccccccc", "videoPublishedAt": "2026-10-10T11:59:59Z"}}
+    ]
+  },
+  "videos": {
+    "items": [
+      {"id": "aaaaaaaaaaa", "snippet": {"channelId": "UCaaaaaaaaaaaaaaaaaaaaaa"}, "statistics": {"viewCount": "12345"}},
+      {"id": "bbbbbbbbbbb", "snippet": {"channelId": "UCaaaaaaaaaaaaaaaaaaaaaa"}, "statistics": {"viewCount": "0"}}
+    ]
+  }
+}
