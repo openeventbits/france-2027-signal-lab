@@ -415,7 +415,9 @@ class BlueskyPublicationTests(unittest.TestCase):
         step = workflow[start:end]
         self.assertIn("steps.dependencies.outputs.ready == 'true'", step)
         self.assertIn("github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'", step)
-        self.assertLess(step.index("test_candidate_bluesky"), step.index("python -B build_candidate_bluesky.py"))
+        pre = workflow.index("- name: Check offline provider contracts before collection")
+        self.assertLess(pre, start)
+        self.assertNotIn("-m unittest", step)
         self.assertNotIn("secrets.", step)
         self.assertNotIn("continue-on-error", step)
         self.assertIn("steps.bluesky.outputs.published_at || steps.youtube.outputs.published_at || steps.polymarket.outputs.published_at", workflow)

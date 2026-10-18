@@ -395,7 +395,9 @@ class YouTubeTests(unittest.TestCase):
         self.assertIn("${{ secrets.YOUTUBE_API_KEY }}", step)
         self.assertEqual(workflow.count("${{ secrets.YOUTUBE_API_KEY }}"), 1)
         self.assertIn("github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'", step)
-        self.assertLess(step.index("test_candidate_youtube"), step.index("python -B build_candidate_youtube.py"))
+        pre = workflow.index("- name: Check offline provider contracts before collection")
+        self.assertLess(pre, start)
+        self.assertNotIn("-m unittest", step)
         self.assertIn("steps.youtube.outputs.published_at || steps.polymarket.outputs.published_at", workflow)
         self.assertIn('if [[ -z "$publication_time" ]]; then', workflow)
         self.assertIn('["published_at"]', workflow[end:])
@@ -550,7 +552,10 @@ class TaskOnePreservationTests(unittest.TestCase):
         # Scheduled Polymarket observations legitimately change. Exact Task-1
         # artifact bytes/values are audited separately during this implementation.
         for cid in ("marine-le-pen", "edouard-philippe", "gabriel-attal", "raphael-glucksmann"):
-            self.assertIsInstance(by_id[cid]["implied_probability"], (int, float))
+            if by_id[cid]["status"] == "observed":
+                self.assertIsInstance(by_id[cid]["implied_probability"], (int, float))
+            else:
+                self.assertIsNone(by_id[cid]["implied_probability"])
             row = {**by_id[cid], "observed_at": payload["observed_at"], "stale_after_hours": 48}
             for lang, prefix in (("fr", ""), ("en", "en/")):
                 html = (ROOT / f"{prefix}candidates/{cid}/index.html").read_text(encoding="utf-8")

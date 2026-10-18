@@ -27,6 +27,10 @@ class CandidatePublicSignalsTests(unittest.TestCase):
 
     def setUp(self):
         self.data = copy.deepcopy(self.payload)
+        # Known UI states are fixtures, not promises about future live prices.
+        self.data["polymarket"].update(status="observed", implied_probability=.4585)
+        self.data["youtube"].update(status="observed", hidden_subscriber_count=False,
+                                   subscriber_count=217000, channel_view_count=123456789)
 
     def render(self, lang="fr"):
         return reference.render_public_signals(self.data, lang)
@@ -64,7 +68,6 @@ class CandidatePublicSignalsTests(unittest.TestCase):
             self.assertNotIn('data-provider="wikipedia"', rendered)
 
     def test_polymarket_percentage_retains_stored_probability(self):
-        self.assertEqual(self.data["polymarket"]["implied_probability"], 0.4585)
         self.assertEqual(self.value("polymarket"), "45,9\u00a0%")
         self.assertEqual(self.value("polymarket", "en"), "45.9%")
 
@@ -144,19 +147,48 @@ class CandidatePublicSignalsTests(unittest.TestCase):
         self.assertEqual(self.value("bluesky", "en"), "Account unavailable")
 
     def full_document(self, lang="fr"):
-        return html.fromstring(reference.render_html(self.data, lang=lang))
+        # Structural/Attention fixtures deliberately have no provider histories.
+        # Production history/current-artifact parity is tested separately below.
+        return html.fromstring(reference.render_html(self.data, lang=lang, root=ROOT, signal_histories={}))
 
-    def test_wikipedia_section_matches_head_exactly_except_relocated_polymarket(self):
+    def test_wikipedia_structure_and_method_use_a_stable_fixture(self):
+        from test_candidate_attention_contract import candidate_payload, CANDIDACY_BY_ID
+        row = candidate_payload(CANDIDACY_BY_ID["marine-le-pen"], views=[10] * 90)
+        for key in self.data["attention"]:
+            if key in row:
+                self.data["attention"][key] = row[key]
+        self.data["attention"]["evidence_state"] = "observed"
         for lang in ("fr", "en"):
-            rendered = reference.render_html(self.data, lang=lang).decode("utf-8")
-            route = ("en/" if lang == "en" else "") + "candidates/marine-le-pen/index.html"
-            original = subprocess.check_output(["git", "show", "HEAD:" + route]).decode("utf-8")
-            pattern = r'<section class="candidate-section" id="attention".*?</section>'
-            expected = re.search(pattern, original, re.S).group()
-            expected = re.sub(r'      <aside class="candidate-polymarket".*?</aside>\n', "", expected, flags=re.S)
-            self.assertEqual(re.search(pattern, rendered, re.S).group(), expected)
+            wiki = self.full_document(lang).get_element_by_id("attention")
+            self.assertEqual(wiki.xpath('.//div[@class="candidate-stat-grid is-large"]//strong/text()'),
+                             ["70", "280", "10", "10"])
+            labels = (["7 derniers jours", "28 derniers jours", "pic sur 7 jours", "pic de période"]
+                      if lang == "fr" else ["last 7 days", "last 28 days", "7-day peak", "period peak"])
+            self.assertEqual(wiki.xpath('.//div[@class="candidate-stat-grid is-large"]//span/text()'), labels)
+            self.assertEqual(len(wiki.xpath('.//article')), 2)
+            self.assertEqual(len(wiki.xpath('.//*[@data-chart="attention-history"]/p')), 1)
+            self.assertEqual(len(self.data["attention"]["daily_series"]), 90)
+            self.assertEqual(len(wiki.xpath('.//button[@aria-describedby]')), 3)
+            self.assertIn("soutien" if lang == "fr" else "support", wiki.text_content())
+            self.assertEqual(wiki.get_element_by_id("attention-summary-note").text_content(),
+                "Les pages vues Wikipédia mesurent la consultation de l’article. Elles ne mesurent ni soutien, ni sentiment, ni approbation, ni intention de vote."
+                if lang == "fr" else "Wikipedia pageviews measure visits to the article. They do not measure support, sentiment, approval or voting intention.")
+            self.assertEqual(wiki.get_element_by_id("attention-history-note").text_content(),
+                "Pages vues quotidiennes de l’article Wikipédia en français. Des visites répétées peuvent être incluses."
+                if lang == "fr" else "Daily pageviews of the French-language Wikipedia article. Repeat visits may be included.")
+            self.assertIn(self.data["attention"]["wikipedia_article"]["url"], wiki.xpath('.//a/@href'))
+            self.assertIn("90", wiki.text_content())
 
     def test_wikipedia_existing_values_chart_and_methodology_preserved(self):
+        self.data = copy.deepcopy(self.payload)
+        from candidate_attention_contract import validate_candidate_attention
+        validate_candidate_attention(self.sources["candidate_attention"])
+        source = next(r for r in self.sources["candidate_attention"]["candidates"]
+                      if r["candidate_id"] == self.data["candidate_id"])
+        for key, value in self.data["attention"].items():
+            self.assertEqual(value, source[key])
+        self.assertEqual(self.data["freshness"]["attention_period_end"],
+                         self.sources["candidate_attention"]["period"]["end_date"])
         for lang in ("fr", "en"):
             tree = self.full_document(lang)
             wiki = tree.get_element_by_id("attention")
@@ -398,33 +430,70 @@ class PublicSignalMovementTests(unittest.TestCase):
                 self.assertIn("points", self.change("polymarket", lang)[0].xpath('./span[@class="visually-hidden"]')[0].text)
                 self.assertNotIn("%", self.change("polymarket", lang)[0].xpath('./span[@aria-hidden="true"]')[0].text)
 
-    def test_current_snapshot_headline_and_terminal_point_not_latest_clob_quote(self):
-        card = self.card("polymarket")
-        self.assertEqual(card.xpath('.//p[@class="candidate-public-signal-value"]')[0].text_content(), "45,9\u00a0%")
-        series, field, _ = trend.current_series("polymarket", self.data["candidate_id"], self.data["polymarket"], self.history)
-        self.assertEqual(series[-1][field], self.data["polymarket"][field])
-        self.assertEqual(series[-1]["source"], "fr27_snapshot")
-        svg = card.xpath('.//*[local-name()="svg"]')[0]
-        expected = html.fromstring(trend.render_movement("polymarket", self.data["candidate_id"], self.data["polymarket"], self.history, "fr"))
-        self.assertEqual(svg.xpath('.//polyline/@points'), expected.xpath('.//polyline/@points'))
-        self.assertEqual(svg.xpath('.//circle[@class="candidate-chart-point candidate-public-signal-current"]/@cx'), ["236.00"])
-
-    def test_all_real_mapped_polymarket_rows_have_delta_and_chart(self):
-        snapshot = self.sources["candidate_polymarket"]
-        observed = [r for r in snapshot["candidates"] if r["status"] == "observed"]
-        self.assertEqual(len(observed), 38)
-        for row in observed:
-            current = dict(row, observed_at=snapshot["observed_at"])
-            rendered = trend.render_movement("polymarket", row["candidate_id"], current, self.histories, "fr")
-            self.assertIn('class="candidate-public-signal-change"', rendered)
-            self.assertIn('<svg', rendered)
-
-    def test_real_youtube_and_bluesky_have_no_movement_or_chart(self):
-        for provider in ("youtube", "bluesky"):
-            snapshot = self.sources[f"candidate_{provider}"]
-            for row in snapshot["candidates"]:
+    def assert_current_provider(self, provider):
+        snapshot = self.sources[f"candidate_{provider}"]
+        module, _, field, _ = trend.PROVIDERS[provider]
+        for row in snapshot["candidates"]:
+            with self.subTest(provider=provider, candidate=row["candidate_id"]):
                 current = dict(row, observed_at=snapshot["observed_at"])
-                self.assertEqual(trend.render_movement(provider, row["candidate_id"], current, self.histories, "en"), "")
+                history = self.histories[provider][row["candidate_id"]]
+                unavailable = row["status"] != "observed" or row.get(field) is None
+                baseline = None if unavailable else module.derive_delta(history, 7)
+                for lang in ("fr", "en"):
+                    rendered = trend.render_movement(provider, row["candidate_id"], current, self.histories, lang)
+                    if baseline is None:
+                        self.assertEqual(rendered, "")
+                        continue
+                    self.assertIn(trend.movement_text(provider, baseline, lang)[0], html.fromstring(rendered).text_content())
+                    self.assertEqual(history["points"][-1][field], row[field])
+                    self.assertEqual(history["points"][-1]["observed_at"], snapshot["observed_at"])
+                    expected_chart = trend.render_trendline(history["points"], field, "test",
+                        eligible=True, probability=provider == "polymarket")
+                    self.assertEqual("<svg" in rendered, bool(expected_chart))
+                    if expected_chart:
+                        tree = html.fromstring(rendered)
+                        self.assertEqual(tree.xpath('.//circle[@class="candidate-chart-point candidate-public-signal-current"]/@cx'), ["236.00"])
+                payload = {"candidate_id": row["candidate_id"], provider: current}
+                projection_file = ROOT / "candidates" / row["candidate_id"] / "data.json"
+                if projection_file.exists():
+                    projected = json.loads(projection_file.read_text(encoding="utf-8"))[provider]
+                    self.assertEqual(projected[field], row[field])
+                    self.assertEqual(projected["status"], row["status"])
+                    self.assertEqual(projected["observed_at"], snapshot["observed_at"])
+                if payload is not None and not unavailable:
+                    for lang in ("fr", "en"):
+                        card = html.fromstring(reference.render_public_signals(payload, lang, self.histories)).xpath(f'.//article[@data-provider="{provider}"]')[0]
+                        value = card.xpath('.//p[@class="candidate-public-signal-value"]')[0].text_content()
+                        expected = (f"{row[field] * 100:.1f}".replace(".", ",") + "\u00a0%" if lang == "fr" else f"{row[field] * 100:.1f}%") if provider == "polymarket" else reference._public_signal_number(row[field], lang)
+                        self.assertEqual(value, expected)
+
+    def test_current_polymarket_snapshot_parity_and_complete_reviewed_universe(self):
+        from candidate_polymarket import validate_candidate_polymarket
+        snapshot = self.sources["candidate_polymarket"]
+        ids = {r["candidate_id"] for r in self.sources["candidate_candidacy_status"]["candidates"]}
+        validate_candidate_polymarket(snapshot, mapping=self.sources["polymarket_candidate_markets"], candidate_ids=ids)
+        self.assertEqual({r["candidate_id"] for r in snapshot["candidates"]}, ids)
+        self.assert_current_provider("polymarket")
+
+    def test_current_youtube_and_bluesky_follow_available_history(self):
+        for provider in ("youtube", "bluesky"):
+            self.assert_current_provider(provider)
+
+    def test_explicit_immature_histories_render_no_fake_movement(self):
+        for provider in ("youtube", "bluesky"):
+            self.fixture(provider, 123000, 120000)
+            self.history[provider][self.data["candidate_id"]]["points"] = self.history[provider][self.data["candidate_id"]]["points"][-6:]
+            self.assertFalse(self.change(provider))
+            self.assertFalse(self.card(provider).xpath('.//svg'))
+
+    def test_mature_irregular_count_histories_use_latest_at_or_before_anchor(self):
+        for provider in ("youtube", "bluesky"):
+            self.fixture(provider, 1420, 1000)
+            points = self.history[provider][self.data["candidate_id"]]["points"]
+            del points[1]  # No observation exactly seven days earlier.
+            points[1][trend.PROVIDERS[provider][2]] = 1100  # Too recent for the baseline.
+            self.assertEqual(self.change(provider, "en")[0].xpath('./span[@aria-hidden="true"]')[0].text, "+420 · 7d")
+            self.assertTrue(self.card(provider).xpath('.//svg'))
 
     def test_sparse_chart_keeps_valid_numeric_movement(self):
         self.fixture("polymarket", .459, .421)
@@ -484,6 +553,8 @@ class PublicSignalMovementTests(unittest.TestCase):
 
     def test_identity_and_terminal_snapshot_mismatch_fail_closed(self):
         for provider in ("polymarket", "youtube", "bluesky"):
+            self.data = copy.deepcopy(self.payload)
+            self.history = copy.deepcopy(self.histories)
             self.fixture(provider, .459 if provider == "polymarket" else 217000, .421 if provider == "polymarket" else 214000)
             key = trend.PROVIDERS[provider][3][0][0]
             self.history[provider][self.data["candidate_id"]][key] = "wrong"
@@ -491,6 +562,8 @@ class PublicSignalMovementTests(unittest.TestCase):
                 self.card(provider)
             self.history = copy.deepcopy(self.histories)
         self.data = copy.deepcopy(self.payload)
+        self.history = copy.deepcopy(self.histories)
+        self.fixture("polymarket", .459, .421)
         self.history["polymarket"][self.data["candidate_id"]]["points"][-1]["implied_probability"] = .9
         with self.assertRaisesRegex(HistoryError, "authoritative"):
             self.card("polymarket")

@@ -283,7 +283,7 @@ process.stdout.write(JSON.stringify({results,requests}));
         source_row = contract.candidate_record(published, "marine-le-pen")
         self.assertIn("source_updated_at", projection["polymarket"])
         self.assertEqual(projection["polymarket"]["source_updated_at"], source_row["source_updated_at"])
-        self.assertIsNotNone(projection["polymarket"]["source_updated_at"])
+        # Upstream metadata is nullable; equality above preserves its exact provenance.
 
     def test_recent_unmapped_candidate_remains_unavailable(self):
         import build_candidate_reference as reference
