@@ -236,6 +236,8 @@ class CandidateFamilyPublicationWorkflowTests(
         )
         self.assertEqual(len(blocks), 2)
         expected = {
+            "candidate_polymarket_history.json", "candidate_youtube_history.json", "candidate_bluesky_history.json",
+            "candidate_bluesky.json", "candidate_polymarket.json", "candidate_youtube.json", "publication_manifest.json",
             "candidates", "en/candidates", "route_registry.json",
             "sitemap.xml", "sitemap-candidates.xml", "sitemap-core.xml",
             "sitemap-polls.xml", "index.html", "en/index.html",
@@ -258,6 +260,10 @@ class CandidateFamilyPublicationWorkflowTests(
         commit_start = self.text.index("- name: Commit generated candidate publication")
         reconciliation_start = self.text.index("- name: Rebase, reconcile and push")
         expected = [
+            "build_candidate_polymarket_history.py --check",
+            "build_candidate_youtube_history.py --check",
+            "build_candidate_bluesky_history.py --check",
+            'build_publication_manifest.py --published-at "$publication_time"',
             "build_candidate_reference.py --all-active",
             "build_candidate_reference.py --all-active --check",
             "build_route_registry.py",
@@ -269,6 +275,7 @@ class CandidateFamilyPublicationWorkflowTests(
             "build_search_entrypoints.py --check",
             "build_sitemaps.py",
             "build_sitemaps.py --check",
+            "build_publication_manifest.py --check",
             "-m unittest -v",
         ]
         for name, block, date_variable in (
@@ -279,7 +286,10 @@ class CandidateFamilyPublicationWorkflowTests(
                 commands = [line.strip().removeprefix("python -B ").rstrip(" \\")
                             for line in block.splitlines()
                             if line.strip().startswith("python -B ")]
-                self.assertEqual(commands, expected)
+                phase_expected = expected.copy()
+                if name == "reconciliation":
+                    phase_expected[3] = 'build_publication_manifest.py --published-at "$PUBLICATION_TIME"'
+                self.assertEqual(commands, phase_expected)
                 self.assertEqual(block.count(f'--effective-date "{date_variable}"'), 2)
 
     def test_rebase_rebuilds_before_push(self):
@@ -345,6 +355,38 @@ class CandidateFamilyPublicationWorkflowTests(
         self.assertIn("uses: actions/checkout@v7", self.text)
         self.assertIn("ref: main", self.text)
         self.assertIn("group: production-data-update", self.text)
+
+    def test_no_artifact_coupled_tests_between_collection_and_coherent_rebuild(self):
+        pre = self.text.index("- name: Check offline provider contracts before collection")
+        collect = self.text.index("- name: Collect candidate prediction-market evidence")
+        rebuild = self.text.index("- name: Build and validate candidate publication")
+        publish = self.text.index("- name: Commit generated candidate publication")
+        pre_block = self.text[pre:collect]
+        self.assertIn("github.event_name == 'schedule'", pre_block)
+        self.assertIn("github.event_name == 'workflow_dispatch'", pre_block)
+        self.assertIn("YouTubeTransportTests", pre_block)
+        self.assertNotIn("TaskOnePreservationTests", pre_block)
+        self.assertNotIn("test_candidate_public_signals", pre_block)
+        mutation = self.text[collect:rebuild]
+        self.assertNotIn("-m unittest", mutation)
+        self.assertNotIn("continue-on-error", mutation)
+        self.assertNotIn("always()", self.text[collect:publish])
+        for provider in ("polymarket", "youtube", "bluesky"):
+            self.assertIn(f"build_candidate_{provider}.py", mutation)
+            self.assertIn(f"build_candidate_{provider}_history.py", mutation)
+            self.assertIn(f"test_candidate_{provider}", self.text[rebuild:publish])
+        self.assertIn("test_candidate_refresh_cycle", self.text[rebuild:publish])
+        self.assertLess(self.text.index("build_sitemaps.py --check", rebuild),
+                        self.text.index("-m unittest", rebuild))
+
+    def test_refresh_regression_is_offline_in_pr_validation(self):
+        validation = (ROOT / ".github/workflows/validate-dashboard.yml").read_text(encoding="utf-8")
+        self.assertIn("test_candidate_refresh_cycle", validation)
+        self.assertNotIn("YOUTUBE_API_KEY", validation)
+        for provider in ("polymarket", "youtube", "bluesky"):
+            self.assertNotIn(f"build_candidate_{provider}.py", validation)
+        self.assertIn("cancel-in-progress: false", self.text)
+        self.assertIn("queue: max", self.text)
 
     def test_all_sitemap_families_are_reconciled_atomically(self):
         self.assertNotIn(

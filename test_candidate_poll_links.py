@@ -471,6 +471,7 @@ class CandidatePollLinkTests(unittest.TestCase):
                     self.hud,
                     lang=language,
                     root=alternate_root,
+                    signal_histories=reference.load_signal_histories(ROOT),
                 ).decode("utf-8")
                 audit = CandidatePollHTMLAuditParser()
                 audit.feed(document)

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.5",
-  "snapshot_id": "8c8554252de6b5e653ab58f91fdef2220e8ab432292ed875bc51cd04423a8cff",
-  "published_at": "2026-10-18T11:24:36Z",
+  "snapshot_id": "b1b7de8bae1ec0e365775d640c75bfeaa2a8653cf7eedec07f88c045df768d3a",
+  "published_at": "2026-10-18T13:46:13.760447Z",
   "lanes": {
     "campaign_events": {
       "file": "campaign_events.json",
@@ -65,6 +65,91 @@
       "observed_candidate_count": 36,
       "unavailable_candidate_count": 6
     },
+    "candidate_bluesky": {
+      "file": "candidate_bluesky.json",
+      "available": true,
+      "valid": true,
+      "sha256": "5a863370f267fae3289698f2eb13ba1c208cde0d718f914f61b9ad640b172db8",
+      "schema_version": "1.0",
+      "data_as_of": "2026-10-17T09:19:15.774504Z",
+      "timestamp_status": "known",
+      "warnings": [],
+      "related_files": [
+        {
+          "file": "bluesky_candidate_accounts.json",
+          "available": true,
+          "sha256": "0b7d75f89fcdc036ae34b65f0d9839492179bf827cee13b61b9e55e0b2240561"
+        }
+      ],
+      "generated_at": "2026-10-17T09:19:15.774504Z",
+      "record_count": 76
+    },
+    "candidate_bluesky_history": {
+      "file": "candidate_bluesky_history.json",
+      "available": true,
+      "valid": true,
+      "sha256": "dab983d637523c3d3656850b7ee430f802b632bb4d9055ffebefdeba1b42b4fd",
+      "schema_version": "1.0",
+      "data_as_of": "2026-10-17T09:19:15.774504Z",
+      "timestamp_status": "known",
+      "warnings": [],
+      "related_files": [
+        {
+          "file": "bluesky_candidate_accounts.json",
+          "available": true,
+          "sha256": "0b7d75f89fcdc036ae34b65f0d9839492179bf827cee13b61b9e55e0b2240561"
+        },
+        {
+          "file": "candidate_bluesky.json",
+          "available": true,
+          "sha256": "5a863370f267fae3289698f2eb13ba1c208cde0d718f914f61b9ad640b172db8"
+        }
+      ],
+      "record_count": 76,
+      "point_count": 6
+    },
+    "candidate_polymarket": {
+      "file": "candidate_polymarket.json",
+      "available": true,
+      "valid": true,
+      "sha256": "4b32c0fc5c32f59e6e24e61627bfd6327cc49b44c6b76a48fc0e7a053d14fe44",
+      "schema_version": "1.0",
+      "data_as_of": "2026-10-17T04:19:49.721427Z",
+      "timestamp_status": "known",
+      "warnings": [],
+      "related_files": [
+        {
+          "file": "polymarket_candidate_markets.json",
+          "available": true,
+          "sha256": "8842f38c2115a3e5ad7de4dbf622f90e56ff4100526e97b718e94c56c092eec8"
+        }
+      ],
+      "generated_at": "2026-10-17T04:19:49.721427Z"
+    },
+    "candidate_polymarket_history": {
+      "file": "candidate_polymarket_history.json",
+      "available": true,
+      "valid": true,
+      "sha256": "f6610aeeb4dba317d98fae663ce33cf1aa52e9db10899c2086f78ded06ef5f53",
+      "schema_version": "1.0",
+      "data_as_of": "2026-10-17T04:19:49.721427Z",
+      "timestamp_status": "known",
+      "warnings": [],
+      "related_files": [
+        {
+          "file": "polymarket_candidate_markets.json",
+          "available": true,
+          "sha256": "8842f38c2115a3e5ad7de4dbf622f90e56ff4100526e97b718e94c56c092eec8"
+        },
+        {
+          "file": "candidate_polymarket.json",
+          "available": true,
+          "sha256": "4b32c0fc5c32f59e6e24e61627bfd6327cc49b44c6b76a48fc0e7a053d14fe44"
+        }
+      ],
+      "record_count": 76,
+      "point_count": 3308
+    },
     "candidate_signals": {
       "file": "candidate_signals.json",
       "available": true,
@@ -87,6 +172,49 @@
       "warnings": [],
       "byte_size": 684369,
       "record_count": 76
+    },
+    "candidate_youtube": {
+      "file": "candidate_youtube.json",
+      "available": true,
+      "valid": true,
+      "sha256": "9278b4ac2b1245fb6c47954cd27a99ddbf2ef46e48bf6a1afbeb218b4a6de8cb",
+      "schema_version": "1.0",
+      "data_as_of": "2026-10-17T07:38:24.844537Z",
+      "timestamp_status": "known",
+      "warnings": [],
+      "related_files": [
+        {
+          "file": "youtube_candidate_channels.json",
+          "available": true,
+          "sha256": "2698a1306d578580e30608b4cc6d1c0ec98733111b7a9678877ce6995012b74a"
+        }
+      ],
+      "generated_at": "2026-10-17T07:38:24.844537Z",
+      "record_count": 76
+    },
+    "candidate_youtube_history": {
+      "file": "candidate_youtube_history.json",
+      "available": true,
+      "valid": true,
+      "sha256": "caf96a86fbb1a6fdf7106738d5a4b327baf304ae35aaa9bf9f7d4a5b27fbd877",
+      "schema_version": "1.0",
+      "data_as_of": "2026-10-17T07:38:24.844537Z",
+      "timestamp_status": "known",
+      "warnings": [],
+      "related_files": [
+        {
+          "file": "youtube_candidate_channels.json",
+          "available": true,
+          "sha256": "2698a1306d578580e30608b4cc6d1c0ec98733111b7a9678877ce6995012b74a"
+        },
+        {
+          "file": "candidate_youtube.json",
+          "available": true,
+          "sha256": "9278b4ac2b1245fb6c47954cd27a99ddbf2ef46e48bf6a1afbeb218b4a6de8cb"
+        }
+      ],
+      "record_count": 76,
+      "point_count": 19
     },
     "claims": {
       "file": "claims_under_scrutiny.json",

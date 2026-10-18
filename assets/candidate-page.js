@@ -1,6 +1,25 @@
 (() => {
   "use strict";
 
+  // Freshness ages in the browser, including when a failed collector retains
+  // the last valid static publication. Only FR27 observation age determines
+  // freshness; upstream updatedAt is provenance, not a price/trade timestamp.
+  // Never fetch provider data here.
+  const updatePolymarketFreshness = () => {
+    document.querySelectorAll("[data-polymarket-freshness], [data-public-signal-freshness]").forEach(element => {
+      const observedAt = Date.parse(element.dataset.observedAt);
+      const stale = !Number.isFinite(observedAt)
+        || Date.now() - observedAt > Number(element.dataset.staleAfterHours) * 3600000;
+      const en = document.documentElement.lang.toLowerCase().startsWith("en");
+      element.dataset.state = stale ? "stale" : "recent";
+      element.textContent = stale
+        ? (en ? "Stale observation (>48h)" : "Observation ancienne (>48 h)")
+        : (en ? "Recent observation (≤48h)" : "Observation récente (≤48 h)");
+    });
+  };
+  updatePolymarketFreshness();
+  window.setInterval(updatePolymarketFreshness, 60000);
+
   const pageCandidateId = () =>
     String(document.documentElement.dataset.pageCandidateId || "").trim();
   const SVG_NS = "http://www.w3.org/2000/svg";
