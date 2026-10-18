@@ -512,6 +512,9 @@ class ReviewedCandidateExpansionTests(unittest.TestCase):
         cls.previous = json.loads(
             (FIXTURES / "pre_candidate_expansion_first_round_23a2bbd.json").read_text(encoding="utf-8")
         )
+        cls.source_review = read("elabe_10324_source_review.json")
+        cls.refreshed_parsed = read("fr_mediawiki_240485606.json")["parse"]
+        cls.refreshed_rows = parse_french_frozen_fixture(cls.refreshed_parsed)[FIRST_ROUND]
 
     def run_expansion(self, rows=None, previous=None, revision=240470913,
                       registry_path=None):
@@ -666,6 +669,175 @@ class ReviewedCandidateExpansionTests(unittest.TestCase):
         ]
         with self.assertRaisesRegex(ValueError, "neither historical"):
             self.run_expansion(previous=missing)
+
+    def test_elabe_source_refresh_fixture_and_primary_evidence(self):
+        metadata = self.source_review
+        fixture = metadata["wikipedia_fixture"]
+        self.assertEqual(
+            hashlib.sha256((FIXTURES / fixture["filename"]).read_bytes()).hexdigest(),
+            "b1f8478756a50f29302a19596e3538cfbfd501a4c3a484c8d3f015bd40ebf3de",
+        )
+        self.assertEqual(fixture["sha256"],
+                         "b1f8478756a50f29302a19596e3538cfbfd501a4c3a484c8d3f015bd40ebf3de")
+        self.assertEqual(self.refreshed_parsed["revid"], 240485606)
+        for name in (fixture["filename"], "elabe_10324_source_review.json"):
+            self.assertFalse(b"\r" in (FIXTURES / name).read_bytes(), name)
+            self.assertIn(
+                f"/test_fixtures/fr27_polling/{name} text eol=lf",
+                (ROOT / ".gitattributes").read_text(encoding="utf-8").splitlines(),
+            )
+        historical = self.records[0]["incoming_row"]
+        refreshed = next(r for r in self.refreshed_rows if r["source_locator"] == "FR-T0R5")
+        self.assertEqual(metadata["changed_fields"], ["source_url"])
+        self.assertEqual(refreshed, {
+            **historical, "source_url": metadata["commission_notice"]["source_url"],
+        })
+        self.assertEqual(exact_factual_key(historical), exact_factual_key(refreshed))
+        self.assertEqual(metadata["survey"]["candidates"], historical["candidates"])
+        self.assertEqual(sum(c["score"] for c in metadata["survey"]["candidates"]), 100)
+        self.assertEqual(
+            (metadata["survey"]["total_adults"], metadata["survey"]["registered_voters"],
+             historical["sample_size"], historical["sample_scope"]),
+            (1701, 1553, 1701, "reported"),
+        )
+        self.assertEqual(metadata["survey"]["configuration"], 5)
+        self.assertEqual(metadata["commission_notice"]["sha256"],
+                         "a8a95533cad304be016080af5960ec928c8a6d4c49089e6c11b851feb4f235d8")
+        self.assertEqual(metadata["elabe_report"]["sha256"],
+                         "edbb125fd84f90b26fe6d98e8e42563ca0e876fb46804e23937e99d2e1dd8f99")
+
+    def test_elabe_historical_and_reviewed_sources_keep_the_published_id(self):
+        historical = self.run_expansion()
+        refreshed = self.run_expansion(rows=self.refreshed_rows, revision=240485606)
+        self.assertEqual(refreshed, historical)
+        self.assertEqual((refreshed.applied, refreshed.already_applied), (3, 0))
+        canonical_id = "63aecb7f3bd59f50845e47dc628ed7d480330d1a028228561ad2cc6a3bb1afb0"
+        canonical = next(e for e in refreshed.events if e["event_id"] == canonical_id)
+        self.assertEqual(canonical["source_url"], self.records[0]["incoming_row"]["source_url"])
+        # The reviewed notice is evidence, never a new source input to event IDs.
+        from reviewed_candidate_expansions import _canonical_event
+        row = next(r for r in self.refreshed_rows if r["source_locator"] == "FR-T0R5")
+        would_be_duplicate = _canonical_event(row, self.records[0]["previous_event"]["event_id"])
+        self.assertNotEqual(would_be_duplicate["event_id"], canonical_id)
+        self.assertNotIn(would_be_duplicate["event_id"], {e["event_id"] for e in refreshed.events})
+
+    def test_elabe_reviewed_source_replay_is_deterministic_and_idempotent(self):
+        first = self.run_expansion(rows=self.refreshed_rows, revision=240485606)
+        for revision in (240485523, 240485606, 240490172, 240490173):
+            with self.subTest(revision=revision):
+                replay = self.run_expansion(rows=list(reversed(self.refreshed_rows)),
+                                            previous=first.events, revision=revision)
+                self.assertEqual(replay.events, first.events)
+                self.assertEqual((replay.applied, replay.already_applied), (0, 3))
+                self.assertEqual(replay.superseded_event_ids, [])
+                self.assertEqual(replay.canonical_event_ids, first.canonical_event_ids)
+                self.assertEqual(replay.covered_persistence_ids, first.covered_persistence_ids)
+
+    def test_elabe_source_refresh_requires_the_reviewed_revision_boundary(self):
+        for revision in (240470913, 240470914, 240485522):
+            with self.subTest(revision=revision), self.assertRaisesRegex(
+                ValueError, "source facts/provenance changed: FR-T0R5",
+            ):
+                self.run_expansion(rows=self.refreshed_rows, revision=revision)
+        # Earlier audited fixtures remain independent of all later expansions.
+        early = self.run_expansion(rows=self.refreshed_rows, revision=238906992)
+        self.assertEqual(early.events, self.previous)
+        self.assertEqual((early.applied, early.already_applied), (0, 0))
+
+    def test_elabe_refreshed_source_still_rejects_every_unreviewed_field(self):
+        mutations = (
+            lambda r: r.update(sample_size=1700),
+            lambda r: r.update(sample_size=1553),
+            lambda r: r.update(sample_scope="registered_voters"),
+            lambda r: r.update(pollster="ELABE"),
+            lambda r: r.update(fieldwork_start="2026-10-13"),
+            lambda r: r.update(fieldwork_end="2026-10-17"),
+            lambda r: r.update(round="second_round"),
+            lambda r: r.update(source_locator="FR-T0R999"),
+            lambda r: r["candidates"][5].update(score=4.4),
+            lambda r: r["candidates"].pop(5),
+            lambda r: r["candidates"][5].update(name="Unreviewed Candidate"),
+            lambda r: r["candidates"].append({"name": "New Candidate", "score": 0}),
+            lambda r: r["candidates"].reverse(),
+            lambda r: r.update(unreviewed_metadata=True),
+            lambda r: r.update(source_url="https://example.org/unreviewed"),
+            lambda r: r.update(source_url=self.source_review["commission_notice"]["source_url"].replace("10324", "10325")),
+            lambda r: r.update(source_url=self.source_review["commission_notice"]["source_url"].replace("https:", "http:")),
+            lambda r: r.update(source_url=self.source_review["commission_notice"]["source_url"] + "?unreviewed=1"),
+        )
+        for revision in (240485606, 240490172):
+            for index, mutate in enumerate(mutations):
+                rows = copy.deepcopy(self.refreshed_rows)
+                row = next(r for r in rows if r["source_locator"] == "FR-T0R5")
+                mutate(row)
+                with self.subTest(revision=revision, mutation=index), self.assertRaisesRegex(
+                    ValueError, "source facts/provenance changed: FR-T0R5",
+                ):
+                    self.run_expansion(rows=rows, revision=revision)
+        for index in (1, 2):
+            rows = copy.deepcopy(self.refreshed_rows)
+            row = next(r for r in rows if r["source_locator"] == self.records[index]["source_locator"])
+            row["source_url"] = self.source_review["commission_notice"]["source_url"]
+            with self.subTest(other_expansion=index), self.assertRaisesRegex(
+                ValueError, "source facts/provenance changed",
+            ):
+                self.run_expansion(rows=rows, revision=240485606)
+
+    def test_elabe_refreshed_source_keeps_historical_identity_guards(self):
+        first = self.run_expansion()
+        canonical_id = self.records[0]["canonical_event_id"]
+        successor = next(e for e in first.events if e["event_id"] == canonical_id)
+        old_id = self.records[0]["previous_event"]["event_id"]
+        with self.assertRaisesRegex(ValueError, "both historical"):
+            self.run_expansion(rows=self.refreshed_rows, revision=240485606,
+                               previous=self.previous + [successor])
+        with self.assertRaisesRegex(ValueError, "neither historical"):
+            self.run_expansion(rows=self.refreshed_rows, revision=240485606,
+                               previous=[e for e in self.previous if e["event_id"] != old_id])
+        altered = copy.deepcopy(first.events)
+        next(e for e in altered if e["event_id"] == canonical_id)["source_url"] = self.source_review["commission_notice"]["source_url"]
+        with self.assertRaisesRegex(ValueError, "successor facts/provenance changed"):
+            self.run_expansion(rows=self.refreshed_rows, revision=240485606, previous=altered)
+        with self.assertRaisesRegex(ValueError, "Duplicate incoming"):
+            self.run_expansion(rows=self.refreshed_rows + [self.refreshed_rows[0]], revision=240485606)
+
+    def test_elabe_full_fetch_integration_preserves_history_and_runoffs(self):
+        first = self.run_expansion().events
+        second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        events, runoffs, report, _ = integrate_french_migration_source(
+            self.refreshed_parsed, first, second, [],
+        )
+        for before, after in ((first, events), (second, runoffs)):
+            by_id = {event["event_id"]: event for event in after}
+            self.assertEqual(len(by_id), len(after))
+            self.assertTrue({e["event_id"] for e in before} <= by_id.keys())
+            for event in before:
+                self.assertEqual(event, by_id[event["event_id"]])
+        target = next(e for e in events if e["event_id"] == self.records[0]["canonical_event_id"])
+        target_wave = (target["pollster"], target["fieldwork_start"], target["fieldwork_end"])
+        self.assertEqual(sum(
+            exact_factual_key(e, sample_scope=e.get("sample_scope", "reported"))
+            == exact_factual_key(target) for e in events
+            if (e["pollster"], e["fieldwork_start"], e["fieldwork_end"]) == target_wave
+        ), 1)
+        self.assertTrue({r["previous_event"]["event_id"] for r in self.records}.isdisjoint(e["event_id"] for e in events))
+        self.assertEqual(report["post_audit_first_round_corrections"]["reviewed_candidate_expansions"],
+                         {"applied": 0, "already_applied": 3})
+        self.assertEqual(report["superseded_second_round_event_ids"], [])
+        repeated, repeated_runoffs, _, _ = integrate_french_migration_source(
+            self.refreshed_parsed, events, runoffs, [],
+        )
+        self.assertEqual(events, repeated)
+        self.assertEqual(runoffs, repeated_runoffs)
+
+    def test_elabe_full_fetch_integration_rejects_unreviewed_provenance(self):
+        parsed = copy.deepcopy(self.refreshed_parsed)
+        notice_url = self.source_review["commission_notice"]["source_url"]
+        self.assertIn(notice_url, parsed["text"])
+        parsed["text"] = parsed["text"].replace(notice_url, "https://example.org/unreviewed")
+        second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        with self.assertRaisesRegex(ValueError, "source facts/provenance changed: FR-T0R5"):
+            integrate_french_migration_source(parsed, self.previous, second, [])
 
     def test_unregistered_registry_mutation_fails_closed(self):
         import tempfile

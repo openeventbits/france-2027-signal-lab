@@ -23,6 +23,17 @@ REGISTRY = Path(__file__).with_name(
 )
 REVIEWED_REVISION = 240470913
 
+# Notice 10324, methodology p1 and configuration 5 on p8, independently
+# matches the original Elabe report (p2/p18). Keep that report URL for IDs.
+_ELABE_SOURCE_REFRESH_REVISION = 240485523
+_ELABE_REPORT_URL = (
+    "https://elabe.fr/fichier-pdf/13329-les-francais-et-lelection-presidentielle-2027/"
+)
+_ELABE_NOTICE_URL = (
+    "https://www.commission-des-sondages.fr/notices/files/notices/2026/"
+    "octobre/10324-pres-iv-elabe-17-octobre.pdf"
+)
+
 # Immutable identity and single added-fact boundaries.
 _EXPECTED = {
     "FR-T0R5": (
@@ -163,7 +174,16 @@ def reconcile_reviewed_candidate_expansions(
             raise ValueError("Reviewed candidate expansion identity changed")
 
         current_row = source.get(locator)
-        if current_row != incoming:
+        # This exact URL pair is evidence equivalence for this one expansion,
+        # not a replacement source for canonical construction below. Every
+        # other field, including sample scope and candidate order, must match.
+        reviewed_source_refresh = (
+            locator == "FR-T0R5"
+            and revision >= _ELABE_SOURCE_REFRESH_REVISION
+            and incoming["source_url"] == _ELABE_REPORT_URL
+            and current_row == {**incoming, "source_url": _ELABE_NOTICE_URL}
+        )
+        if current_row != incoming and not reviewed_source_refresh:
             raise ValueError(
                 "Reviewed candidate expansion source facts/provenance changed: "
                 + locator
