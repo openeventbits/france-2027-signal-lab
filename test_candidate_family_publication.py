@@ -183,6 +183,20 @@ class CandidateFamilyPublicationWorkflowTests(
                     self.text,
                 )
 
+    def test_pr_validation_installs_candidate_import_dependencies_before_tests(self):
+        text = (ROOT / ".github/workflows/validate-dashboard.yml").read_text(encoding="utf-8")
+        setup = text.index("- name: Set up Python")
+        install = text.index("- name: Install Python dependencies")
+        tests = text.index("- name: Run dashboard integration smoke tests")
+        self.assertLess(setup, install)
+        self.assertLess(install, tests)
+        block = text[install:].split("\n      - name:", 1)[0]
+        self.assertIn("python -m pip install --disable-pip-version-check", block)
+        packages = block.split("--disable-pip-version-check", 1)[1].split()
+        self.assertEqual(packages, ["pandas", "lxml", "pypdf"])
+        for module in ("test_candidate_public_signals", "test_candidate_refresh_cycle"):
+            self.assertIn(module, text[tests:])
+
     def test_pipeline_rebuilds_and_checks_candidate_family_and_sitemap(self):
         self.assertGreaterEqual(
             self.text.count(
