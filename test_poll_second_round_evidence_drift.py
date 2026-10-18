@@ -25,6 +25,11 @@ from rehearse_fr_poll_migration import (
 
 ROOT = Path(__file__).parent
 
+# Historical replays require the corpus before the three reviewed expansions.
+PRE_EXPANSION_FIRST_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_candidate_expansion_first_round_23a2bbd.json"
+)
+
 CURRENT_REVISION = 239587014
 CURRENT_FIXTURE = (
     ROOT
@@ -522,7 +527,7 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
 
     def test_historical_fixture_accepts_exact_registered_successor_after_supersession(self):
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         payload = json.loads(
             (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
@@ -550,7 +555,7 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
 
     def test_historical_fixture_rejects_missing_registered_successor(self):
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         payload = json.loads(
             (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
@@ -578,7 +583,7 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
 
     def test_historical_fixture_rejects_mutated_registered_successor(self):
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         payload = json.loads(
             (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
@@ -649,7 +654,7 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
 
     def test_historical_fixture_post_evidence_replay_is_exact_noop_for_all_ten_records(self):
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         payload = json.loads(
             (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
@@ -701,7 +706,7 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
 
     def test_historical_fixture_rejects_mixed_pre_and_post_evidence_state(self):
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         payload = json.loads(
             (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
@@ -741,7 +746,7 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
 
     def test_historical_fixture_rejects_both_superseded_and_replacement_ids(self):
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         payload = json.loads(
             (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
@@ -772,7 +777,7 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
 
     def test_historical_fixture_rejects_mutated_corrected_event_facts(self):
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         payload = json.loads(
             (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
@@ -806,7 +811,7 @@ class CurrentSecondRoundEvidenceDriftTests(unittest.TestCase):
 
     def test_historical_fixture_rejects_mutated_replacement_provenance(self):
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         payload = json.loads(
             (ROOT / "second_round_polls.json").read_text(encoding="utf-8")
