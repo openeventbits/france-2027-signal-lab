@@ -151,16 +151,28 @@ never replaces the FR27 snapshot. Rendering does not append or rewrite history.
 
 A valid seven-day baseline enables a compact trendline containing only actual
 observations from the preceding 30 days, including the current point. No valid
-baseline means no movement row, chart or placeholder. A chart also needs two
-visible points. YouTube and Bluesky activate automatically as their histories
+baseline means no movement row, chart or placeholder. A chart also needs at least
+seven occupied UTC dates and observations on at least half of the UTC dates
+between its first and last visible observations. Sparse windows suppress only
+the chart, retaining a valid numeric change. YouTube and Bluesky activate automatically as their histories
 accumulate; their initial one-point histories produce no trends.
 
 The inline SVG uses chronological time spacing and a separate local vertical
 scale for each provider. Its horizontal extent runs from the earliest visible
-observation to the current observation. Vertical padding is ten percent of the
-visible value range, inside four-pixel margins; flat series are centered.
-Gaps longer than 48 hours break the line, with isolated recorded observations
-shown as dots. Missing dates are never filled. Shapes cannot be compared across
+observation to the current observation. Counts retain ten-percent vertical padding
+inside four-pixel margins. Polymarket uses the larger of that padded range and
+**five percentage points** (0.05 in native probability units), shifted within
+the native 0–1 bounds; a full-range series cannot extend beyond those bounds.
+A 0.05-percentage-point change therefore spans just 0.36 of the 36 vertical SVG
+units, rather than filling the plot. All flat series remain centered.
+
+Only observations on the same or consecutive UTC dates, at most 36 hours apart,
+can connect. Missing UTC dates always break the line, independent of daily CLOB
+sampling jitter around 48 hours. Runs of one or two observations use discrete
+dots; only runs of three or more use a line. A small ring marks the authoritative
+current snapshot, including when isolated by a gap. No observations are added,
+interpolated or moved. The compact chart is left-aligned with the metric and
+source link. Missing dates are never filled. Shapes cannot be compared across
 platforms. Accessible descriptions name the provider, native unit and seven-day
 change. The existing FR27 info controls carry these qualifications. All values
 and SVG coordinates are generated at build time, with no browser history/API

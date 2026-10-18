@@ -226,12 +226,35 @@ class CandidatePublicSignalsTests(unittest.TestCase):
             ids = self.full_document(lang).xpath(".//@id")
             self.assertEqual(len(ids), len(set(ids)))
 
-    def test_responsive_geometry_uses_existing_breakpoints(self):
+    def test_responsive_geometry_keeps_three_readable_columns_without_an_orphan(self):
         css = (ROOT / "assets/candidate-page.css").read_text(encoding="utf-8")
-        self.assertRegex(css, r'candidate-public-signals-grid\s*\{[^}]*repeat\(2, minmax\(0, 1fr\)\)')
-        self.assertRegex(css, r'@media \(min-width: 1350px\)\s*\{\s*\.candidate-page \.candidate-public-signals-grid[^}]*repeat\(3, minmax\(0, 1fr\)\)')
-        self.assertRegex(css, r'@media \(max-width: 759\.98px\)\s*\{\s*\.candidate-page \.candidate-public-signals-grid[^}]*grid-template-columns: minmax\(0, 1fr\)')
+        public_css = css[css.index("/* Public sources reuse candidate panels"):]
+        self.assertRegex(public_css, r'candidate-public-signals-grid\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)')
+        self.assertRegex(public_css, r'@media \(min-width: 880px\)\s*\{\s*\.candidate-page \.candidate-public-signals-grid[^}]*repeat\(3, minmax\(0, 1fr\)\)')
+        self.assertNotIn("repeat(2,", public_css)
         self.assertIn("overflow-wrap: anywhere", css)
+
+    def test_narrow_desktop_rows_are_scoped_above_the_existing_mobile_boundary(self):
+        css = (ROOT / "assets/candidate-page.css").read_text(encoding="utf-8")
+        start = css.index('@media (min-width: 760px) and (max-width: 879.98px)')
+        rows = css[start:css.index('\n.candidate-page .candidate-public-signal-change {', start)]
+        self.assertIn('grid-template-columns: 150px minmax(0, 1fr)', rows)
+        self.assertIn('minmax(140px, 1fr) minmax(140px, 1fr) max-content', rows)
+        self.assertIn('grid-column: 3', rows)  # Native source link, not a new button.
+        self.assertNotRegex(rows, r'font-size|(?:min-)?height:')
+
+    def test_mature_history_support_has_its_own_row_without_chart_overlap(self):
+        css = (ROOT / "assets/candidate-page.css").read_text(encoding="utf-8")
+        self.assertRegex(css, r':has\(\.candidate-public-signal-change\) \.candidate-public-signal-support\s*\{[^}]*grid-row: 4')
+        self.assertRegex(css, r'candidate-public-signal \.candidate-public-signal-trend\s*\{[^}]*grid-row: 2 / span 2')
+
+    def test_three_column_tooltip_placement_keeps_native_visual_styles(self):
+        css = (ROOT / "assets/candidate-page.css").read_text(encoding="utf-8")
+        public_css = css[css.index("/* Public sources reuse candidate panels"):]
+        rules = re.findall(r'[^{}]*candidate-section-tooltip\s*\{([^}]*)\}', public_css)
+        self.assertEqual(len(rules), 1)
+        self.assertIn('right: 10px', rules[0])
+        self.assertNotRegex(rules[0], r'background|border|font|shadow|color')
 
     def test_accessible_method_controls_reuse_existing_candidate_markup(self):
         tree = self.document()
@@ -301,7 +324,6 @@ class CandidatePublicSignalsTests(unittest.TestCase):
         self.assertIn("font-size: var(--fr27-num-kpi)", public_css)
         self.assertNotIn("min-height", public_css)
         self.assertNotIn("clamp(", public_css)
-        self.assertNotIn("candidate-section-tooltip", public_css)
 
     def test_no_movement_or_sparklines_without_supplied_history(self):
         for lang in ("fr", "en"):
@@ -357,7 +379,7 @@ class PublicSignalMovementTests(unittest.TestCase):
         identities = {old: row[new] for old, new in trend.PROVIDERS[provider][3]}
         current = instant(row["observed_at"])
         points = [{"observed_at": iso(current - timedelta(days=days)), field: v}
-                  for days, v in [(8, baseline), (2, baseline), (0, value)]]
+                  for days, v in [(d, baseline if d else value) for d in range(8, -1, -1)]]
         if provider == "polymarket":
             for point in points:
                 point["source"] = "fr27_snapshot"
@@ -385,7 +407,7 @@ class PublicSignalMovementTests(unittest.TestCase):
         svg = card.xpath('.//*[local-name()="svg"]')[0]
         expected = html.fromstring(trend.render_movement("polymarket", self.data["candidate_id"], self.data["polymarket"], self.history, "fr"))
         self.assertEqual(svg.xpath('.//polyline/@points'), expected.xpath('.//polyline/@points'))
-        self.assertTrue(svg.xpath('.//polyline/@points')[-1].split()[-1].startswith("236.00,"))
+        self.assertEqual(svg.xpath('.//circle[@class="candidate-chart-point candidate-public-signal-current"]/@cx'), ["236.00"])
 
     def test_all_real_mapped_polymarket_rows_have_delta_and_chart(self):
         snapshot = self.sources["candidate_polymarket"]
@@ -403,6 +425,14 @@ class PublicSignalMovementTests(unittest.TestCase):
             for row in snapshot["candidates"]:
                 current = dict(row, observed_at=snapshot["observed_at"])
                 self.assertEqual(trend.render_movement(provider, row["candidate_id"], current, self.histories, "en"), "")
+
+    def test_sparse_chart_keeps_valid_numeric_movement(self):
+        self.fixture("polymarket", .459, .421)
+        row = self.history["polymarket"][self.data["candidate_id"]]
+        row["points"] = [row["points"][0], *row["points"][-2:]]
+        for lang in ("fr", "en"):
+            self.assertTrue(self.change("polymarket", lang))
+            self.assertFalse(self.card("polymarket", lang).xpath('.//svg'))
 
     def test_future_youtube_baseline_activates_without_flag(self):
         self.fixture("youtube", 217000, 214000)
@@ -473,7 +503,7 @@ class PublicSignalMovementTests(unittest.TestCase):
                 self.assertIn("sept jours" if lang == "fr" else "seven days earlier", tooltip)
                 self.assertIn("30 jours" if lang == "fr" else "30 days", tooltip)
                 self.assertIn("propre échelle" if lang == "fr" else "own scale", tooltip)
-                self.assertIn("48 h" if lang == "fr" else "48 hours", tooltip)
+                self.assertIn("dates UTC" if lang == "fr" else "UTC dates", tooltip)
                 body = card.xpath('./div[@class="candidate-panel-body"]')[0].text_content()
                 self.assertNotIn("propre échelle", body)
                 self.assertNotIn("own scale", body)
@@ -496,7 +526,7 @@ class PublicSignalMovementTests(unittest.TestCase):
         self.assertFalse(any(k.endswith('_history') and k.startswith('candidate_p') for k in reference.SOURCE_FILES))
         css = (ROOT / 'assets/candidate-page.css').read_text()
         public_css = css[css.index('/* Public sources reuse candidate panels'):]
-        self.assertIn('align-items: start', public_css)
+        self.assertIn('align-items: stretch', public_css)
         self.assertNotIn('min-height', public_css)
         self.assertNotRegex(public_css, r'green|red|gradient|box-shadow')
 
@@ -538,21 +568,104 @@ class PublicSignalTrendlineTests(unittest.TestCase):
                 self.assertEqual(coords[0][1] > coords[-1][1], values[0] < values[-1])
 
     def test_irregular_time_spacing_and_missing_dates_not_synthesized(self):
-        svg = html.fromstring(self.render(self.points([10, 20, 30, 40], [8, 7, 1, 0])))
+        points = self.points(list(range(10)), [15, 14, 13, 12, 11, 10, 9, 8, 1, 0])
+        svg = html.fromstring(self.render(points))
         lines = svg.xpath('.//polyline/@points')
-        self.assertEqual(len(lines), 2)
-        self.assertEqual(sum(len(line.split()) for line in lines), 4)
-        self.assertEqual(lines[0].split()[1].split(',')[0], '33.00')
-        self.assertEqual(lines[1].split()[0].split(',')[0], '207.00')
+        dots = svg.xpath('.//circle[@class="candidate-public-signal-trend-point"]')
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(len(lines[0].split()), 8)
+        self.assertEqual(len(dots), 2)
+        self.assertAlmostEqual(float(dots[0].get('cx')), 4 + 232 * 14 / 15, places=2)
+        self.assertEqual(dots[-1].get('cx'), '236.00')
 
     def test_gap_singleton_is_actual_point_not_connected_line(self):
-        svg = html.fromstring(self.render(self.points([10, 20, 30], [8, 1, 0])))
-        self.assertEqual(len(svg.xpath('.//circle')), 1)
+        svg = html.fromstring(self.render(self.points(list(range(9)), [12, 11, 10, 9, 8, 7, 6, 5, 0])))
+        self.assertEqual(len(svg.xpath('.//circle[@class="candidate-public-signal-trend-point"]')), 1)
         self.assertEqual(len(svg.xpath('.//polyline')), 1)
+        self.assertEqual(svg.xpath('.//circle[@class="candidate-chart-point candidate-public-signal-current"]/@cx'), ['236.00'])
 
     def test_only_last_thirty_days_render(self):
         svg = html.fromstring(self.render(self.points(list(range(41)))))
         self.assertEqual(len(svg.xpath('.//polyline/@points')[0].split()), 31)
+
+    def probability_svg(self, values, days=None):
+        points = [dict(observed_at=p['observed_at'], implied_probability=p['followers_count'])
+                  for p in self.points(values, days)]
+        return html.fromstring(trend.render_trendline(points, 'implied_probability',
+                               'Probability in native units', eligible=True, probability=True))
+
+    def test_two_point_run_uses_markers_not_a_detached_stroke(self):
+        svg = html.fromstring(self.render(self.points(list(range(9)), [11, 10, 9, 8, 7, 6, 5, 1, 0])))
+        self.assertEqual(len(svg.xpath('.//polyline')), 1)
+        self.assertEqual(len(svg.xpath('.//polyline/@points')[0].split()), 7)
+        self.assertEqual(len(svg.xpath('.//circle[@class="candidate-public-signal-trend-point"]')), 2)
+
+    def test_three_point_run_is_a_line(self):
+        svg = html.fromstring(self.render(self.points(list(range(10)), [12, 11, 10, 9, 8, 7, 6, 2, 1, 0])))
+        self.assertEqual([len(x.split()) for x in svg.xpath('.//polyline/@points')], [7, 3])
+        self.assertFalse(svg.xpath('.//circle[@class="candidate-public-signal-trend-point"]'))
+
+    def test_sparse_window_suppresses_chart_without_changing_valid_delta(self):
+        points = self.points([10, 11, 12], [9, 1, 0])
+        self.assertIsNotNone(trend.delta(points, 'followers_count', 7))
+        self.assertEqual(self.render(points), '')
+        # Seven observed dates alone do not justify a mostly empty 30-day chart.
+        self.assertEqual(self.render(self.points(list(range(7)), [30, 29, 28, 27, 26, 25, 0])), '')
+
+    def test_missing_utc_date_breaks_regardless_of_sampling_jitter(self):
+        points = self.points(list(range(10)), [10, 9, 8, 7, 6, 5, 4, 3, 1, 0])
+        for seconds in (-5, 5):
+            adjusted = copy.deepcopy(points)
+            adjusted[-2]['observed_at'] = iso(instant(adjusted[-2]['observed_at']) + timedelta(seconds=seconds))
+            svg = html.fromstring(self.render(adjusted))
+            self.assertEqual(len(svg.xpath('.//polyline')), 1)
+            self.assertEqual(len(svg.xpath('.//circle[@class="candidate-public-signal-trend-point"]')), 2)
+
+    def test_consecutive_utc_dates_still_require_at_most_36_hours(self):
+        points = self.points(list(range(10)))
+        points[-2]['observed_at'] = iso(instant(points[-2]['observed_at']) - timedelta(hours=11))
+        points[-1]['observed_at'] = iso(instant(points[-1]['observed_at']) + timedelta(hours=11))
+        svg = html.fromstring(self.render(points))
+        self.assertEqual(len(svg.xpath('.//circle[@class="candidate-public-signal-trend-point"]')), 1)
+
+    def test_probability_minimum_span_prevents_tiny_change_amplification(self):
+        for start in (0, .001, .5, .999):
+            svg = self.probability_svg([start] * 8 + [start + .0005])
+            ys = [float(pair.split(',')[1]) for pair in svg.xpath('.//polyline/@points')[0].split()]
+            # 0.05 percentage point / five-percentage-point domain * 36 SVG units.
+            self.assertAlmostEqual(max(ys) - min(ys), .36, places=2)
+
+    def test_zero_and_one_flat_probability_stay_centered(self):
+        for value in (0, .001, 1):
+            svg = self.probability_svg([value] * 9)
+            self.assertTrue(all(pair.endswith(',22.00') for pair in svg.xpath('.//polyline/@points')[0].split()))
+
+    def test_probability_domain_bounds_including_full_native_range(self):
+        for values in ([0] * 8 + [1], [.99] * 8 + [1], [0] * 8 + [.01]):
+            svg = self.probability_svg(values)
+            ys = [float(pair.split(',')[1]) for pair in svg.xpath('.//polyline/@points')[0].split()]
+            self.assertTrue(all(4 <= y <= 40 and math.isfinite(y) for y in ys))
+
+    def test_count_scale_does_not_inherit_probability_minimum(self):
+        for baseline in (100, 2**53 - 2):
+            svg = html.fromstring(self.render(self.points([baseline] * 8 + [baseline + 1])))
+            ys = [float(pair.split(',')[1]) for pair in svg.xpath('.//polyline/@points')[0].split()]
+            self.assertAlmostEqual(max(ys) - min(ys), 30, places=2)
+            self.assertTrue(all(4 <= y <= 40 for y in ys))
+
+    def test_current_ring_matches_last_observation_and_scale(self):
+        svg = self.probability_svg([.01] * 8 + [.011])
+        terminal = svg.xpath('.//circle[@class="candidate-chart-point candidate-public-signal-current"]')[0]
+        last_pair = svg.xpath('.//polyline/@points')[0].split()[-1]
+        self.assertEqual(last_pair, terminal.get('cx') + ',' + terminal.get('cy'))
+        self.assertEqual(terminal.get('cx'), '236.00')
+
+    def test_fully_observed_window_has_no_extra_samples_or_breaks(self):
+        svg = html.fromstring(self.render(self.points(list(range(31)))))
+        self.assertEqual(len(svg.xpath('.//polyline')), 1)
+        self.assertEqual(len(svg.xpath('.//polyline/@points')[0].split()), 31)
+        self.assertFalse(svg.xpath('.//circle[@class="candidate-public-signal-trend-point"]'))
+        self.assertEqual(len(svg.xpath('.//circle')), 1)  # Terminal annotation, not another sample.
 
     def test_older_baseline_but_only_one_visible_point_has_no_chart(self):
         self.assertEqual(self.render(self.points([1, 2], [40, 0])), '')

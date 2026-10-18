@@ -3451,8 +3451,8 @@
 /* Public sources reuse candidate panels, KPI type and section/panel info controls. */
 .candidate-page .candidate-public-signals-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
   gap: 8px;
 }
 .candidate-page .candidate-public-signal {
@@ -3469,6 +3469,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  padding: 10px 11px;
 }
 .candidate-page .candidate-public-signal-subtitle,
 .candidate-page .candidate-public-signal-unit {
@@ -3477,7 +3478,7 @@
   font-size: var(--fr27-type-meta);
 }
 .candidate-page .candidate-public-signal-value {
-  margin: 8px 0 3px;
+  margin: 6px 0 2px;
   color: #eef7fa;
   font-size: var(--fr27-num-kpi);
   font-weight: 710;
@@ -3490,7 +3491,7 @@
   line-height: 1.4;
 }
 .candidate-page .candidate-public-signal-support {
-  margin: 6px 0 0;
+  margin: 5px 0 0;
   color: var(--final-muted);
   font-size: var(--fr27-type-meta);
   line-height: 1.4;
@@ -3498,17 +3499,69 @@
 .candidate-page .candidate-public-signal .candidate-source-link {
   align-self: flex-start;
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 6px;
 }
-@media (min-width: 1350px) {
+/* Below 1240px the shell has 12px side padding: 880 - 24 =
+   3 * 280px readable cards + 2 * 8px gaps. Never leave a 2 + 1 grid. */
+@media (min-width: 880px) {
   .candidate-page .candidate-public-signals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (max-width: 759.98px) {
-  .candidate-page .candidate-public-signals-grid { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 880px) and (max-width: 1349.98px) {
+  .candidate-page .candidate-public-signal:last-child .candidate-section-tooltip {
+    left: auto;
+    right: 10px;
+  }
+}
+@media (min-width: 760px) and (max-width: 879.98px) {
+  .candidate-page .candidate-public-signal {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+  .candidate-page .candidate-public-signal > .candidate-panel-head {
+    border-bottom: 0;
+    border-right: 1px solid rgba(31, 78, 105, .72);
+  }
+  .candidate-page .candidate-public-signal > .candidate-panel-body {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) max-content;
+    grid-template-rows: repeat(3, auto);
+    column-gap: 12px;
+    align-content: center;
+    align-items: center;
+  }
+  .candidate-page .candidate-public-signal-subtitle { grid-column: 1; grid-row: 1; }
+  .candidate-page .candidate-public-signal-value { grid-column: 1; grid-row: 2; margin: 4px 0 2px; }
+  .candidate-page .candidate-public-signal-unit { grid-column: 1; grid-row: 3; }
+  .candidate-page .candidate-public-signal .candidate-public-signal-change {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+  .candidate-page .candidate-public-signal .candidate-public-signal-trend {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    margin: 0;
+  }
+  .candidate-page .candidate-public-signal-support { grid-column: 2; grid-row: 1 / span 3; margin: 0; }
+  .candidate-page .candidate-public-signal:has(.candidate-public-signal-change) .candidate-public-signal-support {
+    grid-column: 1 / span 2;
+    grid-row: 4;
+    margin-top: 4px;
+  }
+  .candidate-page .candidate-public-signal .candidate-source-link {
+    grid-column: 3;
+    grid-row: 1 / span 4;
+    align-self: center;
+    margin: 0;
+    padding: 0;
+  }
+  .candidate-page .candidate-public-signal[data-state="unavailable"] > .candidate-panel-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .candidate-page .candidate-public-signal-change {
-  margin: 7px 0 0;
+  margin: 4px 0 0;
   color: var(--final-cyan);
   font-size: var(--fr27-type-meta);
   font-variant-numeric: tabular-nums;
@@ -3517,8 +3570,8 @@
 .candidate-page .candidate-public-signal-trend {
   display: block;
   width: 100%;
-  height: 44px;
-  margin-top: 4px;
+  height: 32px;
+  margin-top: 2px;
 }
 .candidate-page .candidate-public-signal-trend-point { fill: var(--final-cyan); }
 .candidate-page .candidate-public-signal-change .visually-hidden {

@@ -93,11 +93,15 @@ def movement_text(provider, change, lang):
 
 
 def render_trendline(points, field, label, *, eligible, probability=False):
-    """Up to 30 days, true time spacing, no interpolation across gaps >48 hours.
+    """Up to 30 days, with missing UTC dates left unconnected.
 
-    Coordinates use the visible observation extent, with four-pixel margins and
-    ten-percent vertical range padding. Flat series are centered. Singleton gap
-    segments are dots, not invented connections. Native values stay untouched.
+    Same-day or consecutive-day samples may connect (at most 36 hours apart).
+    Runs of fewer than three observations are markers, never floating strokes.
+    Sparse windows (<7 occupied UTC dates or <half of dates occupied) omit the
+    chart, independently of the valid numeric delta. The current point is ringed.
+    Probability domains span at least five percentage points, bounded by 0–1;
+    count domains retain local ten-percent padding. Flat series are centered.
+    Native values, timestamps and the shared delta algorithm stay untouched.
     """
     ordered = sorted(points, key=lambda p: instant(p["observed_at"]))
     times = [instant(p["observed_at"]) for p in ordered]
@@ -111,27 +115,47 @@ def render_trendline(points, field, label, *, eligible, probability=False):
     if len(visible) < 2:
         return ""
     start, end = visible[0][0], visible[-1][0]
+    occupied_dates = {t.date() for t, _ in visible}
+    date_count = (end.date() - start.date()).days + 1
+    if len(occupied_dates) < 7 or len(occupied_dates) * 2 < date_count:
+        return ""
     low, high = min(v for _, v in visible), max(v for _, v in visible)
     span = high - low
+    domain_span = max(span * 1.2, .05) if probability else span * 1.2
+    domain_low = (low + high - domain_span) / 2
+    if probability:
+        domain_low = max(0, min(domain_low, 1 - domain_span))
+        # A full-range series needs no padding beyond the native probability bounds.
+        domain_span = min(domain_span, 1)
+        domain_low = min(domain_low, 1 - domain_span)
     coordinates = []
     for timestamp, value in visible:
         x = 4 + 232 * (timestamp - start).total_seconds() / (end - start).total_seconds()
-        y = 22 if span == 0 else 4 + 36 * ((high - value) / span + .1) / 1.2
+        # Subtract integer counts before float arithmetic, preserving small
+        # differences even near the downstream safe-integer ceiling.
+        offset = value - domain_low if probability else (value - low) + (domain_span - span) / 2
+        y = 22 if span == 0 else 40 - 36 * offset / domain_span
         coordinates.append((timestamp, f"{x:.2f}", f"{y:.2f}"))
     segments = [[]]
     for index, (timestamp, x, y) in enumerate(coordinates):
-        if index and timestamp - coordinates[index - 1][0] > timedelta(hours=48):
+        previous = coordinates[index - 1][0] if index else timestamp
+        if index and ((timestamp.date() - previous.date()).days > 1
+                      or timestamp - previous > timedelta(hours=36)):
             segments.append([])
         segments[-1].append((x, y))
     shapes = []
     for segment in segments:
-        if len(segment) == 1:
-            x, y = segment[0]
-            shapes.append(f'<circle class="candidate-public-signal-trend-point" cx="{x}" cy="{y}" r="1.5"/>')
+        if len(segment) < 3:
+            for x, y in segment:
+                shapes.append(f'<circle class="candidate-public-signal-trend-point" cx="{x}" cy="{y}" r="1.5"/>')
         else:
             coords = " ".join(f"{x},{y}" for x, y in segment)
             shapes.append(f'<polyline class="candidate-chart-line" points="{coords}"/>')
+    # A ring distinguishes the authoritative snapshot without drawing through a gap.
+    _, x, y = coordinates[-1]
+    shapes.append(f'<circle class="candidate-chart-point candidate-public-signal-current" cx="{x}" cy="{y}" r="2.2"/>')
     return (f'<svg class="candidate-public-signal-trend" viewBox="0 0 240 44" '
+            f'preserveAspectRatio="xMinYMid meet" '
             f'role="img" aria-label="{escape(label, quote=True)}" focusable="false">'
             f'<g aria-hidden="true">{"".join(shapes)}</g></svg>')
 
@@ -161,11 +185,15 @@ def method_note(provider, lang):
             "Variation du nombre d’abonnés Bluesky.")
         return (" La variation compare la valeur actuelle à la dernière observation valide au plus tard sept jours auparavant. "
                 "Sans référence suffisante, aucune variation ni courbe n’est affichée. " + unit +
-                " Courbe sur 30 jours au maximum, observations réelles espacées dans le temps ; rupture au-delà de 48 h sans observation. "
+                " Courbe sur 30 jours au maximum, espacée selon les dates réelles ; dates UTC manquantes non reliées, séries courtes en points, valeur actuelle cerclée. "
+                "Une couverture trop faible masque la courbe, pas la variation. " +
+                ("Échelle verticale d’au moins 5 points de pourcentage. " if provider == "polymarket" else "") +
                 "Chaque courbe a sa propre échelle : leurs formes ne sont pas comparables entre plateformes.")
     unit = "Change in percentage points." if provider == "polymarket" else (
         "Subscriber-count change inherits YouTube’s rounding." if provider == "youtube" else "Change in Bluesky follower count.")
     return (" Change compares the current value with the latest valid observation at or before seven days earlier. "
             "Insufficient history produces no change or chart. " + unit +
-            " Up to 30 days of actual time-spaced observations; gaps beyond 48 hours break the line. "
+            " Up to 30 days of actual time-spaced observations; missing UTC dates break the line, short runs use dots, the current value is ringed. "
+            "Sparse coverage hides the chart, not the change. " +
+            ("Vertical scale spans at least 5 percentage points. " if provider == "polymarket" else "") +
             "Each chart has its own scale: shapes cannot be compared across platforms.")
