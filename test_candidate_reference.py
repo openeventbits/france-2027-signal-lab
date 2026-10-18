@@ -225,8 +225,8 @@ class CandidateReferenceTests(unittest.TestCase):
 
         count = current["hypothesis_count"]
         range_text = (
-            f'{current["range_min"]}–'
-            f'{current["range_max"]}%'
+            f'{reference._number(current["range_min"])}–'
+            f'{reference._number(current["range_max"])}%'
         )
         hypothesis_text = reference._hypothesis_text(
             count
@@ -2673,6 +2673,12 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
 
         self.assertNotIn("candidate-page-en.css", self.en)
         self.assertNotIn("candidate-page-en.js", self.en)
+
+    def test_english_fractional_poll_range_is_localized(self):
+        self.assertEqual(
+            reference._candidate_product_ui_en("31–33,5% · 5 hypothèses"),
+            "31–33.5% · 5 hypotheses",
+        )
 
     def test_english_generated_compositional_ui_is_localized(self):
         current_poll = self.projection["polling"]["current"]
