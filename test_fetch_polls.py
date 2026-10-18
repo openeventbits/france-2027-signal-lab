@@ -42,6 +42,11 @@ from poll_contract import (
 
 
 ROOT = Path(__file__).parent
+
+# Historical replays require the corpus before the three reviewed expansions.
+PRE_EXPANSION_FIRST_ROUND = (
+    ROOT / "test_fixtures/fr27_polling/pre_candidate_expansion_first_round_23a2bbd.json"
+)
 PRE_CUTOVER_FIRST_ROUND = (
     ROOT / "test_fixtures/fr27_polling/pre_cutover_first_round_203.json"
 )
@@ -181,7 +186,7 @@ class WikipediaSourceSelectionTests(unittest.TestCase):
         )
 
         previous_first = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            PRE_EXPANSION_FIRST_ROUND.read_text(encoding="utf-8")
         )
         previous_second = load_previous_second_round_events(
             ROOT / "second_round_polls.json"

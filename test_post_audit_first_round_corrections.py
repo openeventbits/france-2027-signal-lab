@@ -510,7 +510,7 @@ class ReviewedCandidateExpansionTests(unittest.TestCase):
         cls.records = cls.payload["expansions"]
         cls.rows = [copy.deepcopy(r["incoming_row"]) for r in cls.records]
         cls.previous = json.loads(
-            (ROOT / "polls.json").read_text(encoding="utf-8")
+            (FIXTURES / "pre_candidate_expansion_first_round_23a2bbd.json").read_text(encoding="utf-8")
         )
 
     def run_expansion(self, rows=None, previous=None, revision=240470913,
@@ -524,6 +524,47 @@ class ReviewedCandidateExpansionTests(unittest.TestCase):
             self.previous if previous is None else previous,
             registry_path=REGISTRY if registry_path is None else registry_path,
         )
+
+    def test_frozen_pre_expansion_corpus_integrity(self):
+        # Exact polls.json bytes from 23a2bbd01e2f292d7b7e2fea18b44aa3e8cf4cbf.
+        name = "pre_candidate_expansion_first_round_23a2bbd.json"
+        raw = (FIXTURES / name).read_bytes()
+        self.assertEqual(
+            hashlib.sha256(raw).hexdigest(),
+            "fed336f0b12adb43866d8bc7e9c7a2580e979217198d47d4aa4eda49f0c9e91a",
+        )
+        self.assertEqual(len(self.previous), 316)
+        self.assertNotIn(b"\r", raw)
+        self.assertIn(
+            f"/test_fixtures/fr27_polling/{name} text eol=lf",
+            (ROOT / ".gitattributes").read_text(encoding="utf-8").splitlines(),
+        )
+        validate_poll_events(self.previous)
+
+    def test_production_successors_replay_deterministically_without_changes(self):
+        # This publication contract allows future additions without pinning a count.
+        published = json.loads((ROOT / "polls.json").read_text(encoding="utf-8"))
+        before = {event["event_id"]: event for event in published}
+        old_ids = {record["previous_event"]["event_id"] for record in self.records}
+        new_ids = {record["canonical_event_id"] for record in self.records}
+        self.assertEqual(len(before), len(published))
+        self.assertEqual(len(new_ids), 3)
+        self.assertTrue(new_ids <= before.keys())
+        self.assertTrue(old_ids.isdisjoint(before))
+
+        replay = self.run_expansion(previous=published)
+        self.assertEqual(replay.events, published)
+        self.assertEqual((replay.applied, replay.already_applied), (0, 3))
+        self.assertEqual(replay.canonical_event_ids, sorted(new_ids))
+        self.assertEqual(replay.superseded_event_ids, [])
+        self.assertEqual(replay.covered_persistence_ids, sorted(old_ids))
+        self.assertEqual(replay, self.run_expansion(previous=published))
+        self.assertEqual(
+            replay,
+            self.run_expansion(rows=list(reversed(self.rows)),
+                               previous=replay.events, revision=240470914),
+        )
+        validate_poll_events(replay.events)
 
     def test_exact_three_successors_and_313_other_events_preserved(self):
         result = self.run_expansion()
