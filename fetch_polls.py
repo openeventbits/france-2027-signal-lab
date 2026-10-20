@@ -2049,6 +2049,8 @@ def integrate_french_migration_source(
     previous_second: list[dict],
     official_events: list[dict],
     overrides: PollWaveOverrides | None = None,
+    *,
+    retain_published_history: bool = False,
 ) -> tuple[list[dict], list[dict], dict, tuple[int, int, int]]:
     """Feed migration-aware French discovery into the existing merge path."""
 
@@ -2058,6 +2060,7 @@ def integrate_french_migration_source(
         parsed,
         previous_first,
         previous_second,
+        retain_published_history=retain_published_history,
     )
     # Only explicitly reviewed corrections may replace retained first-round
     # facts. Keep them outside ordinary new-source/official-wave discovery.
@@ -2112,15 +2115,24 @@ def integrate_french_migration_source(
         event["event_id"]: copy.deepcopy(event) for event in previous_first
     }
     for event in fresh_events:
-        events_by_id[event["event_id"]] = copy.deepcopy(event)
+        retained = events_by_id.get(event["event_id"])
+        if retained is not None and retained != event:
+            raise ValueError(
+                "incoming observation changed a published event: " + event["event_id"]
+            )
+        events_by_id.setdefault(event["event_id"], copy.deepcopy(event))
     # The official merge remains authoritative for ordinary source rows.  The
     # one-time registry, however, explicitly reviewed all 29 migration
     # additions, including a single Elabe scenario not emitted by the current
     # official parser.  Restore only that finite audited set after the merge.
     for event in audited_additions:
-        events_by_id[event["event_id"]] = copy.deepcopy(event)
+        retained = events_by_id.get(event["event_id"])
+        if retained is not None and retained != event:
+            raise ValueError("audited addition changed a published event: " + event["event_id"])
+        events_by_id.setdefault(event["event_id"], copy.deepcopy(event))
     for event in events_by_id.values():
-        event.pop("rehearsal_only", None)
+        if not retain_published_history or event["event_id"] not in previous_first_ids:
+            event.pop("rehearsal_only", None)
     events = sorted(
         events_by_id.values(),
         key=lambda event: (
@@ -2213,6 +2225,23 @@ def validate_french_phase4a_output_paths(args: argparse.Namespace) -> None:
             "French Phase 4A mode requires non-production temporary outputs: "
             + ", ".join(collisions)
         )
+
+
+def print_french_reconciliation_diagnostics(report: dict) -> None:
+    if "historical_retention" not in report:
+        return
+    print("French historical retention: " + json.dumps(
+        report["historical_retention"], sort_keys=True,
+    ))
+    for round_name, coverage in report["extraction_coverage"].items():
+        label = "first-round" if round_name == FIRST_ROUND else "runoff"
+        message = (
+            f"French {label} extraction coverage: {coverage['extracted']} extracted "
+            f"against expected baseline {coverage['expected_baseline']}; "
+            f"shortfall {coverage['shortfall']}; "
+            f"failure floor 90% of guard baseline {coverage['guard_baseline']}"
+        )
+        print(("WARNING: " if coverage["shortfall"] else "") + message)
 
 
 def main() -> None:
@@ -2393,6 +2422,7 @@ def main() -> None:
                 previous_second_events,
                 official_events,
                 overrides,
+                retain_published_history=not bool(args.french_fixture),
             )
             current_headings = {
                 canonical_french_runoff_heading(
@@ -2591,6 +2621,8 @@ def main() -> None:
         )
     for diagnostic in discovery.diagnostics:
         print(f"Commission discovery: {diagnostic}")
+    if french_report:
+        print_french_reconciliation_diagnostics(french_report)
     print(f"Exact official logical overlaps with Wikipedia: {exact_overlaps}")
     print(
         "Wikipedia events suppressed in official waves: "
