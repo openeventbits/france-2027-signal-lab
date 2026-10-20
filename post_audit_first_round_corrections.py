@@ -1,8 +1,9 @@
 """Exact reviewed first-round corrections, separate from the cutover audit.
 
 Neither review anchors nor numerical tolerances select a correction. Reviewed
-revisions record provenance; later rows must match the exact locator, URL and
-complete factual key, regardless of unrelated page edits.
+revisions record provenance. Frozen replay requires the exact locator and URL;
+live historical retention matches reviewed factual keys and validates the local
+canonical outcome without reconstructing it from mutable discovery metadata.
 """
 
 from __future__ import annotations
@@ -428,6 +429,7 @@ def _make_reviewed_source_event(source_record: dict) -> dict:
 
 def reconcile_first_round_corrections(
     rows: list[dict], revision: int, previous: list[dict], *, registry: dict | None = None,
+    retain_published_history: bool = False,
 ) -> CorrectionResult:
     registry = validate_corrections(registry) if registry is not None else load_corrections()
     validate_poll_events(previous)
@@ -444,6 +446,11 @@ def reconcile_first_round_corrections(
     rows_by_locator = {row["source_locator"]: row for row in rows}
     if len(rows_by_locator) != len(rows):
         raise ValueError("duplicate incoming first-round locator")
+    rows_by_facts = {}
+    if retain_published_history:
+        for row in rows:
+            key = exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
+            rows_by_facts.setdefault(key, []).append(row)
     # Require an exact decision for every row in a registered correction wave,
     # including rows moved away from their reviewed locator or mutated facts.
     wave_keys = {
@@ -475,7 +482,7 @@ def reconcile_first_round_corrections(
             == (key["pollster_identity"], key["fieldwork_start"], key["fieldwork_end"])
             for row in rows
         )
-        if not wave_present:
+        if not wave_present and not retain_published_history:
             if revision >= min(record["incoming_source_revisions"]):
                 raise ValueError("reviewed first-round correction wave is missing")
             continue
@@ -484,24 +491,40 @@ def reconcile_first_round_corrections(
             record.get("historical_incoming_factual_key", record.get("old_factual_key")) if revision == record.get("historical_source_revision")
             else record["incoming_factual_key"]
         )
+        if retain_published_history:
+            allowed = {factual_key_from_dict(expected, "reviewed incoming first-round key")}
+            if record["canonical_event_id"] in events:
+                allowed.add(factual_key_from_dict(record["canonical_factual_key"], "canonical first-round key"))
+            matches = [candidate for key in allowed for candidate in rows_by_facts.get(key, [])]
+            if len(matches) > 1:
+                raise ValueError("ambiguous reviewed first-round correction facts")
+            row = matches[0] if matches else None
+            locator = row["source_locator"] if row is not None else locator
         if (
             (revision < min(record["incoming_source_revisions"])
              and revision != record.get("historical_source_revision"))
-            or row is None or row["source_url"] != record["source_url"]
-            or exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
-            != factual_key_from_dict(expected, "reviewed incoming first-round key")
+            or (not retain_published_history and (
+                row is None or row["source_url"] != record["source_url"]
+                or exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
+                != factual_key_from_dict(expected, "reviewed incoming first-round key")
+            ))
         ):
             raise ValueError("reviewed first-round correction source scope/facts changed")
-        if acceptance and any(
+        if acceptance and row is not None and any(
             other is not row and other["source_url"] == record["source_url"]
             for other in rows
         ):
             raise ValueError("unregistered row in reviewed first-round acceptance source")
         canonical_id = record["canonical_event_id"]
         if consolidation:
+            if retain_published_history and canonical_id not in events and (
+                row is None or row["source_url"] != record["source_url"]
+            ):
+                raise ValueError("reviewed consolidation source scope/facts changed")
             _consolidate_reviewed_events(record, events, report)
             report["canonical_event_ids"].append(canonical_id)
-            handled[locator] = factual_key_from_dict(record["canonical_factual_key"], "canonical consolidation key")
+            if row is not None:
+                handled[locator] = factual_key_from_dict(record["canonical_factual_key"], "canonical consolidation key")
             continue
         old_id = record.get("previous_event_id", canonical_id)
         old, canonical = events.get(old_id), events.get(canonical_id)
@@ -509,7 +532,7 @@ def reconcile_first_round_corrections(
             raise ValueError("first-round supersession contains both event identities")
         current = old if old is not None else canonical
         if current is None:
-            if not acceptance:
+            if not acceptance or row is None:
                 raise ValueError("reviewed first-round correction is missing its retained event")
             # Construct the source event only after exact reviewed
             # provenance/facts pass; canonical metadata is applied below.
@@ -517,6 +540,10 @@ def reconcile_first_round_corrections(
         current_key = exact_factual_key(current, sample_scope=current.get("sample_scope", "reported"))
         canonical_key = factual_key_from_dict(record["canonical_factual_key"], "canonical first-round key")
         old_key = factual_key_from_dict(key, "old first-round key")
+        if retain_published_history and current_key != canonical_key and (
+            row is None or row["source_url"] != record["source_url"]
+        ):
+            raise ValueError("reviewed first-round correction source scope/facts changed")
         if (
             current["source_url"] != record["source_url"]
             or current_key not in {old_key, canonical_key}
@@ -550,7 +577,8 @@ def reconcile_first_round_corrections(
             events[canonical_id] = corrected
             report[record["action"]] += 1
         report["canonical_event_ids"].append(canonical_id)
-        handled[locator] = canonical_key
+        if row is not None:
+            handled[locator] = canonical_key
     if wave_rows != set(handled) | excluded:
         raise ValueError("unregistered row in reviewed first-round correction wave")
     for record in registry["excluded_source_rows"]:

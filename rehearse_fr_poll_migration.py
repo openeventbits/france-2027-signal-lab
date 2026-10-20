@@ -41,6 +41,7 @@ from poll_contract import (
 from poll_migration import (
     FRENCH_FIXTURE,
     POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
+    apply_wave_scoped_pollster_alias,
     candidate_identity,
     exact_factual_key,
     factual_key_from_dict,
@@ -66,6 +67,9 @@ REVIEWED_POST_AUDIT_FRENCH_FIXTURE = (
     ROOT
     / "test_fixtures/fr27_polling/fr_mediawiki_239248634.json"
 )
+# Reviewed revisions 240490172, 240498648 and 240522402 all extract these
+# counts. This diagnostic baseline never changes the historical-loss guard.
+REVIEWED_EXTRACTION_BASELINE = {FIRST_ROUND: 284, SECOND_ROUND: 95}
 SECOND_ROUND_EVIDENCE_RECONCILIATION = (
     ROOT / "fr27_poll_second_round_evidence_reconciliation.json"
 )
@@ -1561,12 +1565,16 @@ def reconcile_french_production_source(
     previous_second: list[dict[str, Any]],
     *,
     registry: dict[str, Any] | None = None,
+    retain_published_history: bool = False,
 ) -> RehearsalResult:
     """Apply the one-time audit baseline, then admit new valid French rows.
 
     Exact factual identities may retain a prior event.  Review anchors are
     consulted only to reject near matches that require an explicit registry
     decision; they never select or merge an event.
+
+    Frozen replay remains strict by default. The live CLI opts into historical
+    retention: reviewed local outcomes survive mutable discovery provenance.
     """
 
     source_records = _assert_production_source_structure(parsed)
@@ -1579,16 +1587,18 @@ def reconcile_french_production_source(
         FIRST_ROUND: previous_first,
         SECOND_ROUND: previous_second,
     }
-    _assert_reviewed_post_audit_semantics(
-        parsed,
-        source_records,
-        previous_by_round,
-        migration_registry,
-    )
+    if not retain_published_history:
+        _assert_reviewed_post_audit_semantics(
+            parsed,
+            source_records,
+            previous_by_round,
+            migration_registry,
+        )
     from post_audit_first_round_corrections import reconcile_first_round_corrections
 
     first_round_corrections = reconcile_first_round_corrections(
         source_records[FIRST_ROUND], parsed["revid"], previous_first,
+        retain_published_history=retain_published_history,
     )
 
     # Three reviewed candidate-list expansions, independently scoped.
@@ -1601,6 +1611,7 @@ def reconcile_french_production_source(
         source_records[FIRST_ROUND],
         parsed["revid"],
         first_round_corrections.events,
+        retain_published_history=retain_published_history,
     )
     first_round_corrections.events = expansion.events
     first_round_corrections.report["canonical_event_ids"].extend(
@@ -1646,6 +1657,27 @@ def reconcile_french_production_source(
     audited = parse_french_frozen_fixture(
         load_mediawiki_fixture(FRENCH_FIXTURE, FRENCH_REVISION)
     )
+    extraction_coverage = {}
+    if retain_published_history:
+        # Historic-only persistence obligations account for records absent from
+        # the French feed at cutover. Allow isolated removals, but never turn a
+        # >10% extraction collapse into a successful historical-retention run.
+        for round_name in (FIRST_ROUND, SECOND_ROUND):
+            historical_only = len(migration_registry["persistence_obligations"][round_name])
+            expected = max(len(audited[round_name]),
+                           len(previous_by_round[round_name]) - historical_only)
+            if len(source_records[round_name]) * 10 < expected * 9:
+                raise SourceDriftError(
+                    f"widespread {round_name} extraction loss: "
+                    f"{len(source_records[round_name])} rows; expected at least 90% of {expected}"
+                )
+            baseline = max(expected, REVIEWED_EXTRACTION_BASELINE[round_name])
+            extraction_coverage[round_name] = {
+                "extracted": len(source_records[round_name]),
+                "expected_baseline": baseline,
+                "guard_baseline": expected,
+                "shortfall": max(0, baseline - len(source_records[round_name])),
+            }
     audited_by_locator = {
         record["source_locator"]: record
         for round_name in (FIRST_ROUND, SECOND_ROUND)
@@ -1820,7 +1852,7 @@ def reconcile_french_production_source(
         for record in source_records["rejected"]
     }
     missing_rejections = audited_rejected - incoming_rejected
-    if missing_rejections:
+    if missing_rejections and not retain_published_history:
         raise SourceDriftError(
             "an audited fail-closed French row disappeared or changed identity"
         )
@@ -1829,6 +1861,19 @@ def reconcile_french_production_source(
         round_name: _current_exact_index(events, round_name)
         for round_name, events in previous_by_round.items()
     }
+    if retain_published_history and any(
+        len(matches) > 1
+        for index in exact_indexes.values() for matches in index.values()
+    ):
+        raise RehearsalError("exact factual identity maps to multiple prior events")
+    known_first_facts = set(exact_indexes[FIRST_ROUND])
+    if retain_published_history:
+        # Reviewed source representations can use a different sample base from
+        # the retained event. A truncated known row must not become a new event
+        # merely because its sample differs from the published historical base.
+        known_first_facts.update(reviewed_post_audit_by_key[FIRST_ROUND])
+        known_first_facts.update(exact_factual_key(row, sample_scope="reported")
+                                 for row in audited[FIRST_ROUND])
     known_anchors: set[Any] = set()
     for record in audited_by_locator.values():
         try:
@@ -1872,7 +1917,13 @@ def reconcile_french_production_source(
 
     for round_name in (FIRST_ROUND, SECOND_ROUND):
         for source_record in source_records[round_name]:
-            raw_key = exact_factual_key(source_record, sample_scope="reported")
+            raw_key = exact_factual_key(
+                source_record,
+                sample_scope=(source_record.get("sample_scope", "reported")
+                              if retain_published_history else "reported"),
+            )
+            if retain_published_history and raw_key.round != round_name:
+                raise SourceDriftError("French source row has an inconsistent round")
             if raw_key in source_keys:
                 raise SourceDriftError("French source contains a duplicate factual row")
             source_keys.add(raw_key)
@@ -1932,6 +1983,7 @@ def reconcile_french_production_source(
                 if (
                     source_record["source_url"]
                     != record["incoming_source_url"]
+                    and not (retain_published_history and second_round_evidence_state == "applied")
                 ):
                     raise SourceDriftError(
                         f"{source_record['source_locator']} reviewed "
@@ -2107,6 +2159,8 @@ def reconcile_french_production_source(
                     "incoming_source_revision" in record
                     and source_record["source_url"]
                     != record["incoming_source_url"]
+                    and not (retain_published_history
+                             and record["retained_event_id"] in previous_ids[round_name])
                 ):
                     raise SourceDriftError(
                         f"{source_record['source_locator']} reviewed mapping provenance changed"
@@ -2118,6 +2172,20 @@ def reconcile_french_production_source(
                     raise RehearsalError("duplicate canonical factual identity")
                 classified_canonical_keys.add(canonical)
                 retained_id = record["retained_event_id"]
+                if retain_published_history and retained_id in previous_ids[round_name]:
+                    retained = next(event for event in reconciled[round_name]
+                                    if event["event_id"] == retained_id)
+                    approved = [factual_key_from_dict(record[field], field)
+                                for field in ("old_factual_key", "canonical_factual_key")]
+                    identity = apply_wave_scoped_pollster_alias(
+                        retained["pollster"], retained["fieldwork_start"],
+                        retained["fieldwork_end"], retained["sample_size"], migration_registry,
+                    )
+                    if not any(exact_factual_key(
+                        retained, sample_scope=retained.get("sample_scope", key.sample_scope),
+                        reviewed_pollster=identity,
+                    ) == key for key in approved):
+                        raise RehearsalError("reviewed mapping retained event facts changed")
                 if retained_id not in previous_ids[round_name]:
                     old_key = factual_key_from_dict(
                         record["old_factual_key"], "mapping old factual key"
@@ -2173,6 +2241,9 @@ def reconcile_french_production_source(
                 if canonical in classified_canonical_keys:
                     raise RehearsalError("duplicate canonical factual identity")
                 classified_canonical_keys.add(canonical)
+                if retain_published_history and canonical in exact_indexes[round_name]:
+                    audited_additions_present[round_name] += 1
+                    continue
                 maker = (
                     _make_first_addition
                     if round_name == FIRST_ROUND
@@ -2209,8 +2280,9 @@ def reconcile_french_production_source(
                  prior.sample_size, prior.sample_scope)
                 == (raw_key.pollster_identity, raw_key.fieldwork_start, raw_key.fieldwork_end,
                     raw_key.sample_size, raw_key.sample_scope)
-                and set(prior.candidates) < set(raw_key.candidates)
-                for prior in exact_indexes[FIRST_ROUND]
+                and (set(prior.candidates) < set(raw_key.candidates)
+                     or (retain_published_history and set(raw_key.candidates) < set(prior.candidates)))
+                for prior in known_first_facts
             ):
                 raise RehearsalError(
                     "unregistered source expands retained candidate facts; explicit correction required"
@@ -2326,6 +2398,19 @@ def reconcile_french_production_source(
         "duplicate_runoff_factual_identities": 0,
         "source_structure_drift": [],
     }
+    if retain_published_history:
+        report["extraction_coverage"] = extraction_coverage
+        report["historical_retention"] = {
+            "missing_rejected_rows": len(missing_rejections),
+            "source_url_changes_not_adopted": sum(
+                source_record["source_url"] != matches[0]["source_url"]
+                for round_name in (FIRST_ROUND, SECOND_ROUND)
+                for source_record in source_records[round_name]
+                if (matches := exact_indexes[round_name].get(
+                    exact_factual_key(source_record, sample_scope="reported"), []
+                ))
+            ),
+        }
     return RehearsalResult(first_events, second_events, report)
 
 

@@ -108,6 +108,7 @@ def reconcile_reviewed_candidate_expansions(
     previous: list[dict],
     *,
     registry_path: Path = REGISTRY,
+    retain_published_history: bool = False,
 ) -> ReviewExpansionResult:
     payload = json.loads(
         Path(registry_path).read_text(encoding="utf-8")
@@ -144,6 +145,11 @@ def reconcile_reviewed_candidate_expansions(
     source = {row["source_locator"]: row for row in rows}
     if len(source) != len(rows):
         raise ValueError("Duplicate incoming expansion source locator")
+    source_by_facts = {}
+    if retain_published_history:
+        for row in rows:
+            key = exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
+            source_by_facts.setdefault(key, []).append(row)
 
     events = {event["event_id"]: copy.deepcopy(event) for event in previous}
     if len(events) != len(previous):
@@ -174,16 +180,44 @@ def reconcile_reviewed_candidate_expansions(
             raise ValueError("Reviewed candidate expansion identity changed")
 
         current_row = source.get(locator)
+        if retain_published_history:
+            # The registry's ordered row constructs the canonical event. Live
+            # positions and candidate order never reconstruct published history.
+            matches = source_by_facts.get(
+                exact_factual_key(incoming, sample_scope="reported"), [],
+            )
+            if len(matches) > 1:
+                raise ValueError("Ambiguous reviewed candidate expansion facts")
+            current_row = matches[0] if matches else None
         # This exact URL pair is evidence equivalence for this one expansion,
         # not a replacement source for canonical construction below. Every
-        # other field, including sample scope and candidate order, must match.
+        # other field must match in frozen replay. Live factual matching above
+        # ignores presentation order while retaining the registry's event object.
         reviewed_source_refresh = (
             locator == "FR-T0R5"
             and revision >= _ELABE_SOURCE_REFRESH_REVISION
             and incoming["source_url"] == _ELABE_REPORT_URL
-            and current_row == {**incoming, "source_url": _ELABE_NOTICE_URL}
+            and current_row is not None
+            and current_row["source_url"] == _ELABE_NOTICE_URL
+            and (
+                retain_published_history
+                or current_row == {**incoming, "source_url": _ELABE_NOTICE_URL}
+            )
         )
-        if current_row != incoming and not reviewed_source_refresh:
+        if retain_published_history:
+            source_matches = (
+                current_row is not None
+                and (current_row["source_url"] == incoming["source_url"]
+                     or reviewed_source_refresh)
+            )
+            # A locally validated successor survives source disappearance.
+            # Any remaining conflicting observation reaches the ordinary exact
+            # factual/anchor checks; a URL refresh is not adopted into history.
+            if events.get(new_id) is None and not source_matches:
+                raise ValueError(
+                    "Reviewed candidate expansion source facts/provenance changed: " + locator
+                )
+        elif current_row != incoming and not reviewed_source_refresh:
             raise ValueError(
                 "Reviewed candidate expansion source facts/provenance changed: "
                 + locator
