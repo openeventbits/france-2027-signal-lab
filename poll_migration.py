@@ -149,6 +149,8 @@ MIGRATION_CANDIDATE_NAMES = (
     "Michel Barnier",
     "Michel-Édouard Leclerc",
     "Nathalie Arthaud",
+    # Hypothetical polling identity only: Elabe 10324 p8 / Ifop 122853 p14.
+    "Natacha Polony",
     "Nicolas Dupont-Aignan",
     "Olivier Faure",
     "Philippe Poutou",
@@ -1845,7 +1847,9 @@ def _apply_reviewed_ifop_10314_arthaud_zero_correction(
     )
 
 
-def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
+def parse_french_frozen_fixture(
+    parsed: dict[str, Any], *, allow_reviewed_polony: bool = False,
+) -> dict[str, Any]:
     """Parse the two audited French table families from frozen rendered HTML."""
 
     document = lxml_html.fromstring(parsed["text"])
@@ -1901,6 +1905,11 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
                             raise ValueError(f"{locator}: {error}") from error
                         rejection = str(error)
                         break
+                    if not allow_reviewed_polony and any(
+                        entry["name"] == "Natacha Polony" for entry in entries
+                    ):
+                        rejection = "unnamed_generic_candidate"
+                        break
                     for entry in entries:
                         identity = candidate_identity(entry["name"])
                         if identity in candidate_links:
@@ -1926,6 +1935,9 @@ def parse_french_frozen_fixture(parsed: dict[str, Any]) -> dict[str, Any]:
                 try:
                     name = _row_candidate(row.iloc[column_index], header_name, generic)
                 except ValueError:
+                    rejection = "unnamed_generic_candidate"
+                    break
+                if name == "Natacha Polony" and not allow_reviewed_polony:
                     rejection = "unnamed_generic_candidate"
                     break
                 candidate_id = candidate_identity(name)
