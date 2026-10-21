@@ -2572,6 +2572,10 @@ def main() -> None:
         discovery.registry,
         commission_validation_events,
     )
+    if args.wikipedia_source == "french" and not args.french_fixture:
+        from reviewed_polling_accuracy import reconcile_batch1_notice_coverage
+
+        coverage_counts = reconcile_batch1_notice_coverage(discovery.registry, events)
     closest_derivation = derive_closest_tested_runoff(second_round_events)
 
     generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

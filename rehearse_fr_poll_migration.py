@@ -375,7 +375,12 @@ def _assert_production_source_structure(parsed: dict[str, Any]) -> dict[str, Any
             f"French source revision {revision!r} predates audited revision {FRENCH_REVISION}"
         )
     try:
-        return parse_french_frozen_fixture(parsed)
+        # The later identity review must not change any frozen extraction.
+        from reviewed_polling_accuracy import REVIEWED_SOURCE_REVISION
+
+        return parse_french_frozen_fixture(
+            parsed, allow_reviewed_polony=revision >= REVIEWED_SOURCE_REVISION,
+        )
     except (TypeError, ValueError) as error:
         raise SourceDriftError(
             f"French polling structural validation failed: {error}"
@@ -1627,7 +1632,21 @@ def reconcile_french_production_source(
         "already_applied": expansion.already_applied,
     }
 
+    # Later official evidence has its own bounded review. Keep the frozen
+    # expansion and ten-record runoff registries independent of these decisions.
+    from reviewed_polling_accuracy import reconcile_batch1_accuracy
+
+    accuracy = reconcile_batch1_accuracy(
+        source_records, parsed["revid"], first_round_corrections.events,
+        previous_second, retain_published_history=retain_published_history,
+    )
+    first_round_corrections.events = accuracy.first_round
+    first_round_corrections.report["canonical_event_ids"].extend(
+        accuracy.report["canonical_first_round_ids"]
+    )
+    first_round_corrections.report["canonical_event_ids"].sort()
     previous_by_round[FIRST_ROUND] = first_round_corrections.events
+    previous_by_round[SECOND_ROUND] = accuracy.second_round
     previous_ids = {
         round_name: {event["event_id"] for event in events}
         for round_name, events in previous_by_round.items()
@@ -1889,7 +1908,7 @@ def reconcile_french_production_source(
 
     reconciled = {
         FIRST_ROUND: copy.deepcopy(first_round_corrections.events),
-        SECOND_ROUND: copy.deepcopy(previous_second),
+        SECOND_ROUND: copy.deepcopy(accuracy.second_round),
     }
     mapped = {
         "source_only": {FIRST_ROUND: 0, SECOND_ROUND: 0},
@@ -1911,7 +1930,9 @@ def reconcile_french_production_source(
         "correct_retained_sample": 0,
         "supersede_event": 0,
     }
-    superseded_second_round_event_ids: set[str] = set()
+    superseded_second_round_event_ids: set[str] = set(
+        accuracy.report["superseded_second_round_ids"]
+    )
     classified_canonical_keys: set[Any] = set()
     source_keys: set[Any] = set()
 
@@ -1927,6 +1948,12 @@ def reconcile_french_production_source(
             if raw_key in source_keys:
                 raise SourceDriftError("French source contains a duplicate factual row")
             source_keys.add(raw_key)
+            accuracy_key = accuracy.handled.get((round_name, source_record["source_locator"]))
+            if accuracy_key is not None:
+                if accuracy_key in classified_canonical_keys:
+                    raise RehearsalError("duplicate Batch 1 canonical factual identity")
+                classified_canonical_keys.add(accuracy_key)
+                continue
             if round_name == FIRST_ROUND:
                 locator = source_record["source_locator"]
                 if locator in first_round_corrections.excluded:
@@ -2375,6 +2402,7 @@ def reconcile_french_production_source(
         "audited_additions_introduced": audited_additions_introduced,
         "normal_post_audit_additions": normal_additions,
         "post_audit_first_round_corrections": first_round_corrections.report,
+        "polling_accuracy_batch1": accuracy.report,
         "reviewed_canonical_introduced": reviewed_canonical_introduced,
         "second_round_evidence_reconciliations": (
             second_round_evidence_actions
