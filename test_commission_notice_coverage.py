@@ -459,6 +459,18 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
         ]
         stored_summary = coverage_summary(payload)
         summary = reconcile_commission_notices(payload, commission_evidence)
+        # Live publication also applies reviewed, exact configuration evidence.
+        # Reproduce the deployed layers rather than treating generic matching
+        # alone as authoritative for the six mixed-sample Elabe configurations.
+        from reviewed_polling_accuracy import reconcile_batch1_notice_coverage
+
+        summary = reconcile_batch1_notice_coverage(payload, events)
+        if any(c and c.get("method") == "reviewed_notice_complete_configurations_batch2"
+               for c in stored.values()):
+            from reviewed_commission_coverage import reconcile_batch2_notice_coverage
+
+            second = json.loads((root / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+            summary = reconcile_batch2_notice_coverage(payload, events + second)
 
         self.assertEqual(summary, stored_summary)
         self.assertEqual(

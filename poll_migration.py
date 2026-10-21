@@ -142,6 +142,8 @@ MIGRATION_CANDIDATE_NAMES = (
     "Jean Lassalle",
     "Jean-Luc Mélenchon",
     "Jérôme Guedj",
+    # Polling identity only: reviewed Commission notice 10260 pp12-13.
+    "Karim Bouamrane",
     "Jordan Bardella",
     "Laurent Wauquiez",
     "Marine Le Pen",
@@ -1849,6 +1851,7 @@ def _apply_reviewed_ifop_10314_arthaud_zero_correction(
 
 def parse_french_frozen_fixture(
     parsed: dict[str, Any], *, allow_reviewed_polony: bool = False,
+    allow_reviewed_bouamrane: bool = False,
 ) -> dict[str, Any]:
     """Parse the two audited French table families from frozen rendered HTML."""
 
@@ -1910,6 +1913,13 @@ def parse_french_frozen_fixture(
                     ):
                         rejection = "unnamed_generic_candidate"
                         break
+                    # Batch 2 admits two complete official configurations.
+                    # Its identity mapping must not alter frozen discovery.
+                    if not allow_reviewed_bouamrane and any(
+                        entry["name"] == "Karim Bouamrane" for entry in entries
+                    ):
+                        rejection = "unnamed_generic_candidate"
+                        break
                     for entry in entries:
                         identity = candidate_identity(entry["name"])
                         if identity in candidate_links:
@@ -1938,6 +1948,9 @@ def parse_french_frozen_fixture(
                     rejection = "unnamed_generic_candidate"
                     break
                 if name == "Natacha Polony" and not allow_reviewed_polony:
+                    rejection = "unnamed_generic_candidate"
+                    break
+                if name == "Karim Bouamrane" and not allow_reviewed_bouamrane:
                     rejection = "unnamed_generic_candidate"
                     break
                 candidate_id = candidate_identity(name)
