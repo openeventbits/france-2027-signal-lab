@@ -2424,6 +2424,13 @@ def main() -> None:
                 overrides,
                 retain_published_history=not bool(args.french_fixture),
             )
+            if not args.french_fixture:
+                from reviewed_commission_coverage import admit_batch2_configurations
+
+                events, batch2_admissions = admit_batch2_configurations(
+                    events, discovery.registry,
+                )
+                french_report["commission_coverage_batch2"] = batch2_admissions
             current_headings = {
                 canonical_french_runoff_heading(
                     normalize_identity(str(section.get("line", "")))
@@ -2576,6 +2583,11 @@ def main() -> None:
         from reviewed_polling_accuracy import reconcile_batch1_notice_coverage
 
         coverage_counts = reconcile_batch1_notice_coverage(discovery.registry, events)
+        from reviewed_commission_coverage import reconcile_batch2_notice_coverage
+
+        coverage_counts = reconcile_batch2_notice_coverage(
+            discovery.registry, [*events, *second_round_events],
+        )
     closest_derivation = derive_closest_tested_runoff(second_round_events)
 
     generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -2627,6 +2639,13 @@ def main() -> None:
         print(f"Commission discovery: {diagnostic}")
     if french_report:
         print_french_reconciliation_diagnostics(french_report)
+        if "commission_coverage_batch2" in french_report:
+            batch2 = french_report["commission_coverage_batch2"]
+            print(
+                "Reviewed Commission Batch 2: "
+                f"{batch2['admitted']} admitted; "
+                f"{batch2['already_applied']} already applied"
+            )
     print(f"Exact official logical overlaps with Wikipedia: {exact_overlaps}")
     print(
         "Wikipedia events suppressed in official waves: "

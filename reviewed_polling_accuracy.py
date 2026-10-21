@@ -24,7 +24,7 @@ REVIEWED_SOURCE_REVISION = 240562307
 # Canonical JSON digest: JSON formatting/EOL changes do not alter this review.
 # Changing any authorized fact, predecessor, source variant or evidence requires
 # a new explicit review, rather than a more permissive matching rule.
-REVIEW_SHA256 = "ecce41bfd0ff61dc30fd8003c8fea2ae5fc43e21743922f735b2b3eda4db207b"
+REVIEW_SHA256 = "9dce07d4ec704daa9805a61f31c756bc6731b82866e6811390588b62e45182e8"
 
 
 def load_batch1_review(path: Path = REGISTRY) -> dict:
