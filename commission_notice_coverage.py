@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from collections import defaultdict
 from datetime import date
+from pathlib import Path
 from typing import Any, Iterable
 
 from poll_contract import FIRST_ROUND, normalize_identity
@@ -12,6 +15,9 @@ from poll_contract import FIRST_ROUND, normalize_identity
 
 COVERAGE_STATES = {"parsed", "reconciled", "unresolved"}
 RELEVANT_CLASSIFICATIONS = {"eligible", "unsupported"}
+BAROMETER_NOTICE_IDS = frozenset({"commission:10327", "commission:10284"})
+BAROMETER_REVIEW = Path(__file__).with_name("fr27_commission_barometer_review.json")
+BAROMETER_REVIEW_SHA256 = "f22afa82eb0bf8ecefae56e382d804a30715c71346b00ea445b0d6d1d61fe439"
 
 
 class CommissionCoverageError(ValueError):
@@ -227,6 +233,56 @@ def _corroborate_waves(
     return [key for key in original if key in survivors]
 
 
+def _canonical_sha256(value: Any) -> str:
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+
+
+def _reviewed_barometer_coverage(
+    notice: dict[str, Any], events: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Use exact reviewed evidence for two formerly excluded notices only.
+
+    Generic wave matching cannot clear either notice. The pinned full-object
+    digest protects all ten 10284 configurations, including identities, samples
+    and provenance. The literal-score conflict in 10327 remains unresolved.
+    This changes coverage only; it cannot mutate or admit polling events.
+    """
+    review = json.loads(BAROMETER_REVIEW.read_text(encoding="utf-8"))
+    if (_canonical_sha256(review) != BAROMETER_REVIEW_SHA256
+            or len(review["notices"]) != 2
+            or {r["notice_id"] for r in review["notices"]} != BAROMETER_NOTICE_IDS):
+        raise CommissionCoverageError("barometer evidence changed; explicit review required")
+    record = next(r for r in review["notices"] if r["notice_id"] == notice["notice_id"])
+    identity = record["notice_identity"]
+    confirmed_without_parser = (
+        notice.get("classification") == "unsupported"
+        and notice.get("classification_reason") == (
+            "document confirms 2027 presidential voting intentions, but no "
+            "existing notice parser supports this listing"
+        )
+    )
+    if notice.get("classification") != "eligible" and not confirmed_without_parser:
+        return unresolved_coverage("reviewed_barometer_document_not_confirmed")
+    if (any(notice.get(k) != value for k, value in identity.items() if k != "resolved_urls")
+            or notice.get("resolved_url") not in identity["resolved_urls"]):
+        return unresolved_coverage("reviewed_barometer_notice_identity_mismatch")
+    if record["outcome"] == "unresolved":
+        return unresolved_coverage(record["unresolved_method"])
+    # These exact dates and rounds come from the reviewed original PDF, not
+    # from a permissive listing or a one-event wave inference.
+    published = sorted((e for e in events
+        if normalize_identity(str(e.get("pollster", ""))) == normalize_identity(identity["institute"])
+        and e.get("fieldwork_start") == record["fieldwork_start"]
+        and e.get("fieldwork_end") == record["fieldwork_end"]
+        and e.get("round") in identity["confirmed_rounds"]), key=lambda e: e["event_id"])
+    if _canonical_sha256(published) != record["published_collection_sha256"]:
+        return unresolved_coverage("reviewed_barometer_incomplete_or_changed_configurations")
+    return {"state": "reconciled", "matched_event_ids": record["published_event_ids"].copy(),
+            "method": "reviewed_barometer_complete_configurations"}
+
+
 def reconcile_commission_notices(
     registry: dict[str, Any],
     events: Iterable[dict[str, Any]],
@@ -245,6 +301,10 @@ def reconcile_commission_notices(
             continue
 
         notice_id = notice["notice_id"]
+        if notice_id in BAROMETER_NOTICE_IDS:
+            notice["coverage"] = _reviewed_barometer_coverage(notice, published)
+            validate_notice_coverage(notice)
+            continue
         direct = [
             event
             for event in published

@@ -117,6 +117,21 @@ PHASE4_PROTECTED_LOGIC_SHA256 = {
     "commission_notice_discovery.py": "c9b8f3186f14b3febcc994aea9700426ae71c6c54b763e34171b375ba6afe58f",
     "commission_notice_coverage.py": "0f467cccb64cb9bfc73ce58f4b874cf6d145233c8bad6736c8bd603a9b19c1b4",
 }
+# The historical cutover hashes above stay immutable. This separate later
+# review authorizes only the exact classifier/coverage repair, not arbitrary
+# changes to those files or to the polling contract and extraction guards.
+POST_CUTOVER_LOGIC_REVIEWS = {
+    "commission_notice_discovery.py": {
+        "review_id": "FR27-COMMISSION-ELECTION-BAROMETERS",
+        "historical_sha256": "c9b8f3186f14b3febcc994aea9700426ae71c6c54b763e34171b375ba6afe58f",
+        "reviewed_sha256": "a04615962171715e961c5fb2efd9dcda9c0dceb8d025ea4af0d402a8293c9991",
+    },
+    "commission_notice_coverage.py": {
+        "review_id": "FR27-COMMISSION-ELECTION-BAROMETERS",
+        "historical_sha256": "0f467cccb64cb9bfc73ce58f4b874cf6d145233c8bad6736c8bd603a9b19c1b4",
+        "reviewed_sha256": "e49835baf78545eadffae2d3bc9a100fcaca8d93cc0624e3f85ff49ac2352984",
+    },
+}
 PRODUCTION_ENGLISH_SOURCE = {
     "page_url": (
         "https://en.wikipedia.org/wiki/"
@@ -186,7 +201,10 @@ def phase4a_cutover_contract() -> dict[str, Any]:
     for relative, expected in PHASE4_PROTECTED_LOGIC_SHA256.items():
         content = (ROOT / relative).read_bytes().replace(b"\r\n", b"\n")
         actual = hashlib.sha256(content).hexdigest()
-        if actual != expected:
+        review = POST_CUTOVER_LOGIC_REVIEWS.get(relative, {})
+        reviewed_update = (review.get("historical_sha256") == expected
+                           and review.get("reviewed_sha256") == actual)
+        if actual != expected and not reviewed_update:
             raise RehearsalError(f"protected cutover logic changed: {relative}")
         protected_hashes[relative] = actual
 

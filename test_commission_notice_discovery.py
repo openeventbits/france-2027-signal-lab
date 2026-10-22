@@ -1,4 +1,6 @@
 import copy
+import gzip
+import hashlib
 import json
 import tempfile
 import unittest
@@ -181,6 +183,119 @@ class EligibilityTests(unittest.TestCase):
         )
         self.assertFalse(eligible)
         self.assertEqual(rounds, [])
+
+
+class ElectionBarometerTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        root = Path(__file__).parent
+        raw = gzip.decompress((root / "test_fixtures/fr27_polling/commission_barometer_documents.json.gz").read_bytes())
+        if hashlib.sha256(raw).hexdigest() != "14641ecd2ad3a7d03f1565ba47495f24691276c2257b8a9307f5a2ebef700d8f":
+            raise AssertionError("original barometer document evidence changed")
+        cls.documents = json.loads(raw)["documents"]
+        cls.existing = load_registry(root / "commission_notice_registry.json")
+        cls.notices = [n for n in cls.existing["notices"]
+                       if n["notice_id"] in {"commission:10327", "commission:10284"}]
+
+    def discovery(self, body=None, *, existing=None, error=None, timestamp="2026-10-21T15:00:00Z"):
+        calls = []
+        index = index_html(*[(n["listed_url"], n["title"]) for n in self.notices])
+        def fetch(url, method):
+            calls.append((url, method))
+            if url == INDEX_URL:
+                return FetchResult(index.encode(), INDEX_URL, "text/html")
+            if error is not None:
+                raise error
+            notice = next(n for n in self.notices if n["listed_url"] == url)
+            document = next(d for d in self.documents if d["notice_id"] == notice["notice_id"])
+            if body == "malformed":
+                return FetchResult(b"%PDF-broken", document["source_url"], "application/pdf")
+            content = document["text"] if body is None else body
+            return FetchResult(("<html><body>" + content + "</body></html>").encode(),
+                               document["source_url"], "text/html")
+        result = discover_registry(copy.deepcopy(self.existing if existing is None else existing),
+                                   fetch=fetch, discovered_at=timestamp)
+        return result, calls
+
+    def test_both_real_titles_require_inspection_without_asserting_eligibility(self):
+        for notice in self.notices:
+            result = classify_listing(notice)
+            self.assertTrue(result.inspect_document)
+            self.assertEqual(result.classification, "ambiguous")
+            self.assertFalse(result.strongly_eligible)
+
+    def test_genuine_non_voting_barometers_remain_excluded(self):
+        titles = ["Barometre popularite IFOP", "Baromètre stature VERIAN",
+                  "Barometre image politique", "Barometre personnalites politiques",
+                  "Barometre election image des personnalites", "Barometre confiance",
+                  "Barometre approbation", "Barometre president ideal"]
+        for title in titles:
+            with self.subTest(title=title):
+                result = classify_listing({"category": "Pres", "title": title})
+                self.assertEqual(result.classification, "excluded_non_voting")
+                self.assertFalse(result.inspect_document)
+
+    def test_non_presidential_election_barometer_is_still_excluded(self):
+        self.assertFalse(classify_listing({"category": "Mun", "title": "Barometre election"}).inspect_document)
+
+    def test_10242_explicit_iv_marker_continues_to_trigger_inspection(self):
+        notice = next(n for n in self.existing["notices"] if n["notice_id"] == "commission:10242")
+        result = classify_listing(notice)
+        self.assertTrue(result.inspect_document)
+        self.assertTrue(result.strongly_eligible)
+
+    def test_original_documents_confirm_the_dated_2027_election_and_actual_rounds(self):
+        for document in self.documents:
+            eligible, rounds, _ = confirm_document_eligibility(document["text"])
+            self.assertTrue(eligible)
+            self.assertEqual(rounds, ["first_round", "second_round"]
+                             if document["notice_id"] == "commission:10327" else ["first_round"])
+
+    def test_date_question_alone_is_not_candidate_voting_intention_evidence(self):
+        for document in self.documents:
+            self.assertFalse(confirm_document_eligibility(document["questionnaire_page_text"])[0])
+            self.assertFalse(confirm_document_eligibility(document["text"].replace("2027", "2028"))[0])
+        self.assertFalse(confirm_document_eligibility("Intentions de vote présidentielle. Budget 2027.")[0])
+
+    def test_dated_phrase_extension_is_limited_to_election_barometer_documents(self):
+        text = ("Intentions de vote à la prochaine élection présidentielle qui aura lieu "
+                "le 18 avril 2027. Premier tour.")
+        self.assertFalse(confirm_document_eligibility(text)[0])
+        self.assertTrue(confirm_document_eligibility(
+            "Baromètre de l'élection présidentielle. " + text)[0])
+
+    def test_document_lacking_voting_evidence_cannot_become_eligible(self):
+        result, _ = self.discovery("Image et popularité des personnalités à la présidentielle 2027.")
+        for notice in result.registry["notices"]:
+            if notice["notice_id"] in {n["notice_id"] for n in self.notices}:
+                self.assertEqual(notice["classification"], "excluded_non_voting")
+                self.assertNotIn("coverage", notice)
+
+    def test_fetch_errors_and_malformed_pdf_remain_fail_closed(self):
+        for error in (OSError("unavailable"), CommissionNoticeError("invalid evidence")):
+            with self.subTest(error=error), self.assertRaises(CommissionNoticeError):
+                self.discovery(error=error)
+        with self.assertRaisesRegex(CommissionNoticeError, "could not be inspected"):
+            self.discovery("malformed")
+
+    def test_previously_excluded_notices_are_reinspected_and_start_unresolved(self):
+        result, calls = self.discovery()
+        for notice in result.registry["notices"]:
+            if notice["notice_id"] in {n["notice_id"] for n in self.notices}:
+                self.assertIn((notice["listed_url"], "GET"), calls)
+                self.assertEqual(notice["classification"], "eligible")
+                self.assertEqual(notice["coverage"], {
+                    "state": "unresolved", "matched_event_ids": [], "method": "not_yet_reconciled"})
+        self.assertEqual(len(calls), 3)
+
+    def test_repeated_discovery_is_identical_and_preserves_other_notice_objects(self):
+        first, _ = self.discovery()
+        second, _ = self.discovery(existing=first.registry, timestamp="2026-10-22T15:00:00Z")
+        self.assertEqual(first.registry, second.registry)
+        after = {n["notice_id"]: n for n in first.registry["notices"]}
+        for notice in self.existing["notices"]:
+            if notice["notice_id"] not in {n["notice_id"] for n in self.notices}:
+                self.assertEqual(after[notice["notice_id"]], notice)
 
 
 class FieldworkExtractionTests(unittest.TestCase):

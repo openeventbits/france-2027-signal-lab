@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import json
 import unittest
@@ -393,6 +394,141 @@ class CommissionNoticeCoverageTests(unittest.TestCase):
                 "unresolved_notice_ids": [],
             },
         )
+
+
+class ElectionBarometerCoverageTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        root = Path(__file__).parent
+        cls.review = json.loads((root / "fr27_commission_barometer_review.json").read_text(encoding="utf-8"))
+        cls.first = json.loads((root / "polls.json").read_text(encoding="utf-8"))
+        cls.second = json.loads((root / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        cls.registry = json.loads((root / "commission_notice_registry.json").read_text(encoding="utf-8"))
+
+    def coverage(self, record=None, events=None, mutate=None):
+        record = record or next(r for r in self.review["notices"] if r["notice_id"] == "commission:10284")
+        identity = copy.deepcopy(record["notice_identity"])
+        urls = identity.pop("resolved_urls")
+        identity["resolved_url"] = urls[0]
+        identity["classification"] = "eligible"
+        if mutate: mutate(identity)
+        registry = {"notices": [identity]}
+        reconcile_commission_notices(registry, self.first + self.second if events is None else events)
+        return identity["coverage"]
+
+    def test_original_tables_match_all_numeric_values_and_record_the_literal_conflict(self):
+        from poll_migration import candidate_identity
+        events = {e["event_id"]: e for e in self.first + self.second}
+        self.assertEqual(len(events), 439)
+        total = 0
+        conflicts = []
+        for record in self.review["notices"]:
+            for table in record["configurations"]:
+                published = {candidate_identity(c["name"]): c["score"] for c in events[table["published_event_id"]]["candidates"]}
+                expected = {candidate_identity(c["name"]): float(c["published_score"].replace(",", "."))
+                            for c in table["candidates"] if c["published_score"] != "-"}
+                if any(c["published_score"] == "-" for c in table["candidates"]):
+                    conflicts.append((record["notice_id"], table["pdf_page"], published.pop("nathalie-arthaud")))
+                self.assertEqual(published, expected)
+                total += 1
+        self.assertEqual(total, 23)
+        self.assertEqual(conflicts, [("commission:10327", 14, 0)])
+
+    def test_10284_requires_all_ten_exact_reviewed_objects(self):
+        record = next(r for r in self.review["notices"] if r["notice_id"] == "commission:10284")
+        result = self.coverage()
+        self.assertEqual(result["state"], "reconciled")
+        self.assertEqual(result["matched_event_ids"], record["published_event_ids"])
+        self.assertEqual(len(result["matched_event_ids"]), 10)
+
+    def test_one_matching_configuration_cannot_clear_full_notice(self):
+        record = next(r for r in self.review["notices"] if r["notice_id"] == "commission:10284")
+        one = [e for e in self.first if e["event_id"] == record["published_event_ids"][0]]
+        self.assertEqual(self.coverage(events=one)["state"], "unresolved")
+
+    def test_10327_remains_unresolved_with_all_thirteen_lineups_present(self):
+        record = next(r for r in self.review["notices"] if r["notice_id"] == "commission:10327")
+        self.assertEqual(len(record["published_event_ids"]), 13)
+        self.assertEqual(self.coverage(record), {
+            "state": "unresolved", "matched_event_ids": [],
+            "method": "reviewed_barometer_unresolved_literal_score"})
+
+    def test_missing_extra_duplicate_or_changed_event_evidence_cannot_reconcile(self):
+        record = next(r for r in self.review["notices"] if r["notice_id"] == "commission:10284")
+        for operation in ("missing", "score", "sample", "scope", "source", "date", "identity", "lineage", "extra", "duplicate"):
+            events = copy.deepcopy(self.first + self.second)
+            target = next(e for e in events if e["event_id"] == record["published_event_ids"][0])
+            if operation == "missing": events.remove(target)
+            elif operation == "score": target["candidates"][0]["score"] += .1
+            elif operation == "sample": target["sample_size"] += 1
+            elif operation == "scope": target["sample_scope"] = "reported"
+            elif operation == "source": target["source_url"] += "?unreviewed"
+            elif operation == "date": target["fieldwork_end"] = "2026-09-30"
+            elif operation == "identity": target["event_id"] = "f" * 64
+            elif operation == "lineage": target["supersedes_event_id"] = "e" * 64
+            else: events.append({**target, **({"event_id": "d" * 64} if operation == "extra" else {})})
+            with self.subTest(operation=operation):
+                self.assertEqual(self.coverage(events=events)["state"], "unresolved")
+
+    def test_missing_contradictory_or_changed_notice_evidence_cannot_reconcile(self):
+        changes = {"content_sha256": "0" * 64, "title": "different title", "institute": "Elabe",
+                   "resolved_url": "https://example.test/notice", "confirmed_rounds": [],
+                   "survey_metadata": None, "listed_date": "2026-09-29"}
+        for key, value in changes.items():
+            with self.subTest(field=key):
+                self.assertEqual(self.coverage(mutate=lambda n: n.update({key: value}))["state"], "unresolved")
+
+    def test_unsupported_document_cannot_acquire_parsed_or_reconciled_coverage(self):
+        self.assertEqual(self.coverage(mutate=lambda n: n.update(classification="unsupported",
+            coverage={"state": "parsed", "method": "unreviewed", "matched_event_ids": ["a" * 64]}))["state"], "unresolved")
+
+    def test_confirmed_document_without_parser_still_requires_the_full_exact_review(self):
+        reason = ("document confirms 2027 presidential voting intentions, but no "
+                  "existing notice parser supports this listing")
+        self.assertEqual(self.coverage(mutate=lambda n: n.update(
+            classification="unsupported", classification_reason=reason))["state"], "reconciled")
+        self.assertEqual(self.coverage(mutate=lambda n: n.update(
+            classification="unsupported", classification_reason=reason,
+            content_sha256="0" * 64))["state"], "unresolved")
+
+    def test_complete_coverage_is_idempotent_and_does_not_mutate_any_of_439_events(self):
+        before = copy.deepcopy(self.first + self.second)
+        self.assertEqual(self.coverage(), self.coverage())
+        self.assertEqual(before, self.first + self.second)
+
+    def test_review_bundle_changes_stop_instead_of_weakening_matching(self):
+        from commission_notice_coverage import CommissionCoverageError
+        changed = copy.deepcopy(self.review)
+        changed["notices"][0]["outcome"] = "reconciled"
+        with patch("commission_notice_coverage.json.loads", return_value=changed):
+            with self.assertRaisesRegex(CommissionCoverageError, "explicit review"):
+                self.coverage()
+
+    def test_historical_cutover_hashes_remain_immutable_with_exact_later_reviews(self):
+        from rehearse_fr_poll_migration import (
+            PHASE4_PROTECTED_LOGIC_SHA256, POST_CUTOVER_LOGIC_REVIEWS, phase4a_cutover_contract,
+        )
+        self.assertEqual(PHASE4_PROTECTED_LOGIC_SHA256, {
+            "poll_contract.py": "d2dc32ad925acb6f0cb6b55e2019358c65ecc367c3f21e7542c4bee3db55077f",
+            "commission_notice_discovery.py": "c9b8f3186f14b3febcc994aea9700426ae71c6c54b763e34171b375ba6afe58f",
+            "commission_notice_coverage.py": "0f467cccb64cb9bfc73ce58f4b874cf6d145233c8bad6736c8bd603a9b19c1b4",
+        })
+        self.assertEqual(set(POST_CUTOVER_LOGIC_REVIEWS), {
+            "commission_notice_discovery.py", "commission_notice_coverage.py"})
+        self.assertEqual(phase4a_cutover_contract()["make_event_id_probes"], {
+            "first_round": "ef29af8391fc51e049324a56e953a4fa2bd0436abf49d0ac38f67fb3897c0aed",
+            "second_round": "9908b42ab34235bc0b6456e96b237e9f00b9a58fa47ab1821d2a37ed5f019091"})
+
+    def test_cutover_hash_guard_rejects_unreviewed_changes_to_all_protected_files(self):
+        from rehearse_fr_poll_migration import ROOT, RehearsalError, phase4a_cutover_contract
+        original = Path.read_bytes
+        for name in ("commission_notice_discovery.py", "commission_notice_coverage.py", "poll_contract.py"):
+            def changed(path, *, target=ROOT / name):
+                content = original(path)
+                return content + b"\n# unreviewed change\n" if path == target else content
+            with self.subTest(file=name), patch.object(Path, "read_bytes", changed):
+                with self.assertRaisesRegex(RehearsalError, "protected cutover logic changed"):
+                    phase4a_cutover_contract()
 
 
 class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
