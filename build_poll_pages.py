@@ -8,6 +8,7 @@ import re
 import tempfile
 from pathlib import Path
 from typing import Any
+from poll_ballot_labels import RN_CONDITIONAL_OPTION
 from urllib.parse import urlparse
 
 from fr27_section_launcher import ASSETS as SECTION_LAUNCHER_ASSETS, prepare_section_header
@@ -204,9 +205,10 @@ def format_points(value: float, language: str) -> str:
     return f"{text} pts"
 
 
-def candidate_label(candidate: dict[str, Any]) -> str:
+def candidate_label(candidate: dict[str, Any], language: str = "fr") -> str:
     label = str(
-        candidate.get("published_candidate_name")
+        candidate.get("display_names", {}).get(language)
+        or candidate.get("published_candidate_name")
         or candidate.get("candidate_name")
         or ""
     ).strip()
@@ -455,9 +457,9 @@ def render_scenario(
     candidates = scenario.get("candidates", [])
 
     names = [
-        candidate_label(candidate)
+        candidate_label(candidate, language)
         for candidate in candidates
-        if candidate_label(candidate) != "—"
+        if candidate_label(candidate, language) != "—"
     ]
 
     round_label = "PREMIER TOUR" if language == "fr" else "FIRST ROUND"
@@ -496,7 +498,7 @@ def render_scenario(
     for candidate in candidates:
         rows.append(
             "<tr>"
-            f"<td>{_escape(candidate_label(candidate))}</td>"
+            f"<td>{_escape(candidate_label(candidate, language))}</td>"
             f'<td class="poll-detail-score">'
             f'{_escape(format_score(candidate.get("score"), language))}'
             "</td>"
@@ -588,15 +590,19 @@ def candidate_variation_rows(
 
     for scenario in wave.get("scenarios", []):
         for candidate in scenario.get("candidates", []):
+            # This review changes only the explicit 10205 conditional option;
+            # retain existing summaries for unrelated generic ballot labels.
+            if candidate.get("candidate_name") == RN_CONDITIONAL_OPTION:
+                continue
             score = candidate.get("score")
             if not isinstance(score, (int, float)):
                 continue
 
-            key = str(candidate.get("candidate_id") or candidate_label(candidate))
+            key = str(candidate.get("candidate_id") or candidate_label(candidate, language))
 
             if key not in records:
                 records[key] = {
-                    "name": candidate_label(candidate),
+                    "name": candidate_label(candidate, language),
                     "scores": [],
                 }
                 order.append(key)

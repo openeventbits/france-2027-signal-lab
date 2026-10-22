@@ -2056,6 +2056,13 @@ def integrate_french_migration_source(
 
     from rehearse_fr_poll_migration import reconcile_french_production_source
 
+    # Exact successor snapshots are validated before the older immutable
+    # migration contracts see their reviewed predecessor compatibility view.
+    from reviewed_composite_rn import prepare_composite_history, finalize_composite_history
+
+    previous_first, composite_state = prepare_composite_history(
+        parsed, previous_first, retain_published_history=retain_published_history,
+    )
     migration = reconcile_french_production_source(
         parsed,
         previous_first,
@@ -2191,6 +2198,14 @@ def integrate_french_migration_source(
         )
     if len(final_second_ids) != len(migration.second_round_events):
         raise ValueError("French migration produced duplicate runoff event IDs")
+    if composite_state is not None:
+        corrected = finalize_composite_history(composite_state, events)
+        events = sorted(corrected, key=lambda event: (
+            -int(event["fieldwork_end"].replace("-", "")),
+            -int(event["fieldwork_start"].replace("-", "")),
+            normalize(event["pollster"]), event["scenario_key"], event["event_id"],
+        ))
+        migration.report["commission_10205_composite"] = composite_state["report"]
     return (
         events,
         migration.second_round_events,
@@ -2586,6 +2601,11 @@ def main() -> None:
         from reviewed_commission_coverage import reconcile_batch2_notice_coverage
 
         coverage_counts = reconcile_batch2_notice_coverage(
+            discovery.registry, [*events, *second_round_events],
+        )
+        from reviewed_composite_rn import reconcile_composite_notice_coverage
+
+        coverage_counts = reconcile_composite_notice_coverage(
             discovery.registry, [*events, *second_round_events],
         )
     closest_derivation = derive_closest_tested_runoff(second_round_events)

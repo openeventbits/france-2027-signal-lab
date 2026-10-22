@@ -279,7 +279,14 @@ class ElectionBarometerTests(unittest.TestCase):
             self.discovery("malformed")
 
     def test_previously_excluded_notices_are_reinspected_and_start_unresolved(self):
-        result, calls = self.discovery()
+        # Recreate the historical excluded state explicitly. The production
+        # registry now contains reviewed coverage after the classifier cutover.
+        excluded = copy.deepcopy(self.existing)
+        for notice in excluded["notices"]:
+            if notice["notice_id"] in {n["notice_id"] for n in self.notices}:
+                notice["classification"] = "excluded_non_voting"
+                notice.pop("coverage", None)
+        result, calls = self.discovery(existing=excluded)
         for notice in result.registry["notices"]:
             if notice["notice_id"] in {n["notice_id"] for n in self.notices}:
                 self.assertIn((notice["listed_url"], "GET"), calls)

@@ -643,6 +643,8 @@ def project_candidate_polling(
     for event in featured_package["events"]:
         seen: set[str] = set()
         for candidate in event["candidates"]:
+            if candidate.get("identity_type") == "ballot_label":
+                continue
             try:
                 resolved_name = resolve_candidate_name(
                     candidate["name"],
@@ -662,6 +664,8 @@ def project_candidate_polling(
     selected_event = featured_package["selected_event"]
     selected_scores: dict[str, int | float] = {}
     for selected_candidate in selected_event["candidates"]:
+        if selected_candidate.get("identity_type") == "ballot_label":
+            continue
         try:
             resolved_name = resolve_candidate_name(
                 selected_candidate["name"],
