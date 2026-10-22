@@ -28,12 +28,20 @@
       "institute": "Ifop",
       "commissioner": null,
       "listed_url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2343",
-      "resolved_url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2343",
-      "classification": "excluded_non_voting",
-      "classification_reason": "listing is an explicit non-voting survey ('\\\\bbarometre\\\\b')",
+      "resolved_url": "http://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10327-pres-barometre-election-v7-ifop-20-octobre.pdf",
+      "classification": "unsupported",
+      "classification_reason": "document confirms 2027 presidential voting intentions, but no existing notice parser supports this listing",
       "first_discovered_at": "2026-10-21T12:18:34.609389Z",
-      "content_sha256": null,
-      "confirmed_rounds": []
+      "content_sha256": "39b82377458a44db5c7de3ad95ca4f7938f87dd791163083206538c32795fac5",
+      "confirmed_rounds": [
+        "first_round",
+        "second_round"
+      ],
+      "coverage": {
+        "state": "unresolved",
+        "matched_event_ids": [],
+        "method": "reviewed_barometer_unresolved_literal_score"
+      }
     },
     {
       "notice_id": "commission:10326",
@@ -797,12 +805,34 @@
       "institute": "Ifop",
       "commissioner": "Le Figaro",
       "listed_url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2308",
-      "resolved_url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2308",
-      "classification": "excluded_non_voting",
-      "classification_reason": "listing is an explicit non-voting survey ('\\\\bbarometre\\\\b')",
+      "resolved_url": "http://www.commission-des-sondages.fr/notices/files/notices/2026/septembre/10284-pres-barometre-election-v6-ifop-30-septembre.pdf",
+      "classification": "unsupported",
+      "classification_reason": "document confirms 2027 presidential voting intentions, but no existing notice parser supports this listing",
       "first_discovered_at": "2026-10-01T03:08:20.225380Z",
-      "content_sha256": null,
-      "confirmed_rounds": []
+      "content_sha256": "6a12dfe921c0582829f54cf5d71ed694099453d18bed13fbd011e83122b59e09",
+      "confirmed_rounds": [
+        "first_round"
+      ],
+      "survey_metadata": {
+        "fieldwork_start": "2026-09-25",
+        "fieldwork_end": "2026-09-29"
+      },
+      "coverage": {
+        "state": "reconciled",
+        "matched_event_ids": [
+          "12a0639abdc7d065ae67b0a4613c2b56a3cf8f854bad12c628e46bf982e1b5eb",
+          "3faf55681bc28ffd2da5210c65a232b263e8825879539f9fa3a93e22669bfc44",
+          "40f28f59058261a5f0f984caf39f816c612a06b0e11d36b6daabdb1737c4914e",
+          "5810eda3138de004f8f5775c96b3f7b3620abbe6086e00af87829267c1398409",
+          "6f6756d00e9d2a390e9e55c7883ee66bc383d47f257f49fa00e49d1e48367ec9",
+          "7ae37b33f52f31df34aa2b1fd0e5a326fff1c7e6b8683255b30472d9fb44309a",
+          "cca95266da8cc497acc3ea505c8a5397880c626b0e7d264fed3f4ffc7c69a190",
+          "d6a2cb3620d25f29157b0654965fcfb52d1a21ab3f18b519661468502bd05f54",
+          "dc7deea05ea268e319016dcbae38cd6a362d4b8f3428b11a9982d89cc02491e5",
+          "e938c80b676988665c0bedc3f87f835f5f12c875306931e833290167068233e7"
+        ],
+        "method": "reviewed_barometer_complete_configurations"
+      }
     },
     {
       "notice_id": "commission:10283",
@@ -1631,7 +1661,7 @@
       "listed_url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2250",
       "resolved_url": "http://www.commission-des-sondages.fr/notices/files/notices/2026/aout/10242-pres-barometre-election-pres-iv-v5-ifop-26-aout.pdf",
       "classification": "unsupported",
-      "classification_reason": "listing has voting-intention marker '\\\\biv\\\\b'; document lacks 2027 presidential context",
+      "classification_reason": "document confirms 2027 presidential voting intentions, but no existing notice parser supports this listing",
       "first_discovered_at": "2026-08-27T05:43:50.981233Z",
       "content_sha256": "cb6eb35f5e1f2ff84a400ed3beb81ed665ae47b693aa646ed9dbdd4290f60cbb",
       "confirmed_rounds": [
