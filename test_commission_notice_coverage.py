@@ -608,6 +608,11 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
             second = json.loads((root / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
             summary = reconcile_batch2_notice_coverage(payload, events + second)
 
+        if (stored.get("commission:10205") or {}).get("method") == "reviewed_10205_complete_composite_configurations":
+            from reviewed_composite_rn import reconcile_composite_notice_coverage
+
+            summary = reconcile_composite_notice_coverage(payload, events)
+
         self.assertEqual(summary, stored_summary)
         self.assertEqual(
             {

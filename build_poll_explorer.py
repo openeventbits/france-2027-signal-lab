@@ -23,6 +23,7 @@ from build_candidate_signals import (
     validated_first_round_events,
 )
 from candidate_identity import CandidateIdentityError, candidate_id, canonical_candidate_name
+from poll_ballot_labels import RN_CONDITIONAL_OPTION, RN_CONDITIONAL_DISPLAY_NAMES
 
 
 SCHEMA_VERSION = "1.0"
@@ -60,6 +61,7 @@ EXPLICIT_CANDIDATE_ALIASES = {
 
 BALLOT_LABEL_IDENTITIES = frozenset(
     {
+        RN_CONDITIONAL_OPTION,
         "Generic DIV",
         "Generic DLF",
         "Generic ENS",
@@ -196,6 +198,8 @@ def _scenario_projection(
                 "published_candidate_name": published_name,
                 "identity_type": identity["identity_type"],
                 "score": candidate["score"],
+                **({"display_names": dict(RN_CONDITIONAL_DISPLAY_NAMES)}
+                   if published_name == RN_CONDITIONAL_OPTION else {}),
             }
         )
 

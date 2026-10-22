@@ -328,6 +328,14 @@ class CommissionCoverageBatch2Tests(unittest.TestCase):
                 self.assertEqual(digest(result), expected)
 
     def test_current_and_older_wikipedia_ingestion_preserve_all_events_and_admissions(self):
+        from reviewed_composite_rn import load_composite_review
+
+        # The separate 10205 review supersedes three historical objects after
+        # Batch 2. Every other object and both Batch 2 admissions stay exact.
+        decisions = load_composite_review()["decisions"]
+        superseded = {d["previous_event"]["event_id"] for d in decisions}
+        expected = {e["event_id"]: e for e in self.first if e["event_id"] not in superseded}
+        expected.update({d["canonical_event"]["event_id"]: d["canonical_event"] for d in decisions})
         first, second = self.first, self.second
         for name in ("fr_mediawiki_240570516.json.gz", "fr_mediawiki_240569682.json.gz", "fr_mediawiki_240562307.json.gz", "fr_mediawiki_240522402.json.gz"):
             parsed = fixture(name)
@@ -337,11 +345,12 @@ class CommissionCoverageBatch2Tests(unittest.TestCase):
                 retain_published_history=True,
             )
             after, admissions = admit_batch2_configurations(migrated, self.before["commission_registry"])
-            self.assertEqual(after, first)
+            self.assertEqual({e["event_id"]: e for e in after}, expected)
             self.assertEqual(runoff, second)
             self.assertEqual(admissions["already_applied"], 2)
             self.assertEqual(report["unexplained_historical_losses"], 0)
             self.assertEqual(report["polling_accuracy_batch1"]["already_applied"], 9)
+            first = after
 
     def test_10327_review_changes_only_eight_exact_source_variants(self):
         from reviewed_polling_accuracy import load_batch1_review

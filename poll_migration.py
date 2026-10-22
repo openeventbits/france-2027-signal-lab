@@ -219,6 +219,11 @@ def reviewed_candidate_name(value: str) -> str:
     not accept an unseen label merely because it is syntactically clean.
     """
 
+    # One reviewed non-person ballot option, never an alias to either person.
+    from poll_ballot_labels import RN_CONDITIONAL_OPTION
+
+    if value == RN_CONDITIONAL_OPTION:
+        return value
     raw = candidate_name(value)
     key = normalize_identity(raw)
     if key in GENERIC_CANDIDATE_MARKERS or key in AMBIGUOUS_CANDIDATE_LABELS:

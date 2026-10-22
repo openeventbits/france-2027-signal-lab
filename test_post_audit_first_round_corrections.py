@@ -547,6 +547,16 @@ class ReviewedCandidateExpansionTests(unittest.TestCase):
     def test_production_successors_replay_deterministically_without_changes(self):
         # This publication contract allows future additions without pinning a count.
         published = json.loads((ROOT / "polls.json").read_text(encoding="utf-8"))
+        # Two intermediate outcomes have an explicit later 10205 successor.
+        # Validate that published state before exercising this older contract
+        # through the same immutable compatibility view used in production.
+        import gzip
+        from reviewed_composite_rn import prepare_composite_history
+
+        parsed = json.loads(gzip.decompress((FIXTURES / "fr_mediawiki_240570516.json.gz").read_bytes()))
+        published, _ = prepare_composite_history(
+            parsed, published, retain_published_history=True,
+        )
         before = {event["event_id"]: event for event in published}
         old_ids = {record["previous_event"]["event_id"] for record in self.records}
         new_ids = {record["canonical_event_id"] for record in self.records}

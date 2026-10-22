@@ -14254,7 +14254,7 @@
           const score = Number(candidate?.score);
           if (!name || !Number.isFinite(score) || names.has(name)) return null;
           names.add(name);
-          candidates.push({ name, score });
+          candidates.push({ name, score, identity_type: candidate.identity_type, display_names: candidate.display_names });
         }
         return {
           pollster: typeof event.pollster === "string" && event.pollster.trim() ? event.pollster.trim() : "Pollster unavailable",
@@ -14651,7 +14651,7 @@
             const exclusiveNote = exclusiveA
               ? '<span class="pe-exclusive-note">Exclusive in selected A</span>'
               : exclusiveB ? '<span class="pe-exclusive-note">Exclusive in selected B</span>' : "";
-            return `<li class="pe-lineup-score${scoreTone}"><span>${escapeHtml(figure.name)}</span><span>${formatScore(figure.score)}</span>${exclusiveNote}</li>`;
+            return `<li class="pe-lineup-score${scoreTone}"><span>${escapeHtml(figure.display_names?.[document.documentElement.lang.startsWith("en") ? "en" : "fr"] || figure.name)}</span><span>${formatScore(figure.score)}</span>${exclusiveNote}</li>`;
           }).join("");
           return `
             <article class="pe-lineup-card${tone}">
@@ -14730,7 +14730,9 @@
         state.allWaves = waves;
         state.pairIndex = buildPairIndex(waves);
         state.allFigures = [...new Set(waves.flatMap(wave =>
-          wave.hypotheses.flatMap(hypothesis => hypothesis.candidates.map(candidate => candidate.name))
+          wave.hypotheses.flatMap(hypothesis => hypothesis.candidates
+            .filter(candidate => candidate.identity_type !== "ballot_label")
+            .map(candidate => candidate.name))
         ))].sort((a, b) => collator.compare(a, b));
 
         const defaultPair = chooseDefaultPair();
@@ -14770,6 +14772,7 @@
 
       events.forEach(event => {
         event.candidates.forEach(candidate => {
+          if (candidate.identity_type === "ballot_label") return;
           if (!candidates.has(candidate.name)) {
             candidates.set(candidate.name, {
               name: candidate.name,

@@ -272,7 +272,7 @@ class PollPageGeneratorTests(unittest.TestCase):
                 self.assertIn(f"SCENARIO {index}", document)
 
                 for candidate in scenario["candidates"]:
-                    label = pages.candidate_label(candidate)
+                    label = pages.candidate_label(candidate, "en")
                     self.assertIn(label, document)
                     self.assertIn(
                         pages.format_score(candidate["score"], "en"),

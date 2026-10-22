@@ -784,7 +784,8 @@
     const scenarioText = document.createElement("p");
     const displayScenarioCandidate = (item) => {
       const label = String(
-        item.published_candidate_name
+        item.display_names?.[PAGE_LANG]
+        || item.published_candidate_name
         || item.candidate_name
         || item.label
         || ""
@@ -811,7 +812,7 @@
     for (const item of scenario.candidates) {
       const row = document.createElement("div");
       const resultName = document.createElement("span");
-      resultName.textContent = item.published_candidate_name || item.candidate_name;
+      resultName.textContent = item.display_names?.[PAGE_LANG] || item.published_candidate_name || item.candidate_name;
       const resultScore = document.createElement("strong");
       resultScore.textContent = formatScore(item.score);
       row.append(resultName, resultScore);
