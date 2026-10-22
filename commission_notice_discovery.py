@@ -557,6 +557,16 @@ def classify_listing(record: dict[str, Any]) -> ListingDecision:
         for pattern in NEGATIVE_LISTING_PATTERNS
         if re.search(pattern, title)
     ]
+    # An election barometer in the presidential category needs its PDF checked.
+    # Other negative subjects (image, stature, personalities, etc.) still win;
+    # neither this title nor a wave number establishes document eligibility.
+    if (re.search(r"\bbarometre\s+(?:de\s+)?(?:l\s+)?election\b", title)
+            and all(pattern == r"\bbarometre\b" for pattern in negative)):
+        return ListingDecision(
+            "ambiguous",
+            "presidential election barometer requires document confirmation",
+            True,
+        )
     if negative:
         return ListingDecision(
             "excluded_non_voting",
@@ -583,6 +593,16 @@ def confirm_document_eligibility(text: str) -> tuple[bool, list[str], str]:
         or re.search(
             r"\b2027\b.{0,80}\b(?:election\s+)?presidentielle\b",
             normalized,
+        )
+        # The original Ifop barometers date the forthcoming election in their
+        # questionnaire, rather than writing "présidentielle 2027" together.
+        or (
+            re.search(r"\bbarometre\s+de\s+l\s+election\s+presidentielle\b", normalized)
+            and re.search(
+                r"\belection\s+presidentielle\s+qui\s+aura\s+lieu\s+le\s+"
+                rf"(?:1er|[12]?\d|3[01])\s+(?:{_FRENCH_MONTH_PATTERN})\s+2027\b",
+                normalized,
+            )
         )
     )
     voting_evidence = bool(
