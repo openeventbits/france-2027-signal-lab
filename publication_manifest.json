@@ -1,7 +1,7 @@
 {
   "schema_version": "1.5",
-  "snapshot_id": "aaaae6f775e9ad10300c1d619a6500fd3bc3e592b06d75b30a0ee7ba9ee120f7",
-  "published_at": "2026-10-23T15:30:52Z",
+  "snapshot_id": "99e81a405c6c0e3f41625a8ff7102f873e76112f1df8947c1a6e18286a286254",
+  "published_at": "2026-10-23T16:31:25Z",
   "lanes": {
     "campaign_events": {
       "file": "campaign_events.json",
@@ -154,7 +154,7 @@
       "file": "candidate_signals.json",
       "available": true,
       "valid": true,
-      "sha256": "ec25440373fd7fd71c61807d64b1b257ab018bddd97a9004a5eda3181bf9b855",
+      "sha256": "7f8366789708f009ed34c439001d3f8e0de9576be657b958ab19fc4fed2a185d",
       "schema_version": "1.5",
       "data_as_of": "2026-10-23",
       "timestamp_status": "unknown",
@@ -247,11 +247,13 @@
       "file": "polls.json",
       "available": true,
       "valid": true,
-      "sha256": "312f905cc176de385d8cdec22faeb0aac6c33c9d619dfc8f95eeea81e661bc5e",
+      "sha256": "e648cdda8685afdd83f64032602bdabd225a8cc81c4a0e265ba560a9a552fdee",
       "schema_version": null,
-      "data_as_of": "2026-10-19",
+      "data_as_of": "2026-10-21",
       "timestamp_status": "unknown",
       "warnings": [
+        "poll coverage: unresolved relevant Commission notice commission:10333 (10333 Pres IV OPINIONWAY Cnews 22 octobre)",
+        "poll coverage: unresolved relevant Commission notice commission:10332 (10332 Pres IV TOLUNA HARRIS INTERACTIVE 23 octobre)",
         "poll coverage: unresolved relevant Commission notice commission:10327 (10327 Pres Barometre election V7 IFOP 20 octobre)",
         "poll coverage: unresolved relevant Commission notice commission:10323 (10323 Pres IV Yougov Le HuffPost 18 octobre)",
         "poll coverage: unresolved relevant Commission notice commission:10264 (10264 Pres OPINIONWAY Facebook 15 septembre)",
@@ -261,15 +263,17 @@
         {
           "file": "commission_notice_registry.json",
           "available": true,
-          "sha256": "c81598298edd8cacc364772be982c5454a63ce87d7422a8df8a3fbaa3ddf4f3f"
+          "sha256": "ff685828d39966b7fc292620757c100eef612a705d051ad0c10e5eb35ccc538b"
         }
       ],
       "commission_notice_coverage": {
-        "relevant": 39,
+        "relevant": 41,
         "parsed": 3,
         "reconciled": 32,
-        "unresolved": 4,
+        "unresolved": 6,
         "unresolved_notice_ids": [
+          "commission:10333",
+          "commission:10332",
           "commission:10327",
           "commission:10323",
           "commission:10264",
@@ -281,19 +285,19 @@
       "file": "recent_changes.json",
       "available": true,
       "valid": true,
-      "sha256": "f3964b7af4fbebb0b83a1e3976f3ad4aa7cc15744ee75e9e56e5d13398acc001",
+      "sha256": "ba4545352b34bfd76482c7aad9d5384cc91ed2b6d7ca96eedd4c7dce3cbfce4a",
       "schema_version": 1,
       "data_as_of": "2026-10-22T08:20:30Z",
       "timestamp_status": "known",
       "warnings": [],
-      "generated_at": "2026-10-23T13:39:38.423949Z",
-      "last_success_at": "2026-10-23T13:39:38.423949Z"
+      "generated_at": "2026-10-23T16:31:17.699452Z",
+      "last_success_at": "2026-10-23T16:31:17.699452Z"
     },
     "runoff": {
       "file": "second_round_polls.json",
       "available": true,
       "valid": true,
-      "sha256": "0fbd09ef3d4a0d7b4264236cb1e4788e363ec70dff9e04d33aceec71dcd37bbb",
+      "sha256": "7eb8de29ccbd6c1d4ab1290b8b19e721e6dff589b566ac87a9a82b50d15d3a64",
       "schema_version": "1.0",
       "data_as_of": "2026-10-22",
       "timestamp_status": "known",
@@ -302,10 +306,10 @@
         {
           "file": "closest_tested_runoff.json",
           "available": true,
-          "sha256": "b51883cf872065a7b755fa532f9b9c78457a8e5732953861c16b8299e3245eef"
+          "sha256": "3e36b8763d2301348e4925156f94bdcd98f7c528ff9fa090edbd0ac765660f25"
         }
       ],
-      "generated_at": "2026-10-22T21:42:52.730962Z"
+      "generated_at": "2026-10-23T16:31:10.936492Z"
     },
     "source_health": {
       "file": "source_health.json",
@@ -338,6 +342,8 @@
     "recovered_routes": 0
   },
   "warnings": [
+    "poll coverage: unresolved relevant Commission notice commission:10333 (10333 Pres IV OPINIONWAY Cnews 22 octobre)",
+    "poll coverage: unresolved relevant Commission notice commission:10332 (10332 Pres IV TOLUNA HARRIS INTERACTIVE 23 octobre)",
     "poll coverage: unresolved relevant Commission notice commission:10327 (10327 Pres Barometre election V7 IFOP 20 octobre)",
     "poll coverage: unresolved relevant Commission notice commission:10323 (10323 Pres IV Yougov Le HuffPost 18 octobre)",
     "poll coverage: unresolved relevant Commission notice commission:10264 (10264 Pres OPINIONWAY Facebook 15 septembre)",
