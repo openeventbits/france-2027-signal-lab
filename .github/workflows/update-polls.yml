@@ -43,7 +43,7 @@ jobs:
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: >-
-          python -B -m unittest -v
+          python -B run_update_polls_contract_tests.py -v
           test_commission_notice_discovery.py
           test_commission_notice_coverage.CommissionNoticeCoverageTests
           test_commission_notice_coverage.ElectionBarometerCoverageTests
