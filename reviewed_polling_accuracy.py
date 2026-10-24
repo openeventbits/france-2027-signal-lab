@@ -1,4 +1,4 @@
-"""Nine bounded Batch 1 decisions backed by the original October reports.
+"""Bounded Batch 1 decisions and OpinionWay 10318 source-variant retention.
 
 This supplements, rather than widens, the older first-round expansion and
 ten-record runoff reconciliation contracts. Exact complete prior/canonical
@@ -25,6 +25,73 @@ REVIEWED_SOURCE_REVISION = 240562307
 # Changing any authorized fact, predecessor, source variant or evidence requires
 # a new explicit review, rather than a more permissive matching rule.
 REVIEW_SHA256 = "9dce07d4ec704daa9805a61f31c756bc6731b82866e6811390588b62e45182e8"
+
+SOURCE_RETENTION_REVIEW = Path(__file__).with_name("fr27_opinionway_10318_source_variants.json")
+SOURCE_RETENTION_SHA256 = "4c076f5bdc0027014c4e98418bdfa9e06992323c8703acbe00db8cb711bad349"
+
+
+def _content_digest(value):
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+
+
+def load_source_retention_review(path: Path = SOURCE_RETENTION_REVIEW) -> dict:
+    review = json.loads(Path(path).read_text(encoding="utf-8"))
+    if _content_digest(review) != SOURCE_RETENTION_SHA256:
+        raise ValueError("OpinionWay 10318 source-retention review changed; explicit review required")
+    return review
+
+
+def reviewed_source_retention(rows: dict, first: list[dict]) -> tuple[dict, list[dict]]:
+    """Map two exact source variants to authenticated, unmodified prior events.
+
+    This reuses the reconciliation loop's handled-key mechanism. Documentary
+    URLs only detect conflicting survey facts; neither a URL nor a weak anchor
+    selects a retained event. Revision numbers and locators are review evidence.
+    """
+    review = load_source_retention_review()
+    decisions = review["decisions"]
+    documents = {e["url"] for e in review["documentary_evidence"]}
+    source_rows = [
+        (round_name, row) for round_name in (FIRST_ROUND, SECOND_ROUND)
+        for row in rows[round_name] if row["source_url"] in documents
+    ]
+    target_ids = {d["retained_event_id"] for d in decisions}
+    # Older corpora predating this survey remain independent of the review.
+    if not source_rows and not target_ids.intersection(e["event_id"] for e in first):
+        return {}, []
+    by_id = {e["event_id"]: e for e in first}
+    if len(by_id) != len(first):
+        raise ValueError("OpinionWay 10318 duplicate prior event ID")
+    allowed = {}
+    for decision in decisions:
+        event_id = decision["retained_event_id"]
+        retained = by_id.get(event_id)
+        if retained is None or _content_digest(retained) != decision["retained_object_sha256"]:
+            raise ValueError("OpinionWay 10318 retained event changed or missing")
+        canonical = exact_factual_key(retained)
+        incoming = factual_key_from_dict(decision["incoming_factual_key"], "10318 source variant")
+        allowed[incoming, decision["incoming_source_url"]] = (event_id, canonical)
+        # The previously successful 1043 representation remains replayable.
+        for url in documents:
+            allowed[canonical, url] = (event_id, canonical)
+    handled, report, seen = {}, [], set()
+    for round_name, row in source_rows:
+        key = exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
+        match = allowed.get((key, row["source_url"]))
+        if key.round != round_name or match is None:
+            raise ValueError("OpinionWay 10318 unreviewed source facts/provenance")
+        event_id, canonical = match
+        if event_id in seen:
+            raise ValueError("OpinionWay 10318 duplicate source representations")
+        seen.add(event_id)
+        handled[round_name, row["source_locator"]] = canonical
+        report.append({"source_locator": row["source_locator"],
+                       "source_sample_size": key.sample_size,
+                       "retained_event_id": event_id,
+                       "review_id": review["review_id"]})
+    return handled, report
 
 
 def load_batch1_review(path: Path = REGISTRY) -> dict:
