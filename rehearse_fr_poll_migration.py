@@ -1652,11 +1652,15 @@ def reconcile_french_production_source(
 
     # Later official evidence has its own bounded review. Keep the frozen
     # expansion and ten-record runoff registries independent of these decisions.
-    from reviewed_polling_accuracy import reconcile_batch1_accuracy
+    from reviewed_polling_accuracy import reconcile_batch1_accuracy, reviewed_source_retention
 
     accuracy = reconcile_batch1_accuracy(
         source_records, parsed["revid"], first_round_corrections.events,
         previous_second, retain_published_history=retain_published_history,
+    )
+    source_retention, source_retention_report = (
+        reviewed_source_retention(source_records, accuracy.first_round)
+        if retain_published_history else ({}, [])
     )
     first_round_corrections.events = accuracy.first_round
     first_round_corrections.report["canonical_event_ids"].extend(
@@ -1966,6 +1970,12 @@ def reconcile_french_production_source(
             if raw_key in source_keys:
                 raise SourceDriftError("French source contains a duplicate factual row")
             source_keys.add(raw_key)
+            retained_key = source_retention.get((round_name, source_record["source_locator"]))
+            if retained_key is not None:
+                if retained_key in classified_canonical_keys:
+                    raise RehearsalError("duplicate retained source-variant factual identity")
+                classified_canonical_keys.add(retained_key)
+                continue
             accuracy_key = accuracy.handled.get((round_name, source_record["source_locator"]))
             if accuracy_key is not None:
                 if accuracy_key in classified_canonical_keys:
@@ -2421,6 +2431,7 @@ def reconcile_french_production_source(
         "normal_post_audit_additions": normal_additions,
         "post_audit_first_round_corrections": first_round_corrections.report,
         "polling_accuracy_batch1": accuracy.report,
+        "reviewed_source_retention": source_retention_report,
         "reviewed_canonical_introduced": reviewed_canonical_introduced,
         "second_round_evidence_reconciliations": (
             second_round_evidence_actions
