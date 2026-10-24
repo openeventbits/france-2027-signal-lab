@@ -24,6 +24,8 @@ HISTORICAL_TESTS = frozenset({
     "test_original_tables_match_all_numeric_values_and_record_the_literal_conflict",
     "test_commission_10205_composite.CompositeRnTests."
     "test_only_three_ids_change_and_other_436_objects_identical",
+    "test_commission_10205_composite.CompositeRnTests."
+    "test_three_older_wikipedia_snapshots_cannot_reverse_published_successors",
 })
 
 
@@ -64,9 +66,12 @@ def historical_inputs(root=ROOT, manifest_path=MANIFEST):
         missing = set(ids) - by_id.keys()
         if missing:
             raise ValueError(f"missing historical objects in {name}: {sorted(missing)}")
-        historical = [by_id[event_id] for event_id in ids]
-        if digest(historical) != pin["collection_sha256"]:
+        authenticated = [by_id[event_id] for event_id in ids]
+        if digest(authenticated) != pin["collection_sha256"]:
             raise ValueError(f"historical objects changed: {name}")
+        # Hash in manifest order, but replay in the source's production order.
+        historical_ids = set(ids)
+        historical = [event for event in events if event["event_id"] in historical_ids]
         selected[name] = historical if name == "polls.json" else {
             **source, "events": historical,
         }
