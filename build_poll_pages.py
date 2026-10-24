@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 from poll_ballot_labels import RN_CONDITIONAL_OPTION
+from poll_source_tables import load_source_tables, render_source_card, source_table_for_wave
 from urllib.parse import urlparse
 
 from fr27_section_launcher import ASSETS as SECTION_LAUNCHER_ASSETS, prepare_section_header
@@ -803,6 +804,34 @@ def render_related_polls(
     )
 
 
+def render_document(*, language, head, content, asset_prefix, header, footer,
+                    structured_metadata=""):
+    """Existing poll-detail shell, also used by the unregistered evidence page."""
+    document = f'''<!doctype html>
+<html lang="{language}">
+<head>
+{head}  <link rel="stylesheet" href="{asset_prefix}/fr27-ui.css">
+  <link rel="stylesheet" href="{asset_prefix}/polling-page-shell.css">
+  <link rel="stylesheet" href="{asset_prefix}/poll-page.css">
+
+{structured_metadata}  <script src="{asset_prefix}/fr27-ui.js" defer></script>
+  <script src="{asset_prefix}/poll-page.js" defer></script>
+{SECTION_LAUNCHER_ASSETS}
+</head>
+<body class="polling-page poll-detail-page">
+  <main class="polling-shell">
+{header}
+
+{content}
+
+{footer}
+  </main>
+</body>
+</html>
+'''
+    return ("\n".join(line.rstrip() for line in document.splitlines()) + "\n").encode("utf-8")
+
+
 def render_page(
     wave: dict[str, Any],
     *,
@@ -813,6 +842,7 @@ def render_page(
     favicon: str,
     og_image_url: str,
     related_waves: list[dict[str, Any]],
+    source_table: dict[str, Any] | None = None,
 ) -> bytes:
     if language not in {"fr", "en"}:
         raise PollPageError(f"Unsupported page language: {language}")
@@ -927,6 +957,9 @@ def render_page(
         )
         for index, scenario in enumerate(wave["scenarios"], start=1)
     )
+
+    if source_table is not None:
+        scenario_markup += "\n        " + render_source_card(source_table, language)
 
     variation_rows = candidate_variation_rows(wave, language)
 
@@ -1056,10 +1089,7 @@ def render_page(
         separators=(",", ":"),
     ).replace("</", "<\\/")
 
-    document = f'''<!doctype html>
-<html lang="{language}">
-<head>
-  <meta charset="utf-8">
+    head = f'''  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="robots" content="index,follow,max-image-preview:large">
@@ -1090,21 +1120,11 @@ def render_page(
   <meta name="twitter:title" content="{_escape(title)}">
   <meta name="twitter:description" content="{_escape(description)}">
 
-  <link rel="stylesheet" href="{asset_prefix}/fr27-ui.css">
-  <link rel="stylesheet" href="{asset_prefix}/polling-page-shell.css">
-  <link rel="stylesheet" href="{asset_prefix}/poll-page.css">
-
-  <script type="application/ld+json">{structured_json}</script>
+'''
+    structured_metadata = f'''  <script type="application/ld+json">{structured_json}</script>
   <script type="application/ld+json">{breadcrumb_json}</script>
-  <script src="{asset_prefix}/fr27-ui.js" defer></script>
-  <script src="{asset_prefix}/poll-page.js" defer></script>
-{SECTION_LAUNCHER_ASSETS}
-</head>
-<body class="polling-page poll-detail-page">
-  <main class="polling-shell">
-{prepared_header}
-
-    <div class="poll-detail-content">
+'''
+    content = f'''    <div class="poll-detail-content">
       <nav class="poll-detail-breadcrumb" aria-label="Breadcrumb">
         <a href="{home_href}">{home}</a>
         <span class="poll-detail-breadcrumb-separator" aria-hidden="true">/</span>
@@ -1194,20 +1214,63 @@ def render_page(
       </section>
 
       {related_polls_markup}
-    </div>
+    </div>'''
+    return render_document(
+        language=language, head=head, content=content,
+        asset_prefix=asset_prefix, header=prepared_header, footer=prepared_footer,
+        structured_metadata=structured_metadata,
+    )
 
-{prepared_footer}
-  </main>
-</body>
-</html>
-'''
 
-    document = "\n".join(
-        line.rstrip()
-        for line in document.splitlines()
-    ) + "\n"
+def render_source_evidence_page(*, language, template_root=ROOT):
+    """Render Bonnal locally; deliberately absent from expected_artifacts/routes.
 
-    return document.encode("utf-8")
+    The /preview/ URLs are local navigation targets, never numerical wave IDs.
+    This function returns bytes only and does not write or register any route.
+    """
+    if language not in {"fr", "en"}:
+        raise PollPageError(f"Unsupported page language: {language}")
+    table = load_source_tables()["tables"]["10264"]["table"]
+    fr = language == "fr"
+    shell = load_shell_templates(Path(template_root))[language]
+    preview_paths = {f"page_path_{lang}": f"/preview/evidence/10264/{lang}/"
+                     for lang in ("fr", "en")}
+    header = prepare_header(shell["header"], language, preview_paths)
+    explorer = _load_json(Path(template_root) / "poll_explorer.json")
+    footer = prepare_footer(shell["footer"], len(explorer["waves"]))
+    bases = {base["scope"]: base["count"] for base in table["respondent_bases"]}
+    adults = f"{bases['adults']:,}".replace(",", " " if fr else ",")
+    metrics = [("INSTITUT" if fr else "POLLSTER", table["institute"]),
+               ("TERRAIN" if fr else "FIELDWORK", format_date_range(
+                   table["fieldwork_start"], table["fieldwork_end"], language)),
+               ("ADULTES" if fr else "ADULTS", adults),
+               ("INSCRITS" if fr else "REGISTERED VOTERS", str(bases["registered_voters"])),
+               ("CERTAINS D’ALLER VOTER" if fr else "CERTAIN TO VOTE", str(bases["certain_to_vote"]))]
+    core = (
+        '<nav class="poll-detail-breadcrumb" aria-label="Breadcrumb">'
+        '<a href="/preview/">APERÇUS / PREVIEWS</a> / NOTICE 10264</nav>'
+        '<section class="poll-detail-hero"><div class="poll-detail-hero-main"><div>'
+        f'<div class="poll-detail-eyebrow">{"APERÇU LOCAL · DOCUMENT SOURCE" if fr else "LOCAL PREVIEW · SOURCE DOCUMENT"}</div>'
+        '<h1 class="poll-detail-title">OpinionWay / Sébastien Bonnal</h1></div></div>'
+        '<div class="poll-detail-metrics">' + ''.join(f'<div class="poll-detail-metric"><span>{label}</span><strong>{value}</strong></div>' for label, value in metrics) +
+        '</div><div class="poll-detail-boundary"><span>' +
+        ('AUCUNE VAGUE NUMÉRIQUE ASSOCIÉE · AUCUN ÉVÉNEMENT CRÉÉ' if fr else 'NO ASSOCIATED NUMERICAL WAVE · NO EVENT CREATED') +
+        '</span></div></section><section class="poll-detail-panel poll-detail-results">'
+        '<div class="poll-detail-panel-head"><div><div class="poll-detail-eyebrow">'
+        + ('DOCUMENT VÉRIFIÉ' if fr else 'VERIFIED DOCUMENT') + '</div><h2>'
+        + ('TABLEAU PUBLIÉ' if fr else 'PUBLISHED TABLE') + '</h2></div></div>'
+        '<div class="poll-detail-scenario-list">' + render_source_card(table, language, standalone=True) + '</div></section>'
+    )
+    head = ('  <meta charset="utf-8">\n'
+            '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            '  <meta name="color-scheme" content="dark">\n'
+            '  <meta name="robots" content="noindex,nofollow">\n'
+            '<title>OpinionWay / Sébastien Bonnal · '
+            + ("aperçu source local" if fr else "local source preview")
+            + '</title>\n  ' + _site_favicon_link(Path(template_root)) + '\n\n')
+    return render_document(language=language, head=head, asset_prefix="/assets",
+                           header=header, footer=footer,
+                           content='<div class="poll-detail-content">' + core + '</div>')
 
 
 def manifest_payload(waves: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1326,10 +1389,12 @@ def expected_artifacts(
     favicon = _site_favicon_link(template_root)
     og_image_url = _site_og_image_url(template_root)
     wave_count = len(waves)
+    source_record = load_source_tables()
 
     artifacts: dict[Path, bytes] = {}
 
     for index, wave in enumerate(waves):
+        source_table = source_table_for_wave(wave, source_record)
         related = nearby_waves(
             waves,
             index,
@@ -1349,6 +1414,7 @@ def expected_artifacts(
                 favicon=favicon,
                 og_image_url=og_image_url,
                 related_waves=related,
+                source_table=source_table,
             )
 
     manifest = manifest_payload(waves)

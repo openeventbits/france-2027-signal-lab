@@ -1208,3 +1208,33 @@
     min-height: 104px;
   }
 }
+
+/* Reviewed PDF evidence only; numerical scenario styles remain unchanged. */
+.poll-detail-source-only .is-source-only {
+  color: var(--poll-detail-cyan);
+  border-color: color-mix(in srgb, var(--poll-detail-cyan) 35%, transparent);
+  background: color-mix(in srgb, var(--poll-detail-cyan) 8%, transparent);
+}
+.poll-detail-source-only .poll-source-context {
+  margin: 0;
+  padding: 12px 18px;
+  color: var(--poll-detail-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.poll-detail-source-only .poll-source-context a {
+  color: var(--poll-detail-cyan);
+}
+.poll-detail-source-only .poll-detail-scenario-foot {
+  align-items: start;
+}
+.poll-detail-source-only .poll-detail-table th[scope="row"] {
+  color: var(--poll-detail-text);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+@media (max-width: 600px) {
+  .poll-detail-source-only .poll-source-context { padding: 10px 12px; }
+  .poll-detail-source-only .poll-detail-scenario-kicker { flex-wrap: wrap; }
+}

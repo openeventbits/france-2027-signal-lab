@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import re
 import tempfile
@@ -1135,5 +1136,163 @@ class PollPageGeneratorTests(unittest.TestCase):
             "FLAT HORIZONTAL SUPPORT LAYOUT",
             css,
         )
+
+
+class ExceptionalSourceTableTests(unittest.TestCase):
+    """Presentation evidence stays separate from numerical events and routes."""
+
+    @classmethod
+    def setUpClass(cls):
+        import poll_source_tables as source
+        cls.source = source
+        cls.record = source.load_source_tables()
+        cls.explorer = json.loads((ROOT / "poll_explorer.json").read_text(encoding="utf-8"))
+        cls.artifacts, cls.manifest = pages.expected_artifacts(cls.explorer, template_root=ROOT)
+
+    def test_source_records_and_documentary_hashes_are_pinned(self):
+        expected = {
+            "10327": (14, "39b82377458a44db5c7de3ad95ca4f7938f87dd791163083206538c32795fac5"),
+            "10264": (12, "3e427407804098116e859a47f1ba3b0d0428145714b35c593e900e800768cd27"),
+            "10260": (14, "bcc6f5e46048615f31188b9d98cd708339f276e8fe959d3c9c1b5833a1d58b0c"),
+        }
+        self.assertEqual(set(self.record["tables"]), set(expected))
+        self.assertEqual(set(self.record["existing_pages"]), {"10327", "10260"})
+        for notice, (page, sha) in expected.items():
+            table = self.record["tables"][notice]["table"]
+            self.assertEqual((table["source"]["pdf_page"], table["source"]["pdf_sha256"]), (page, sha))
+            self.assertEqual(table["numerical_comparisons"], "excluded_whole_table")
+
+    def test_missing_altered_or_fabricated_evidence_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evidence.json"
+            with self.assertRaises(FileNotFoundError):
+                self.source.load_source_tables(path)
+            for change in ("literal", "review", "pdf", "extra"):
+                with self.subTest(change=change):
+                    altered = copy.deepcopy(self.record)
+                    if change == "literal":
+                        altered["tables"]["10327"]["table"]["rows"][0]["result"]["literal"] = "0"
+                    elif change == "review":
+                        altered["provenance"]["review_sha256"] = "0" * 64
+                    elif change == "pdf":
+                        altered["tables"]["10264"]["table"]["source"]["pdf_sha256"] = "0" * 64
+                    else:
+                        altered["tables"]["99999"] = altered["tables"]["10264"]
+                    path.write_text(json.dumps(altered), encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "evidence changed"):
+                        self.source.load_source_tables(path)
+
+    def test_wave_association_rejects_changed_or_duplicated_numerical_facts(self):
+        for pin in self.record["existing_pages"].values():
+            wave = next(w for w in self.explorer["waves"] if w["wave_id"] == pin["wave_id"])
+            for change in ("score", "date", "sample", "event", "duplicate", "count"):
+                with self.subTest(wave=wave["wave_id"], change=change):
+                    altered = copy.deepcopy(wave)
+                    if change == "score":
+                        altered["scenarios"][0]["candidates"][0]["score"] += 1
+                    elif change == "date":
+                        altered["fieldwork_start"] = "2026-01-01"
+                    elif change == "sample":
+                        altered["sample_size"] += 1
+                    elif change == "event":
+                        altered["scenarios"][0]["event_id"] = "0" * 64
+                    elif change == "duplicate":
+                        altered["scenarios"][0]["candidates"].append(altered["scenarios"][0]["candidates"][0])
+                    else:
+                        altered["scenario_count"] += 1
+                    with self.assertRaisesRegex(ValueError, "association changed"):
+                        self.source.source_table_for_wave(altered, self.record)
+
+    def test_all_literal_values_names_positions_and_pdf_links_in_both_languages(self):
+        from lxml import html
+        for notice, entry in self.record["tables"].items():
+            table = entry["table"]
+            for language in ("fr", "en"):
+                with self.subTest(notice=notice, language=language):
+                    card = html.fromstring(self.source.render_source_card(table, language))
+                    actual = [(row.find("th").text_content(), row.find("td").text_content(),
+                               row.find("td").get("data-published-literal")) for row in card.xpath('.//tbody/tr')]
+                    expected = [(row["published_name"], "–" if row["result"]["kind"] == "source_dash"
+                                 else row["result"]["literal"], row["result"]["literal"]) for row in table["rows"]]
+                    self.assertEqual(actual, expected)
+                    self.assertEqual(card.get("id"), "source-table-" + notice)
+                    self.assertIsNotNone(card.find("summary"))
+                    self.assertTrue(card.xpath('.//th[@scope="row"]'))
+                    self.assertIn(table["source"]["pdf_url"] + "#page=" + str(table["source"]["pdf_page"]),
+                                  card.xpath('.//a/@href'))
+                    self.assertIn("SOURCE UNIQUEMENT" if language == "fr" else "SOURCE ONLY", card.text_content())
+        self.assertEqual(self.record["tables"]["10327"]["table"]["rows"][0]["result"]["kind"], "source_dash")
+        for notice, names in (("10264", {"sebastien-bonnal"}),
+                              ("10260", {"nathalie-arthaud", "karim-bouamrane"})):
+            self.assertEqual({r["identity_id"] for r in self.record["tables"][notice]["table"]["rows"]
+                              if r["result"]["literal"] == "<1%"}, names)
+
+    def test_numerical_cards_counts_metadata_and_entire_remaining_page_are_unchanged(self):
+        shell = pages.load_shell_templates(ROOT)
+        for index, wave in enumerate(self.explorer["waves"]):
+            table = self.source.source_table_for_wave(wave, self.record)
+            for language in ("fr", "en"):
+                relative = pages.page_file_from_url(wave[f"page_path_{language}"])
+                if table is None:
+                    self.assertEqual(self.artifacts[relative].decode(), (ROOT / relative).read_text(encoding="utf-8"))
+                    continue
+                original = pages.render_page(wave, language=language, wave_count=len(self.explorer["waves"]),
+                    header=shell[language]["header"], footer=shell[language]["footer"],
+                    favicon=pages._site_favicon_link(ROOT), og_image_url=pages._site_og_image_url(ROOT),
+                    related_waves=pages.nearby_waves(self.explorer["waves"], index, limit=6)).decode()
+                added = "\n        " + self.source.render_source_card(table, language)
+                rendered = self.artifacts[relative].decode()
+                self.assertEqual(rendered.replace(added, "", 1), original)
+                self.assertGreater(rendered.index('id="source-table-'), rendered.index(f'id="scenario-{wave["scenario_count"]}"'))
+        self.assertEqual(self.manifest, pages.manifest_payload(self.explorer["waves"]))
+
+    def test_presentation_cannot_mutate_numeric_inputs_or_explorer(self):
+        original = copy.deepcopy(self.explorer)
+        numeric = {name: (ROOT / name).read_bytes() for name in ("polls.json", "second_round_polls.json", "poll_explorer.json")}
+        pages.expected_artifacts(self.explorer, template_root=ROOT)
+        for language in ("fr", "en"):
+            pages.render_source_evidence_page(language=language, template_root=ROOT)
+        self.assertEqual(self.explorer, original)
+        self.assertEqual(numeric, {name: (ROOT / name).read_bytes() for name in numeric})
+
+    def test_bonnal_is_unregistered_noindex_evidence_with_exact_sample_bases(self):
+        from lxml import html
+        self.assertFalse(any("preview" in str(path) or "10264" in str(path) for path in self.artifacts))
+        for name in ("route_registry.json", "poll_pages_manifest.json", "sitemap.xml", "sitemap-polls.xml"):
+            path = ROOT / name
+            if path.exists():
+                self.assertNotIn("/preview/evidence/10264/", path.read_text(encoding="utf-8"))
+        for language in ("fr", "en"):
+            document = pages.render_source_evidence_page(language=language, template_root=ROOT).decode()
+            tree = html.fromstring(document)
+            self.assertEqual(tree.get("lang"), language)
+            self.assertFalse(tree.xpath('//link[@rel="canonical"] | //script[@type="application/ld+json"]'))
+            self.assertEqual(tree.xpath('//meta[@name="robots"]/@content'), ["noindex,nofollow"])
+            self.assertFalse(tree.xpath('//details[starts-with(@id,"scenario-")]'))
+            self.assertIn("1 034" if language == "fr" else "1,034", document)
+            self.assertIn("951", document)
+            self.assertIn("700", document)
+            self.assertIn("2–4 septembre 2026" if language == "fr" else "2–4 September 2026", document)
+
+    def test_standalone_and_normal_builds_are_reproducible_without_preview_dependencies(self):
+        again, manifest = pages.expected_artifacts(self.explorer, template_root=ROOT)
+        self.assertEqual((again, manifest), (self.artifacts, self.manifest))
+        for language in ("fr", "en"):
+            self.assertEqual(pages.render_source_evidence_page(language=language, template_root=ROOT),
+                             pages.render_source_evidence_page(language=language, template_root=ROOT))
+        import subprocess
+        import sys
+        # -S proves normal rendering needs only the standard library, in a fresh
+        # process rather than depending on which other tests were collected.
+        code = (f"import sys; sys.path.insert(0, {str(ROOT)!r}); "
+                "import build_poll_pages as p; "
+                "p.render_source_evidence_page(language='en'); "
+                "assert 'preview_exceptional_source_tables' not in sys.modules; "
+                "assert 'poll_migration' not in sys.modules")
+        result = subprocess.run([sys.executable, "-B", "-S", "-c", code],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
