@@ -39,7 +39,7 @@ class PollHubStaticLinksTests(unittest.TestCase):
     def test_every_wave_has_crawlable_static_link(self):
         expected_count = (
             len(self.waves)
-            + min(10, len(self.waves))
+            + sum('wave_id' in entry for entry in static_links.directory_entries(self.waves)[:10])
         )
 
         for language, path in static_links.HUBS.items():
@@ -71,7 +71,7 @@ class PollHubStaticLinksTests(unittest.TestCase):
                         hrefs,
                     )
 
-    def test_latest_ten_are_linked_twice(self):
+    def test_latest_ten_mixed_entries_are_linked_twice(self):
         for language, path in static_links.HUBS.items():
             with self.subTest(language=language):
                 document = path.read_text(
@@ -92,7 +92,7 @@ class PollHubStaticLinksTests(unittest.TestCase):
 
                 latest_paths = {
                     wave[key]
-                    for wave in self.waves[:10]
+                    for wave in static_links.directory_entries(self.waves)[:10] if 'wave_id' in wave
                 }
 
                 for wave in self.waves:
@@ -135,12 +135,25 @@ class PollHubStaticLinksTests(unittest.TestCase):
             )
         )
 
-        self.assertTrue(
-            all(
-                href.startswith("/en/sondages/")
-                for href in en_hrefs
-            )
-        )
+        self.assertTrue(all(href.startswith('/en/sondages/') for href in en_hrefs))
+
+    def test_sources_are_in_main_latest_and_complete_directories(self):
+        from lxml import html
+        for language, path in static_links.HUBS.items():
+            tree = html.fromstring(path.read_text(encoding='utf-8'))
+            expected = static_links.directory_entries(self.waves)
+            for container, entries in [('latest-wave-directory', expected[:10]), ('polling-browse-panel', expected)]:
+                rows = tree.xpath(f'//*[@id="{container}"]//tbody/tr')
+                self.assertEqual(len(rows), len(entries))
+                for row, entry in zip(rows, entries):
+                    self.assertEqual(row.xpath('.//a/@href'), [entry[f'page_path_{language}']])
+                sources = [row for row in rows if row.get('data-source-scenario-id')]
+                self.assertEqual(len(sources), sum('source_scenario_id' in e for e in entries))
+                for row in sources:
+                    self.assertIn('CNEWS', row.text_content())
+                    self.assertIn('SOURCE', row.text_content())
+                    self.assertIn('David Lisnard', row.text_content())
+                    self.assertIn('&lt;1%', html.tostring(row, encoding='unicode'))
 
     def test_og_cover_workflow_validates_static_links(self):
         workflow = (

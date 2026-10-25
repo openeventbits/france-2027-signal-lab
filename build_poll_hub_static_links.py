@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 from poll_source_tables import load_source_tables, published_source_pages
+from build_poll_explorer import directory_entries
 
 
 ROOT = Path(__file__).resolve().parent
@@ -227,7 +228,10 @@ def render_table(
     rows: list[str] = []
 
     for wave in waves:
+        source = wave.get("kind") == "reviewed_source_scenario"
         pollster = str(wave.get("pollster") or "—")
+        if source:
+            pollster += " / " + wave["commissioner"]
         start = str(wave.get("fieldwork_start") or "")
         end = str(wave.get("fieldwork_end") or "")
         scenario_count = wave.get("scenario_count")
@@ -240,6 +244,15 @@ def render_table(
             if candidates
             else "—"
         )
+        if source:
+            candidate_text = ", ".join(c["candidate_name"] + " " + c["result"]["literal"] for c in wave["candidates"])
+        scenario_text = (("SCÉNARIO SOURCE VÉRIFIÉ" if language == "fr" else "VERIFIED SOURCE SCENARIO")
+                         + " · Notice " + wave["notice_id"] if source else format_number(scenario_count, language))
+        sample_text = (format_number(wave["respondent_bases"]["adults"], language)
+                       + (" adultes" if language == "fr" else " adults") if source
+                       else "n=" + format_number(sample_size, language))
+        row_attributes = f' data-source-scenario-id="{escape(wave["source_scenario_id"])}"' if source else ""
+        link_class = "polling-source-open-link polling-wave-open-link" if source else "polling-wave-open-link"
 
         href = wave_path(wave, language)
 
@@ -261,14 +274,14 @@ def render_table(
             )
 
         rows.append(
-            "          <tr>\n"
-            f"            <td>{escape(date_text)}</td>\n"
-            f"            <td><strong>{escape(pollster)}</strong></td>\n"
-            f"            <td>{escape(format_number(scenario_count, language))}</td>\n"
-            f"            <td>n={escape(format_number(sample_size, language))}</td>\n"
-            f"            <td>{escape(candidate_text)}</td>\n"
-            "            <td>"
-            f'<a class="polling-wave-open-link" '
+            f"          <tr{row_attributes}>\n"
+            f'            <td data-label="{labels["fieldwork"]}">{escape(date_text)}</td>\n'
+            f'            <td data-label="{labels["pollster"]}"><strong>{escape(pollster)}</strong></td>\n'
+            f'            <td data-label="{labels["scenarios"]}">{escape(scenario_text)}</td>\n'
+            f'            <td data-label="{labels["sample"]}">{escape(sample_text)}</td>\n'
+            f'            <td data-label="{labels["candidates"]}">{escape(candidate_text)}</td>\n'
+            f'            <td data-label="{labels["open"]}">'
+            f'<a class="{link_class}" '
             f'href="{escape(href)}" '
             f'aria-label="{escape(anchor_label)}">'
             f'{escape(labels["open_text"])}</a>'
@@ -360,7 +373,8 @@ def render_hub(
     waves: list[dict[str, Any]],
     language: str,
 ) -> str:
-    latest = waves[:10]
+    entries = directory_entries(waves)
+    latest = entries[:10]
 
     document = replace_container(
         original,
@@ -376,7 +390,7 @@ def render_hub(
         document,
         container_id="polling-browse-panel",
         content=render_table(
-            waves,
+            entries,
             language=language,
             complete=True,
         ),

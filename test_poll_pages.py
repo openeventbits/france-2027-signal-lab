@@ -1442,7 +1442,11 @@ class CnewsSourcePublicationTests(unittest.TestCase):
             tree = html.fromstring(hubs.HUBS[language].read_text(encoding='utf-8'))
             links = tree.xpath('//*[@id="source-evidence"]//a/@href')
             self.assertEqual(set(links), {p[f'page_path_{language}'] for p in source.published_source_pages()})
-            self.assertFalse(tree.xpath('//*[@data-static-poll-directory]//a[contains(@href,"/documents/")]'))
+            for container in ('latest-wave-directory', 'polling-browse-panel'):
+                entries = hubs.directory_entries(self.explorer['waves'])
+                if container == 'latest-wave-directory': entries = entries[:10]
+                expected_sources = {e[f'page_path_{language}'] for e in entries if 'source_scenario_id' in e}
+                self.assertEqual(set(tree.xpath(f'//*[@id="{container}"]//a[contains(@href,"/documents/")]/@href')), expected_sources)
             once = hubs.expected_document(hubs.HUBS[language], waves=self.explorer['waves'], language=language)
             self.assertEqual(once, hubs.HUBS[language].read_text(encoding='utf-8'))
 
@@ -1453,11 +1457,13 @@ class CnewsSourcePublicationTests(unittest.TestCase):
             routes.discover_routes(manifest, json.loads((ROOT / 'candidate_candidacy_status.json').read_text(encoding='utf-8')), root=ROOT)
 
     def test_no_analytics_or_ingestion_dependency_on_source_tables(self):
-        for name in ('fetch_polls.py', 'poll_contract.py', 'poll_migration.py', 'build_poll_explorer.py',
+        # Phase 3B permits a separate browsing projection in the read model;
+        # numerical analytics/ingestion still do not consume source records.
+        for name in ('fetch_polls.py', 'poll_contract.py', 'poll_migration.py',
                      'build_candidate_signals.py', 'assets/polling-lab.js'):
             self.assertNotIn('poll_source_tables', (ROOT / name).read_text(encoding='utf-8'))
         for page in source.published_source_pages():
-            self.assertNotIn(page['source_table_id'], json.dumps(self.explorer))
+            self.assertNotIn(page['source_table_id'], json.dumps(self.explorer['waves']))
 
     def test_unchanged_numeric_page_bytes_survive_windows_regeneration(self):
         with tempfile.TemporaryDirectory() as directory:
