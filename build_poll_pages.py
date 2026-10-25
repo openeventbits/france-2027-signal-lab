@@ -9,7 +9,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 from poll_ballot_labels import RN_CONDITIONAL_OPTION
-from poll_source_tables import load_source_tables, render_source_card, source_table_for_wave
+from poll_source_tables import (load_source_tables, published_source_pages,
+                                render_source_card, source_table_for_wave)
 from urllib.parse import urlparse
 
 from fr27_section_launcher import ASSETS as SECTION_LAUNCHER_ASSETS, prepare_section_header
@@ -97,6 +98,9 @@ def _load_json(path: Path | str) -> Any:
 
 
 def _atomic_write(path: Path, content: bytes) -> None:
+    # Keep unchanged wave-page bytes intact in Windows checkouts as well.
+    if path.is_file() and path.read_bytes().replace(b"\r\n", b"\n") == content:
+        return
     path.parent.mkdir(parents=True, exist_ok=True)
 
     with tempfile.NamedTemporaryFile(
@@ -1273,11 +1277,109 @@ def render_source_evidence_page(*, language, template_root=ROOT):
                            content='<div class="poll-detail-content">' + core + '</div>')
 
 
+def render_published_source_page(notice, *, language, template_root=ROOT):
+    """Render an explicitly reviewed documentary route, never a numerical wave."""
+    if language not in {"fr", "en"}:
+        raise PollPageError(f"Unsupported page language: {language}")
+    record = load_source_tables()
+    if notice not in record["standalone_pages"]:
+        raise PollPageError("Source table has no reviewed public route")
+    table = record["tables"][notice]["table"]
+    paths = record["standalone_pages"][notice]
+    fr = language == "fr"
+    root = Path(template_root)
+    shell = load_shell_templates(root)[language]
+    hub = "/sondages/" if fr else "/en/sondages/"
+    canonical = "https://france2027.app" + paths[f"page_path_{language}"]
+    title = ("Sondage OpinionWay pour CNEWS" if fr else "OpinionWay poll for CNEWS")
+    title += " · " + format_date(table["publication_date"], language)
+    description = ("Tableau source vérifié du premier tour : 13 candidats, valeurs publiées et bornes <1%. Aucune observation numérique ajoutée."
+                   if fr else "Verified first-round source table: 13 candidates, published values and <1% bounds. No numerical observation added.")
+    bases = {b["scope"]: b["count"] for b in table["respondent_bases"]}
+    metrics = [("TERRAIN" if fr else "FIELDWORK", format_date_range(table["fieldwork_start"], table["fieldwork_end"], language)),
+               ("ADULTES · 18 ANS ET PLUS" if fr else "ADULTS · AGED 18+", format_integer(bases["adults"], language)),
+               ("INSCRITS" if fr else "REGISTERED VOTERS", format_integer(bases["registered_voters"], language)),
+               ("CERTAINS DE VOTER · 9+10" if fr else "CERTAIN TO VOTE · 9+10", format_integer(bases["certain_to_vote"], language)),
+               ("BASE EXPRIMÉE · PREMIER TOUR" if fr else "EXPRESSED BASE · FIRST ROUND",
+                format_integer(bases["expressed_certain_voters"], language) if "expressed_certain_voters" in bases
+                else ("Non vérifiée" if fr else "Unverified"))]
+    non_expression = table["methodology"]["non_expression"]["result"]["literal"]
+    if fr:
+        paragraphs = [
+            "Une configuration documentaire du premier tour, sans observation numérique dans le Polling Lab. Les 13 lignes publiées sont conservées ; <1% désigne une borne supérieure stricte, jamais un score exact. Aucun résultat n’est remplacé ni normalisé, même si le sous-total des valeurs exactes atteint 100%.",
+            "Population : personnes inscrites sur les listes électorales, issues d’un échantillon représentatif de la population française de 18 ans et plus. Questionnaire auto-administré en ligne (CAWI), méthode des quotas : sexe, âge, catégorie socioprofessionnelle, catégorie d’agglomération et région.",
+            "Colonne retenue : « Publié », page 12. Redressement sociodémographique + vote au premier tour de la présidentielle de 2022 + vote au premier tour des législatives de 2024, parmi les certains d’aller voter (notes 9+10). Les colonnes brutes ou alternatives ne remplacent pas les valeurs publiées.",
+            f"N’expriment pas d’intention de vote : {non_expression}, publié séparément. Ce pourcentage repose sur le redressement sociodémographique de l’ensemble des répondants (méthodologie p. 3) ; il ne s’ajoute pas aux 13 résultats candidats. Le questionnaire (p. 5) propose aussi « Vous voteriez blanc ou nul » et « Vous vous abstiendriez », sans résultat candidat distinct dans cette colonne.",
+            ("La base exprimée du premier tour est de 680 personnes (p. 12), distincte des 731 certains d’aller voter."
+             if notice == "10333" else "La base exprimée du premier tour n’a pas été vérifiée. Les mentions de gabarit « 903 personnes » du PDF ne remplacent ni les 1 043 adultes, ni les 978 inscrits, ni les 731 certains d’aller voter vérifiés aux pages 3–4."),
+            "Les trois scénarios de second tour de cette étude sont déjà présents sous forme d’observations numériques distinctes. Ils restent inchangés et ne sont pas reproduits ici. Leur présence ne rend pas le premier tour numériquement complet."
+        ]
+        states = [("SOURCE_DOCUMENT_VERIFIED", "Document source vérifié"),
+                  ("DOCUMENTARY_COVERAGE_PUBLISHED", "Tableau documentaire publié"),
+                  ("NUMERICAL_OBSERVATION_ABSENT", "Observation numérique du premier tour absente")]
+    else:
+        paragraphs = [
+            "One documentary first-round configuration, with no numerical observation in the Polling Lab. All 13 published rows are preserved; <1% denotes a strict upper bound, never an exact score. Results are never substituted or normalized, even when the exact-value subtotal reaches 100%.",
+            "Population: registered voters drawn from a representative sample of French adults aged 18+. Self-administered online questionnaire (CAWI), quota sampling by sex, age, occupation, size of urban area and region.",
+            "Selected column: ‘Publié’, page 12. Sociodemographic weighting + first-round vote in the 2022 presidential election + first-round vote in the 2024 legislative election, among respondents certain to vote (ratings 9+10). Raw or alternative columns never replace published values.",
+            f"Not expressing a voting intention: {non_expression}, published separately. This percentage uses sociodemographic weighting across all respondents (methodology p. 3); it is not added to the 13 candidate results. The questionnaire (p. 5) also offers ‘Vous voteriez blanc ou nul’ (blank or invalid ballot) and ‘Vous vous abstiendriez’ (abstention), with no separate candidate score in this column.",
+            ("The first-round expressed base is 680 people (p. 12), distinct from the 731 respondents certain to vote."
+             if notice == "10333" else "The first-round expressed base has not been verified. The PDF’s ‘903 people’ template labels do not override the 1,043 adults, 978 registered voters or 731 respondents certain to vote verified on pages 3–4."),
+            "This study’s three second-round scenarios already exist as separate numerical observations. They remain unchanged and are not duplicated here. Their presence does not make first-round numerical coverage complete."
+        ]
+        states = [("SOURCE_DOCUMENT_VERIFIED", "Source document verified"),
+                  ("DOCUMENTARY_COVERAGE_PUBLISHED", "Documentary table published"),
+                  ("NUMERICAL_OBSERVATION_ABSENT", "First-round numerical observation absent")]
+    meta = ''.join(f'<div class="poll-detail-metric"><span>{_escape(label)}</span><strong>{_escape(value)}</strong></div>' for label, value in metrics)
+    notes = ''.join(f'<p>{_escape(p)}</p>' for p in paragraphs)
+    state_markup = ''.join(f'<span data-coverage-state="{key}">{_escape(label)}</span>' for key, label in states)
+    core = f'''<div class="poll-detail-content poll-source-page">
+      <nav class="poll-detail-breadcrumb" aria-label="Breadcrumb"><a href="{hub}">POLLING LAB</a> / NOTICE {notice}</nav>
+      <section class="poll-detail-hero"><div class="poll-detail-hero-main"><div>
+        <div class="poll-detail-eyebrow">{"DOCUMENT SOURCE · PREMIER TOUR" if fr else "SOURCE DOCUMENT · FIRST ROUND"}</div>
+        <h1 class="poll-detail-title">{_escape(title)}</h1>
+        <p>{"Institut : OpinionWay · Commanditaire : CNEWS · Publication :" if fr else "Pollster: OpinionWay · Commissioner: CNEWS · Published:"} {format_date(table["publication_date"], language)}</p>
+      </div></div><div class="poll-detail-metrics">{meta}</div>
+      <div class="poll-detail-boundary">{state_markup}</div></section>
+      <section class="poll-detail-panel poll-detail-results"><div class="poll-detail-panel-head"><div>
+        <div class="poll-detail-eyebrow">NOTICE {notice} · PDF p. 12 · PUBLIÉ</div>
+        <h2>{"RÉSULTATS PUBLIÉS" if fr else "PUBLISHED RESULTS"}</h2></div></div>
+        <div class="poll-detail-scenario-list">{render_source_card(table, language, standalone=True)}</div>
+      </section>
+      <section class="poll-detail-panel poll-source-notes"><h2>{"LECTURE ET MÉTHODE" if fr else "READING THE TABLE AND METHODOLOGY"}</h2>{notes}
+        <p><a href="{_escape(table["source"]["pdf_url"])}#page=13" target="_blank" rel="noopener noreferrer">{"Second tour dans le document original (p. 13–15)" if fr else "Second round in the original document (pp. 13–15)"} ↗</a></p>
+        <details><summary>{"Authentification du document" if fr else "Document authentication"}</summary><p>SHA-256: <code>{table["source"]["pdf_sha256"]}</code></p><p>{_escape(table["source_table_id"])}</p></details>
+        <p><a class="poll-detail-back-cta" href="{hub}#source-evidence">{"DOCUMENTS DU POLLING LAB" if fr else "POLLING LAB DOCUMENTS"} →</a></p>
+      </section></div>'''
+    head = f'''  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <title>{_escape(title)} · {"Document source" if fr else "Source evidence"} | France 2027 Signal Lab</title>
+  <meta name="description" content="{_escape(description)}">
+  <link rel="canonical" href="{canonical}">
+  <link rel="alternate" hreflang="fr" href="https://france2027.app{paths['page_path_fr']}">
+  <link rel="alternate" hreflang="en" href="https://france2027.app{paths['page_path_en']}">
+  <link rel="alternate" hreflang="x-default" href="https://france2027.app{paths['page_path_fr']}">
+  {_site_favicon_link(root)}
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{_escape(title)}">
+  <meta property="og:description" content="{_escape(description)}">
+  <meta property="og:url" content="{canonical}">
+  <meta property="og:image" content="{_site_og_image_url(root)}">
+'''
+    return render_document(language=language, head=head, content=core, asset_prefix="/assets",
+                           header=prepare_header(shell["header"], language, paths),
+                           footer=prepare_footer(shell["footer"], len(_load_json(root / "poll_explorer.json")["waves"])))
+
+
 def manifest_payload(waves: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "wave_count": len(waves),
         "page_count": len(waves) * 2,
+        "source_page_count": len(published_source_pages()) * 2,
+        "source_pages": published_source_pages(),
         "pages": [
             {
                 "wave_id": wave["wave_id"],
@@ -1418,6 +1520,13 @@ def expected_artifacts(
             )
 
     manifest = manifest_payload(waves)
+    for page in manifest["source_pages"]:
+        for language in ("fr", "en"):
+            relative = page_file_from_url(page[f"page_path_{language}"])
+            if relative in artifacts:
+                raise PollPageError("Source evidence route collides with a numerical wave")
+            artifacts[relative] = render_published_source_page(
+                page["notice_id"], language=language, template_root=template_root)
     artifacts[Path(MANIFEST_NAME)] = serialize_manifest(manifest)
 
     return artifacts, manifest
@@ -1426,7 +1535,7 @@ def expected_artifacts(
 def _registered_page_files(manifest: dict[str, Any]) -> set[Path]:
     files: set[Path] = set()
 
-    for page in manifest.get("pages", []):
+    for page in manifest.get("pages", []) + manifest.get("source_pages", []):
         if not isinstance(page, dict):
             continue
 
@@ -1531,7 +1640,7 @@ def check_from_paths(
 
         actual = target.read_bytes()
 
-        if actual != expected:
+        if actual.replace(b"\r\n", b"\n") != expected:
             errors.append(f"out of date: {relative.as_posix()}")
 
     expected_page_files = {
@@ -1593,7 +1702,8 @@ def main(argv: list[str] | None = None) -> int:
 
             print(
                 f"poll page check clean: {len(waves)} waves, "
-                f"{len(waves) * 2} pages"
+                f"{len(waves) * 2} numerical pages, "
+                f"{len(published_source_pages()) * 2} documentary pages"
             )
             return 0
 
@@ -1609,7 +1719,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print(
         f"built poll pages: {manifest['wave_count']} waves, "
-        f"{manifest['page_count']} bilingual pages"
+        f"{manifest['page_count']} numerical pages, "
+        f"{manifest['source_page_count']} documentary pages"
     )
     return 0
 

@@ -9,6 +9,7 @@ import re
 import tempfile
 from pathlib import Path
 from typing import Any
+from poll_source_tables import published_source_pages
 
 from agenda_page_contract import AgendaPageContractError, validate_agenda_manifest
 from candidate_page_contract import project_candidate_route_index
@@ -529,6 +530,17 @@ def discover_routes(
                 path_en=path_en,
             )
         )
+
+    source_pages = poll_manifest.get("source_pages", [])
+    if "source_pages" in poll_manifest and source_pages != published_source_pages():
+        raise RouteRegistryError("Unreviewed source-evidence routes in poll manifest")
+    for page in source_pages:
+        routes.extend(_route_pair(
+            route_key=f"poll-source:{page['source_table_id']}",
+            family="polls", kind="poll-source-evidence",
+            entity_id=page["source_table_id"],
+            path_fr=page["page_path_fr"], path_en=page["page_path_en"],
+        ))
 
     if issue_manifest is None:
         issue_manifest = _load_json(

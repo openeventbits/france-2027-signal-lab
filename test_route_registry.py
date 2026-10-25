@@ -59,7 +59,7 @@ class RouteRegistryTests(unittest.TestCase):
         self.assertEqual(len(pages), wave_count)
         self.assertEqual(page_count, wave_count * 2)
 
-        expected_poll_routes = 2 + page_count
+        expected_poll_routes = 2 + page_count + self.manifest["source_page_count"]
         expected_candidate_routes = (
             2 + 2 * self.candidate_index["counts"]["published"]
         )

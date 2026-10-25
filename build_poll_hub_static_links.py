@@ -7,6 +7,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from poll_source_tables import load_source_tables, published_source_pages
 
 
 ROOT = Path(__file__).resolve().parent
@@ -19,6 +20,8 @@ HUBS = {
 
 START = "<!-- FR27_STATIC_POLL_LINKS_START -->"
 END = "<!-- FR27_STATIC_POLL_LINKS_END -->"
+SOURCE_START = "<!-- FR27_SOURCE_EVIDENCE_START -->"
+SOURCE_END = "<!-- FR27_SOURCE_EVIDENCE_END -->"
 
 
 class StaticPollHubError(ValueError):
@@ -382,6 +385,24 @@ def render_hub(
     return document
 
 
+def render_source_links(language):
+    fr = language == "fr"
+    record = load_source_tables()
+    links = []
+    for page in published_source_pages():
+        table = record["tables"][page["notice_id"]]["table"]
+        label = f'OpinionWay / CNEWS · {format_date(table["publication_date"], language)} · notice {page["notice_id"]}'
+        links.append(f'<li><a href="{escape(page[f"page_path_{language}"])}">{escape(label)} →</a></li>')
+    return (SOURCE_START + '\n<section class="polling-panel" id="source-evidence" aria-labelledby="source-evidence-title">'
+            '<div class="polling-panel-head"><div><div class="polling-eyebrow">'
+            + ("DOCUMENTS SOURCES" if fr else "SOURCE DOCUMENTS") + '</div><h2 id="source-evidence-title">'
+            + ("TABLEAUX PUBLIÉS · PREMIER TOUR" if fr else "PUBLISHED FIRST-ROUND TABLES")
+            + '</h2></div></div><div class="polling-inspector-empty"><p>'
+            + ("Preuves documentaires avec valeurs littérales, dont &lt;1%. Ces tableaux ne sont pas des vagues numériques et ne participent pas aux tendances du Polling Lab."
+               if fr else "Documentary evidence with literal values, including &lt;1%. These tables are not numerical waves and do not enter Polling Lab trends.")
+            + '</p><ul>' + ''.join(links) + '</ul></div></section>\n' + SOURCE_END)
+
+
 def normalized_template(document: str) -> str:
     pattern = re.compile(
         re.escape(START)
@@ -390,6 +411,8 @@ def normalized_template(document: str) -> str:
         flags=re.DOTALL,
     )
 
+    document = re.sub(re.escape(SOURCE_START) + r".*?" + re.escape(SOURCE_END) + r"\s*",
+                      "", document, flags=re.DOTALL)
     return pattern.sub("", document)
 
 
@@ -423,11 +446,15 @@ def expected_document(
         flags=re.IGNORECASE | re.DOTALL,
     )
 
-    return render_hub(
+    document = render_hub(
         template,
         waves=waves,
         language=language,
     )
+    marker = '<footer id="candidate-app-hud"'
+    if document.count(marker) != 1:
+        raise StaticPollHubError("Expected exactly one shared hub footer")
+    return document.replace(marker, render_source_links(language) + '\n\n    ' + marker, 1)
 
 
 def main(argv: list[str] | None = None) -> int:
