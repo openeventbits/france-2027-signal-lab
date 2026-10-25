@@ -1,0 +1,1024 @@
+{
+  "schema_version": "fr27-reviewed-scenario-coverage/1",
+  "review_id": "FR27-PHASE2A-20261025",
+  "audited_baseline_sha": "7b294e0bea0538980016e1bdc10e52bda9231397",
+  "identity_rules": {
+    "candidate_rule": "poll_migration.candidate_identity",
+    "institute_rule": "poll_migration.pollster_identity",
+    "institute_alias_reviews": [
+      {
+        "institute_id": "opinionway",
+        "labels": [
+          "OpinionWay"
+        ],
+        "notice_ids": [
+          "commission:10319",
+          "commission:10333",
+          "commission:10166a"
+        ]
+      },
+      {
+        "institute_id": "harris-interactive",
+        "labels": [
+          "Harris",
+          "Harris Interactive"
+        ],
+        "notice_ids": [
+          "commission:10332"
+        ],
+        "evidence": {
+          "document_id": "10332",
+          "page": 3
+        },
+        "rationale": "Authenticated 10332 methodology names Toluna Harris Interactive; the pinned audit verifies the existing Harris observations. Reuse the finite migration alias only in this scope."
+      },
+      {
+        "institute_id": "ifop",
+        "labels": [
+          "Ifop"
+        ],
+        "notice_ids": [
+          "commission:10141"
+        ]
+      }
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "10319",
+      "official_notice_id": "commission:10319",
+      "url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10319-pres-iv-opinionway-cnews-15-octobre.pdf",
+      "sha256": "c66cc3da2bcdbf8cfcf5d93552242d8a20b09554eecee399be458e90282a079d",
+      "evidence_key": "10319.pdf",
+      "reviewed": true
+    },
+    {
+      "document_id": "10333",
+      "official_notice_id": "commission:10333",
+      "url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10333-pres-iv-opinionway-cnews-22-octobre.pdf",
+      "sha256": "cfe91916d69dc57bb57aa4979f09d00430bd25983a0ee77d087a0cab7020df94",
+      "evidence_key": "10333.pdf",
+      "reviewed": true
+    },
+    {
+      "document_id": "10332",
+      "official_notice_id": "commission:10332",
+      "url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+      "sha256": "62922752ec3c7a7e6e34504c312f57c52dc3621309897b311bfc52d8ebaeebd5",
+      "evidence_key": "10332.pdf",
+      "reviewed": true
+    },
+    {
+      "document_id": "10141",
+      "official_notice_id": "commission:10141",
+      "url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/mars/10141-pres-vote-lgbt-ifop-tetu-9-mars.pdf",
+      "sha256": "74db43ff877c5811dcb676b0b58b097a2bb1d46aa4ac2c54bf5b19537c8a38e4",
+      "evidence_key": "10141.pdf",
+      "reviewed": true
+    },
+    {
+      "document_id": "10166a",
+      "official_notice_id": "commission:10166a",
+      "url": "http://www.commission-des-sondages.fr/notices/files/notices/2026/mars/10166a-pres-iv-opinionway-lopinion-30-mars.pdf",
+      "sha256": "ad667d095614d16b6117574f54513d21f06c1b732aebf5c9d20bec9328f71e65",
+      "evidence_key": "10166a.pdf",
+      "reviewed": true
+    }
+  ],
+  "surveys": [
+    {
+      "survey_id": "commission:10319",
+      "official_notice_id": "commission:10319",
+      "display_notice_id": "10319",
+      "document_id": "10319",
+      "institute": "OpinionWay",
+      "institute_id": "opinionway",
+      "commissioner": "CNews",
+      "fieldwork": {
+        "start": "2026-10-13",
+        "end": "2026-10-14"
+      },
+      "publication_date": "2026-10-15",
+      "publication_date_evidence": "Original dated report/notice or dated original publication",
+      "population": {
+        "population_id": "fr_registered_adults",
+        "description": "French registered voters aged 18+, drawn from a representative national adult sample; vote-certainty and expressed bases are separate."
+      },
+      "respondent_bases": {
+        "adults": 1043,
+        "registered_voters": 978,
+        "certain_to_vote": 731
+      },
+      "method_evidence": {
+        "document_id": "10319",
+        "page": 3
+      },
+      "inventory_review": {
+        "complete": true,
+        "expected_by_round": {
+          "first_round": 1,
+          "second_round": 3
+        }
+      },
+      "evidence_limitations": [
+        "Boilerplate 903-person labels and template sample inconsistencies retained; not a respondent-base override. PrésiTrack notice p3 says 1001 adults but p9/report says 1043; CNEWS p3 says 1043. Same dates or apparent common respondents do not merge commissioning bodies."
+      ],
+      "accepted_source_urls": [
+        "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10319-pres-iv-opinionway-cnews-15-octobre.pdf",
+        "https://www.cnews.fr/france/2026-10-15/sondage-six-mois-de-la-presidentielle-marine-le-pen-largement-en-tete-devant-jean"
+      ],
+      "legacy_notice_event_claims": [
+        "7c7bb3a59970c61e70ba91e474b2ed4a6386645d2b258b8d6c3aa9e4f7aecf03"
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "10319-first_round-p12-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10319",
+            "page": 12
+          },
+          "published_column": "Publié",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"15%","percent":15.0}},
+            {"published_name":"Fabien Roussel","identity_id":"fabien-roussel","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Marine Tondelier","identity_id":"marine-tondelier","result":{"kind":"exact","literal":"2%","percent":2.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"13%","percent":13.0}},
+            {"published_name":"Karim Bouamrane","identity_id":"karim-bouamrane","result":{"kind":"strict_upper_bound","literal":"<1%","upper_percent":1.0}},
+            {"published_name":"Gabriel Attal","identity_id":"gabriel-attal","result":{"kind":"exact","literal":"5%","percent":5.0}},
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"12%","percent":12.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"6%","percent":6.0}},
+            {"published_name":"David Lisnard","identity_id":"david-lisnard","result":{"kind":"exact","literal":"4%","percent":4.0}},
+            {"published_name":"Nicolas Dupont-Aignan","identity_id":"nicolas-dupont-aignan","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Éric Zemmour","identity_id":"eric-zemmour","result":{"kind":"exact","literal":"5%","percent":5.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"35%","percent":35.0}}
+          ],
+          "reviewed_event_binding": null
+        },
+        {
+          "scenario_id": "10319-second_round-p13-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10319",
+            "page": 13
+          },
+          "published_column": "Publié",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"32%","percent":32.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"68%","percent":68.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "13ecef0d3b78881c27769dd2d3c612e18cb2c0b721a4e5118f7835bf07f91a31",
+            "event_object_sha256": "b2da0c624c63bed435314b5f88a8ff7dc1be52da8298e8ac7b2a481a53575b9f",
+            "source_url": "https://www.cnews.fr/france/2026-10-15/sondage-six-mois-de-la-presidentielle-marine-le-pen-largement-en-tete-devant-jean",
+            "legacy_metadata_bridge": {
+              "commissioner": "CNews",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "adults",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10319",
+                  "page": 3
+                },
+                {
+                  "document_id": "10319",
+                  "page": 13
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10319-second_round-p14-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10319",
+            "page": 14
+          },
+          "published_column": "Publié",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"44%","percent":44.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"56%","percent":56.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "8d094e2681e99415f607fa8d9cda4abe52a72c7a6cbfe409a914c47bc5e7d912",
+            "event_object_sha256": "1f4fa776424c7e89feca4d24da2132153c8406a612cd0be4bc130220d495fb8d",
+            "source_url": "https://www.cnews.fr/france/2026-10-15/sondage-six-mois-de-la-presidentielle-marine-le-pen-largement-en-tete-devant-jean",
+            "legacy_metadata_bridge": {
+              "commissioner": "CNews",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "adults",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10319",
+                  "page": 3
+                },
+                {
+                  "document_id": "10319",
+                  "page": 14
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10319-second_round-p15-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10319",
+            "page": 15
+          },
+          "published_column": "Publié",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"44%","percent":44.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"56%","percent":56.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "9e57cea766fdca455bc0264ff39fd7b15168f2719515326094591dec3863a05e",
+            "event_object_sha256": "586f1cbd58d89ffae73b8ef71314351d1950d753f8b94aeab9401460e3391b62",
+            "source_url": "https://www.cnews.fr/france/2026-10-15/sondage-six-mois-de-la-presidentielle-marine-le-pen-largement-en-tete-devant-jean",
+            "legacy_metadata_bridge": {
+              "commissioner": "CNews",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "adults",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10319",
+                  "page": 3
+                },
+                {
+                  "document_id": "10319",
+                  "page": 15
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "survey_id": "commission:10333",
+      "official_notice_id": "commission:10333",
+      "display_notice_id": "10333",
+      "document_id": "10333",
+      "institute": "OpinionWay",
+      "institute_id": "opinionway",
+      "commissioner": "CNews",
+      "fieldwork": {
+        "start": "2026-10-21",
+        "end": "2026-10-22"
+      },
+      "publication_date": "2026-10-22",
+      "publication_date_evidence": "Original dated report/notice or dated original publication",
+      "population": {
+        "population_id": "fr_registered_adults",
+        "description": "French registered voters aged 18+, drawn from a representative national adult sample; vote-certainty and expressed bases are separate."
+      },
+      "respondent_bases": {
+        "adults": 1033,
+        "registered_voters": 973,
+        "certain_to_vote": 731
+      },
+      "method_evidence": {
+        "document_id": "10333",
+        "page": 3
+      },
+      "inventory_review": {
+        "complete": true,
+        "expected_by_round": {
+          "first_round": 1,
+          "second_round": 3
+        }
+      },
+      "evidence_limitations": [],
+      "accepted_source_urls": [
+        "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10333-pres-iv-opinionway-cnews-22-octobre.pdf",
+        "https://www.cnews.fr/france/2026-10-22/sondage-marine-le-pen-conforte-son-avance-au-premier-tour-de-lelection"
+      ],
+      "legacy_notice_event_claims": [],
+      "scenarios": [
+        {
+          "scenario_id": "10333-first_round-p12-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10333",
+            "page": 12
+          },
+          "published_column": "Publié",
+          "respondent_bases": {
+            "expressed_certain_voters": 680
+          },
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"strict_upper_bound","literal":"<1%","upper_percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"16%","percent":16.0}},
+            {"published_name":"Fabien Roussel","identity_id":"fabien-roussel","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Marine Tondelier","identity_id":"marine-tondelier","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"13%","percent":13.0}},
+            {"published_name":"Karim Bouamrane","identity_id":"karim-bouamrane","result":{"kind":"strict_upper_bound","literal":"<1%","upper_percent":1.0}},
+            {"published_name":"Gabriel Attal","identity_id":"gabriel-attal","result":{"kind":"exact","literal":"4%","percent":4.0}},
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"12%","percent":12.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"6%","percent":6.0}},
+            {"published_name":"David Lisnard","identity_id":"david-lisnard","result":{"kind":"exact","literal":"6%","percent":6.0}},
+            {"published_name":"Nicolas Dupont-Aignan","identity_id":"nicolas-dupont-aignan","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Éric Zemmour","identity_id":"eric-zemmour","result":{"kind":"exact","literal":"4%","percent":4.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"36%","percent":36.0}}
+          ],
+          "reviewed_event_binding": null
+        },
+        {
+          "scenario_id": "10333-second_round-p13-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10333",
+            "page": 13
+          },
+          "published_column": "Publié",
+          "respondent_bases": {
+            "expressed_certain_voters": 518
+          },
+          "rows": [
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"31%","percent":31.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"69%","percent":69.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "a8de0876a090ae834c855ab01609e187699517db8c2a0408625e978021f7fa4e",
+            "event_object_sha256": "aa78d9e79325821e7a4139e2cd0612c72dba28370ec6d2e1737643772b5ed99e",
+            "source_url": "https://www.cnews.fr/france/2026-10-22/sondage-marine-le-pen-conforte-son-avance-au-premier-tour-de-lelection",
+            "legacy_metadata_bridge": {
+              "commissioner": "CNews",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10333",
+                  "page": 3
+                },
+                {
+                  "document_id": "10333",
+                  "page": 13
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10333-second_round-p14-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10333",
+            "page": 14
+          },
+          "published_column": "Publié",
+          "respondent_bases": {
+            "expressed_certain_voters": 574
+          },
+          "rows": [
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"44%","percent":44.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"56%","percent":56.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "7e32cd718b1f8ed6c74a06213c5fc6c451ed407484437fe2aa10bafa0c2dcdee",
+            "event_object_sha256": "fb17347d69f9ad2a1833807c98b652148c3b559581b4a14813e8d6636980a498",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10333-pres-iv-opinionway-cnews-22-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "CNews",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10333",
+                  "page": 3
+                },
+                {
+                  "document_id": "10333",
+                  "page": 14
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10333-second_round-p15-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10333",
+            "page": 15
+          },
+          "published_column": "Publié",
+          "respondent_bases": {
+            "expressed_certain_voters": 603
+          },
+          "rows": [
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"44%","percent":44.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"56%","percent":56.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "958f109b9119fd764d32cf7eb16cc373f29954dec1f6f0a1e2f186ddc7ad219e",
+            "event_object_sha256": "ec62e1834a57390022bce3407f72695d7da1051cf56d2bf9658f121a3501c564",
+            "source_url": "https://www.cnews.fr/france/2026-10-22/sondage-marine-le-pen-conforte-son-avance-au-premier-tour-de-lelection",
+            "legacy_metadata_bridge": {
+              "commissioner": "CNews",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10333",
+                  "page": 3
+                },
+                {
+                  "document_id": "10333",
+                  "page": 15
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "survey_id": "commission:10332",
+      "official_notice_id": "commission:10332",
+      "display_notice_id": "10332",
+      "document_id": "10332",
+      "institute": "Harris Interactive",
+      "institute_id": "harris-interactive",
+      "commissioner": "M6 & RTL",
+      "fieldwork": {
+        "start": "2026-10-19",
+        "end": "2026-10-21"
+      },
+      "publication_date": "2026-10-23",
+      "publication_date_evidence": "Original dated report/notice or dated original publication",
+      "population": {
+        "population_id": "fr_registered_adults",
+        "description": "French registered voters aged 18+, drawn from a representative national adult sample; vote-certainty and expressed bases are separate."
+      },
+      "respondent_bases": {
+        "adults": 2500,
+        "registered_voters": 2094
+      },
+      "method_evidence": {
+        "document_id": "10332",
+        "page": 3
+      },
+      "inventory_review": {
+        "complete": true,
+        "expected_by_round": {
+          "first_round": 5,
+          "second_round": 3
+        }
+      },
+      "evidence_limitations": [],
+      "accepted_source_urls": [
+        "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf"
+      ],
+      "legacy_notice_event_claims": [],
+      "scenarios": [
+        {
+          "scenario_id": "10332-first_round-p35-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10332",
+            "page": 35
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {
+            "expressed_certain_voters": 1372
+          },
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"17","percent":17.0}},
+            {"published_name":"Fabien Roussel","identity_id":"fabien-roussel","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Marine Tondelier","identity_id":"marine-tondelier","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"12","percent":12.0}},
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"15","percent":15.0}},
+            {"published_name":"Dominique de Villepin","identity_id":"dominique-de-villepin","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"David Lisnard","identity_id":"david-lisnard","result":{"kind":"exact","literal":"7","percent":7.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"4","percent":4.0}},
+            {"published_name":"Nicolas Dupont-Aignan","identity_id":"nicolas-dupont-aignan","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"33","percent":33.0}},
+            {"published_name":"Éric Zemmour","identity_id":"eric-zemmour","result":{"kind":"exact","literal":"5","percent":5.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "8de08d6649ead4cd8f4936fd1a1ec8a79a4b3f5a647721f9bf8c07f64c0c8353",
+            "event_object_sha256": "9207d3deeee68271e1d3658ee37d1cf6e1f2762b956c7e363b9780b6f81e7c48",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "M6 & RTL",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10332",
+                  "page": 3
+                },
+                {
+                  "document_id": "10332",
+                  "page": 35
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10332-first_round-p37-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10332",
+            "page": 37
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {
+            "expressed_certain_voters": 1357
+          },
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"17","percent":17.0}},
+            {"published_name":"Fabien Roussel","identity_id":"fabien-roussel","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Marine Tondelier","identity_id":"marine-tondelier","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"14","percent":14.0}},
+            {"published_name":"Gabriel Attal","identity_id":"gabriel-attal","result":{"kind":"exact","literal":"10","percent":10.0}},
+            {"published_name":"Dominique de Villepin","identity_id":"dominique-de-villepin","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"David Lisnard","identity_id":"david-lisnard","result":{"kind":"exact","literal":"8","percent":8.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"5","percent":5.0}},
+            {"published_name":"Nicolas Dupont-Aignan","identity_id":"nicolas-dupont-aignan","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"33","percent":33.0}},
+            {"published_name":"Éric Zemmour","identity_id":"eric-zemmour","result":{"kind":"exact","literal":"5","percent":5.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "be1ddb9a582d897293d4db4fe62c0b2b26cbc69bd9d16829e9ff433331da271e",
+            "event_object_sha256": "871dc053fbd873db65dbf96be4448493ccced4ebb2be62a8faf09097de763b45",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "M6 & RTL",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10332",
+                  "page": 3
+                },
+                {
+                  "document_id": "10332",
+                  "page": 37
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10332-first_round-p39-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10332",
+            "page": 39
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {
+            "expressed_certain_voters": 1360
+          },
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"17","percent":17.0}},
+            {"published_name":"Fabien Roussel","identity_id":"fabien-roussel","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Marine Tondelier","identity_id":"marine-tondelier","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"12","percent":12.0}},
+            {"published_name":"Gabriel Attal","identity_id":"gabriel-attal","result":{"kind":"exact","literal":"5","percent":5.0}},
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"13","percent":13.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"6","percent":6.0}},
+            {"published_name":"Nicolas Dupont-Aignan","identity_id":"nicolas-dupont-aignan","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"35","percent":35.0}},
+            {"published_name":"Éric Zemmour","identity_id":"eric-zemmour","result":{"kind":"exact","literal":"6","percent":6.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "6cb1268fde557929397dcd0de955a7ad55af292de527ec6327b38fbb86954516",
+            "event_object_sha256": "97ce920418bbf38807ab310902c0610130fa3c7ebc844af6eb94d8ab40e7d9bf",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "M6 & RTL",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10332",
+                  "page": 3
+                },
+                {
+                  "document_id": "10332",
+                  "page": 39
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10332-first_round-p42-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10332",
+            "page": 42
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {
+            "expressed_certain_voters": 1343
+          },
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"17","percent":17.0}},
+            {"published_name":"Fabien Roussel","identity_id":"fabien-roussel","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Marine Tondelier","identity_id":"marine-tondelier","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"13","percent":13.0}},
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"16","percent":16.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"7","percent":7.0}},
+            {"published_name":"Nicolas Dupont-Aignan","identity_id":"nicolas-dupont-aignan","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"35","percent":35.0}},
+            {"published_name":"Éric Zemmour","identity_id":"eric-zemmour","result":{"kind":"exact","literal":"5","percent":5.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "ad6a1410868e64b3a8da9f6018cd896bc162d7f055297650fa1e18d9b04283bf",
+            "event_object_sha256": "aa4e64b4cd63752504e3ce76b54eee5db5ec63f995188f2fd759b858c382825a",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "M6 & RTL",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10332",
+                  "page": 3
+                },
+                {
+                  "document_id": "10332",
+                  "page": 42
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10332-first_round-p45-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10332",
+            "page": 45
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {
+            "expressed_certain_voters": 1323
+          },
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"19","percent":19.0}},
+            {"published_name":"Fabien Roussel","identity_id":"fabien-roussel","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Marine Tondelier","identity_id":"marine-tondelier","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"13","percent":13.0}},
+            {"published_name":"Gabriel Attal","identity_id":"gabriel-attal","result":{"kind":"exact","literal":"11","percent":11.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"9","percent":9.0}},
+            {"published_name":"Nicolas Dupont-Aignan","identity_id":"nicolas-dupont-aignan","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"35","percent":35.0}},
+            {"published_name":"Éric Zemmour","identity_id":"eric-zemmour","result":{"kind":"exact","literal":"6","percent":6.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "c75d48159d4672fb946678498f3c7f14ac39ce0ad1bc91ddde8840eb80e42e97",
+            "event_object_sha256": "d484ef19a750dfaefa76a42da2391109e05bbc76d6179434990505433e243aa1",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "M6 & RTL",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10332",
+                  "page": 3
+                },
+                {
+                  "document_id": "10332",
+                  "page": 45
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10332-second_round-p54-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10332",
+            "page": 54
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {
+            "expressed_certain_voters": 1127
+          },
+          "rows": [
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"30","percent":30.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"70","percent":70.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "8fde430999432bd6d76c1d5c738b969e252fd5ab0d40e5541d458fd4307e1fa1",
+            "event_object_sha256": "d2c4e1558500416952a9670ecdc6d410f19f135a174b6072bc92b32751586b3f",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "M6 & RTL",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10332",
+                  "page": 3
+                },
+                {
+                  "document_id": "10332",
+                  "page": 54
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10332-second_round-p57-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10332",
+            "page": 57
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {
+            "expressed_certain_voters": 1239
+          },
+          "rows": [
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"41","percent":41.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"59","percent":59.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "3aaeb80040a6a8aa27622130074fdd490fad3b4c262c0880691ba786aeebe3a9",
+            "event_object_sha256": "62a7011ec8c95f5c4d54aadb7aa657098b07f0db5921e083ba2dfd6e3ca41421",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "M6 & RTL",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10332",
+                  "page": 3
+                },
+                {
+                  "document_id": "10332",
+                  "page": 57
+                }
+              ]
+            }
+          }
+        },
+        {
+          "scenario_id": "10332-second_round-p59-1",
+          "round": "second_round",
+          "table_evidence": {
+            "document_id": "10332",
+            "page": 59
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {
+            "expressed_certain_voters": 1223
+          },
+          "rows": [
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"43","percent":43.0}},
+            {"published_name":"Marine Le Pen","identity_id":"marine-le-pen","result":{"kind":"exact","literal":"57","percent":57.0}}
+          ],
+          "reviewed_event_binding": {
+            "event_id": "8784223d4fad231d90bb776f925c24bfcaf6dd16ad1a12188d274e25b77676be",
+            "event_object_sha256": "a665e5df728838707b790590cd401909e9629b3a568174f7eb31618fec9dd240",
+            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10332-pres-iv-toluna-harris-interactive-23-octobre.pdf",
+            "legacy_metadata_bridge": {
+              "commissioner": "M6 & RTL",
+              "population_id": "fr_registered_adults",
+              "reported_sample_base": "registered_voters",
+              "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+              "evidence": [
+                {
+                  "document_id": "10332",
+                  "page": 3
+                },
+                {
+                  "document_id": "10332",
+                  "page": 59
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "survey_id": "commission:10141",
+      "official_notice_id": "commission:10141",
+      "display_notice_id": "10141",
+      "document_id": "10141",
+      "institute": "Ifop",
+      "institute_id": "ifop",
+      "commissioner": "Têtu",
+      "fieldwork": {
+        "start": "2026-02-01",
+        "end": "2026-02-06"
+      },
+      "publication_date": null,
+      "publication_date_evidence": "First publication day not independently established; official listed date retained separately.",
+      "population": {
+        "population_id": "fr_registered_lgbt_adults",
+        "description": "Registered LGBT+ adults drawn from a national adult parent; not a national-electorate estimate."
+      },
+      "respondent_bases": {
+        "national_parent_adults": 10196,
+        "lgbt_adults": 1137,
+        "registered_lgbt": 742
+      },
+      "method_evidence": {
+        "document_id": "10141",
+        "page": 2
+      },
+      "inventory_review": {
+        "complete": true,
+        "expected_by_round": {
+          "first_round": 1,
+          "second_round": 0
+        }
+      },
+      "evidence_limitations": [],
+      "accepted_source_urls": [
+        "https://www.commission-des-sondages.fr/notices/files/notices/2026/mars/10141-pres-vote-lgbt-ifop-tetu-9-mars.pdf"
+      ],
+      "legacy_notice_event_claims": [
+        "eef0f34f7474807d337870f896b85121aea74baa5df6ee980f80ec4b1361684c"
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "10141-first_round-p9-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10141",
+            "page": 9
+          },
+          "published_column": "Published overall voting intention",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"25","percent":25.0}},
+            {"published_name":"Fabien Roussel","identity_id":"fabien-roussel","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"François Ruffin","identity_id":"francois-ruffin","result":{"kind":"exact","literal":"2","percent":2.0}},
+            {"published_name":"Marine Tondelier","identity_id":"marine-tondelier","result":{"kind":"exact","literal":"6","percent":6.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"10","percent":10.0}},
+            {"published_name":"Gabriel Attal","identity_id":"gabriel-attal","result":{"kind":"exact","literal":"9","percent":9.0}},
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"8","percent":8.0}},
+            {"published_name":"Dominique de Villepin","identity_id":"dominique-de-villepin","result":{"kind":"exact","literal":"3","percent":3.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"3","percent":3.0}},
+            {"published_name":"Nicolas Dupont-Aignan","identity_id":"nicolas-dupont-aignan","result":{"kind":"exact","literal":"1","percent":1.0}},
+            {"published_name":"Jordan Bardella","identity_id":"jordan-bardella","result":{"kind":"exact","literal":"27","percent":27.0}},
+            {"published_name":"Éric Zemmour","identity_id":"eric-zemmour","result":{"kind":"exact","literal":"4","percent":4.0}}
+          ],
+          "reviewed_event_binding": null
+        }
+      ]
+    },
+    {
+      "survey_id": "commission:10166a",
+      "official_notice_id": "commission:10166a",
+      "display_notice_id": "10166A",
+      "document_id": "10166a",
+      "institute": "OpinionWay",
+      "institute_id": "opinionway",
+      "commissioner": "POLLITICS",
+      "fieldwork": {
+        "start": "2026-03-25",
+        "end": "2026-03-26"
+      },
+      "publication_date": "2026-03-30",
+      "publication_date_evidence": "Original dated report/notice or dated original publication",
+      "population": {
+        "population_id": "fr_registered_adults",
+        "description": "French registered voters aged 18+, drawn from a representative national adult sample; vote-certainty and expressed bases are separate."
+      },
+      "respondent_bases": {
+        "adults": 1051,
+        "registered_voters": 988,
+        "certain_to_vote": 788
+      },
+      "method_evidence": {
+        "document_id": "10166a",
+        "page": 3
+      },
+      "inventory_review": {
+        "complete": true,
+        "expected_by_round": {
+          "first_round": 4,
+          "second_round": 0
+        }
+      },
+      "evidence_limitations": [],
+      "accepted_source_urls": [
+        "http://www.commission-des-sondages.fr/notices/files/notices/2026/mars/10166a-pres-iv-opinionway-lopinion-30-mars.pdf"
+      ],
+      "legacy_notice_event_claims": [],
+      "scenarios": [
+        {
+          "scenario_id": "10166a-first_round-p11-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10166a",
+            "page": 11
+          },
+          "published_column": "Publié",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"13%","percent":13.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"15%","percent":15.0}},
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"18%","percent":18.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"11%","percent":11.0}},
+            {"published_name":"Sarah Knafo","identity_id":"sarah-knafo","result":{"kind":"exact","literal":"5%","percent":5.0}},
+            {"published_name":"Jordan Bardella","identity_id":"jordan-bardella","result":{"kind":"exact","literal":"37%","percent":37.0}}
+          ],
+          "reviewed_event_binding": null
+        },
+        {
+          "scenario_id": "10166a-first_round-p12-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10166a",
+            "page": 12
+          },
+          "published_column": "Publié",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"14%","percent":14.0}},
+            {"published_name":"Raphaël Glucksmann","identity_id":"raphael-glucksmann","result":{"kind":"exact","literal":"15%","percent":15.0}},
+            {"published_name":"Gabriel Attal","identity_id":"gabriel-attal","result":{"kind":"exact","literal":"15%","percent":15.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"12%","percent":12.0}},
+            {"published_name":"Sarah Knafo","identity_id":"sarah-knafo","result":{"kind":"exact","literal":"5%","percent":5.0}},
+            {"published_name":"Jordan Bardella","identity_id":"jordan-bardella","result":{"kind":"exact","literal":"38%","percent":38.0}}
+          ],
+          "reviewed_event_binding": null
+        },
+        {
+          "scenario_id": "10166a-first_round-p13-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10166a",
+            "page": 13
+          },
+          "published_column": "Publié",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"14%","percent":14.0}},
+            {"published_name":"François Hollande","identity_id":"francois-hollande","result":{"kind":"exact","literal":"11%","percent":11.0}},
+            {"published_name":"Édouard Philippe","identity_id":"edouard-philippe","result":{"kind":"exact","literal":"20%","percent":20.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"13%","percent":13.0}},
+            {"published_name":"Sarah Knafo","identity_id":"sarah-knafo","result":{"kind":"exact","literal":"4%","percent":4.0}},
+            {"published_name":"Jordan Bardella","identity_id":"jordan-bardella","result":{"kind":"exact","literal":"37%","percent":37.0}}
+          ],
+          "reviewed_event_binding": null
+        },
+        {
+          "scenario_id": "10166a-first_round-p14-1",
+          "round": "first_round",
+          "table_evidence": {
+            "document_id": "10166a",
+            "page": 14
+          },
+          "published_column": "Publié",
+          "respondent_bases": {},
+          "rows": [
+            {"published_name":"Nathalie Arthaud","identity_id":"nathalie-arthaud","result":{"kind":"exact","literal":"1%","percent":1.0}},
+            {"published_name":"Jean-Luc Mélenchon","identity_id":"jean-luc-melenchon","result":{"kind":"exact","literal":"14%","percent":14.0}},
+            {"published_name":"François Hollande","identity_id":"francois-hollande","result":{"kind":"exact","literal":"13%","percent":13.0}},
+            {"published_name":"Gabriel Attal","identity_id":"gabriel-attal","result":{"kind":"exact","literal":"16%","percent":16.0}},
+            {"published_name":"Bruno Retailleau","identity_id":"bruno-retailleau","result":{"kind":"exact","literal":"13%","percent":13.0}},
+            {"published_name":"Sarah Knafo","identity_id":"sarah-knafo","result":{"kind":"exact","literal":"5%","percent":5.0}},
+            {"published_name":"Jordan Bardella","identity_id":"jordan-bardella","result":{"kind":"exact","literal":"38%","percent":38.0}}
+          ],
+          "reviewed_event_binding": null
+        }
+      ]
+    }
+  ]
+}
