@@ -15,6 +15,10 @@ cache path is shipped. Methodology and non-expression context reference pages
 voters. The questionnaire's blank/invalid and abstention options are preserved
 as contextual labels, without inventing candidate scores or numerical identities.
 
+The institute browsing card's displayed period covers its combined numerical and
+source-scenario entries. Numerical institute metrics, analytical periods and
+candidate headline indicators continue to use numerical observations only.
+
 ## Review pins and boundaries
 
 `poll_source_tables.json` extends the existing reviewed collection from three
@@ -82,7 +86,7 @@ python -B -m unittest -v test_poll_pages.CnewsSourcePublicationTests
 The usual publication-manifest finalization follows route/sitemap generation.
 This adds no scheduling, ingestion hooks or workflow changes. Publication can
 rebuild the frozen documentary pages; it does not discover or import polls.
-No analytics builder reads this source collection. Bounded values lack an exact
+Numerical analytics do not consume this source collection. Bounded values lack an exact
 `percent` and the whole table is excluded from numerical comparisons, including
 when the exact subtotal is 100. The Phase 2B diagnostic and its historical pins
 are unchanged: documentary publication does not turn either scenario into a
@@ -93,3 +97,28 @@ The public page states are `SOURCE_DOCUMENT_VERIFIED`,
 review builds, “published” describes the generated public page representation;
 deployment still requires separate review. The known false Commission 10319
 association remains untouched and needs a separate reviewed correction.
+
+## Phase 3B browsing projection
+
+`build_poll_explorer.py` projects only the authenticated 10319 and 10333 records
+into the additive `source_scenarios` read-model array. Original numerical
+`waves`, `candidates`, `institutes`, metrics and event IDs retain their semantics.
+A source scenario reuses its reviewed source-table ID and official notice ID;
+it has no numerical `event_id`, `wave_id`, `scenarios` vector or scalar `score`.
+All candidate values, including exact values, remain under typed `result`
+objects. `analysis_eligible` is false for the whole source scenario.
+
+The latest-polls, complete, institute and candidate browsing views combine the
+two entry types chronologically. Static and JavaScript directories expose the
+same source scenarios, commissioner/status and existing bilingual detail links.
+Candidate browsing displays published literals, including Lisnard's 4% and 6%
+and all three `<1%` rows, without treating them as numerical observations.
+Counts distinguish numerical waves/scenarios from reviewed source scenarios.
+
+Charts, ranges, comparisons, candidate picker/headline indicators and runoffs
+continue to use numerical inputs exclusively. Documentary candidates outside
+the active numerical picker can still be browsed; browsing does not add them
+to a numerical comparison. Future analytical admission requires a separate
+verified typed-score contract. No PDF is fetched or parsed by this projection,
+and the source collection pin, source-page records and Phase 2B diagnostic are
+unchanged. The two first-round numerical gaps remain open.

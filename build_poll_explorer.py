@@ -1,8 +1,9 @@
 """Build the deterministic FR27 Polling Lab explorer payload.
 
 The builder is intentionally network-free. It derives the standalone polling
-explorer contract entirely from polls.json while reusing the exact first-round
-wave grouping semantics already used by Race at a Glance.
+numerical explorer contract from polls.json while reusing the exact first-round
+wave grouping semantics already used by Race at a Glance. Two authenticated
+source scenarios are projected separately for browsing, never numerical analysis.
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from build_candidate_signals import (
 )
 from candidate_identity import CandidateIdentityError, candidate_id, canonical_candidate_name
 from poll_ballot_labels import RN_CONDITIONAL_OPTION, RN_CONDITIONAL_DISPLAY_NAMES
+from poll_source_tables import load_source_tables, digest as source_digest
 
 
 SCHEMA_VERSION = "1.0"
@@ -269,6 +271,64 @@ def poll_wave_page_paths(
     )
 
 
+def reviewed_source_scenarios() -> list[dict[str, Any]]:
+    """Finite browsing projection of the two already-reviewed CNEWS tables.
+
+    These objects deliberately have neither wave/event IDs nor scalar scores.
+    Exact published values remain typed results too; none are analytics inputs.
+    """
+    record = load_source_tables()
+    projected = []
+    for notice in ("10319", "10333"):
+        entry = record["tables"][notice]
+        table = entry["table"]
+        page = record["standalone_pages"][notice]
+        candidates = []
+        for row in table["rows"]:
+            name = canonical_candidate_name(row["published_name"])
+            identifier = candidate_id(name)
+            if identifier != row["identity_id"]:
+                raise PollExplorerError("Reviewed source candidate identity changed")
+            candidates.append({
+                "candidate_id": identifier, "candidate_name": name,
+                "published_candidate_name": row["published_name"],
+                "identity_type": "person", "result": dict(row["result"]),
+            })
+        bases = {b["scope"]: b["count"] for b in table["respondent_bases"]}
+        projected.append({
+            "kind": "reviewed_source_scenario",
+            "round": table["round"],
+            "source_scenario_id": table["source_table_id"],
+            "survey_id": table["notice"]["notice_id"], "notice_id": notice,
+            "evidence_status": "SOURCE_DOCUMENT_VERIFIED", "analysis_eligible": False,
+            "record_sha256": entry["record_sha256"], "source": dict(table["source"]),
+            "pollster": table["institute"], "commissioner": table["commissioner"],
+            "publication_date": table["publication_date"],
+            "fieldwork_start": table["fieldwork_start"], "fieldwork_end": table["fieldwork_end"],
+            "respondent_bases": bases,
+            "page_path_fr": page["page_path_fr"], "page_path_en": page["page_path_en"],
+            "candidate_ids": [c["candidate_id"] for c in candidates], "candidates": candidates,
+        })
+    return projected
+
+
+def directory_entries(waves, source_scenarios=None):
+    """Merge for browsing only; never use this list for numerical analysis."""
+    approved = reviewed_source_scenarios()
+    sources = approved if source_scenarios is None else source_scenarios
+    identities = [s["source_scenario_id"] for s in sources]
+    surveys = [s["survey_id"] for s in sources]
+    if len(set(identities)) != len(identities) or len(set(surveys)) != len(surveys):
+        raise PollExplorerError("Duplicate reviewed source scenario/survey")
+    if source_digest(sources) != source_digest(approved):
+        raise PollExplorerError("Unreviewed source scenario projection")
+    return sorted([*waves, *sources], key=lambda entry: (
+        -int(entry["fieldwork_end"].replace("-", "")),
+        french_compatible_sort_key(entry["pollster"]),
+        entry.get("wave_id", entry.get("source_scenario_id")),
+    ))
+
+
 def build_poll_explorer(polls: Any) -> dict[str, Any]:
     indexed_events = validated_first_round_events(polls)
     packages = build_poll_packages(polls)
@@ -438,6 +498,7 @@ def build_poll_explorer(polls: Any) -> dict[str, Any]:
         "candidates": candidates,
         "institutes": institutes,
         "waves": waves,
+        "source_scenarios": reviewed_source_scenarios(),
     }
     return payload
 

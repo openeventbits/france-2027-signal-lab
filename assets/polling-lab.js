@@ -10,6 +10,13 @@
 
   const UI_TEXT = Object.freeze({
     fr: Object.freeze({
+      sourceScenario: "SCÉNARIO SOURCE VÉRIFIÉ",
+      sourceScenarios: "scénarios sources vérifiés",
+      numericalWaves: "vagues numériques",
+      numericalResults: "Observations numériques",
+      sourceBoundary: "Les scénarios sources sont consultables ici ; les graphiques et comparaisons utilisent uniquement les observations numériques.",
+      noNumericalObservation: "Aucune observation numérique",
+      adults: "adultes",
       noPublishedScore: "AUCUN SCORE PUBLIÉ",
       maximumFive: "MAXIMUM 5",
       addCandidate: "+ AJOUTER UN CANDIDAT",
@@ -67,7 +74,7 @@
       pollsters: "INSTITUTS",
       collapseDirectory: "RÉDUIRE LE RÉPERTOIRE",
       showRemainingPrefix: "AFFICHER LES",
-      remainingWaves: "VAGUES RESTANTES",
+      remainingWaves: "ENTRÉES RESTANTES",
       removeCandidate: "Retirer",
       publishedLabel: "LIBELLÉ PUBLIÉ",
       selectedCandidateLegend: "CANDIDAT SÉLECTIONNÉ",
@@ -103,6 +110,13 @@
       candidateUniverseHttpError: "Réponse univers candidats HTTP"
     }),
     en: Object.freeze({
+      sourceScenario: "VERIFIED SOURCE SCENARIO",
+      sourceScenarios: "verified source scenarios",
+      numericalWaves: "numerical waves",
+      numericalResults: "Numerical observations",
+      sourceBoundary: "Source scenarios can be inspected here; charts and comparisons use numerical observations only.",
+      noNumericalObservation: "No numerical observation",
+      adults: "adults",
       noPublishedScore: "NO PUBLISHED SCORE",
       maximumFive: "MAXIMUM 5",
       addCandidate: "+ ADD CANDIDATE",
@@ -160,7 +174,7 @@
       pollsters: "POLLSTERS",
       collapseDirectory: "COLLAPSE DIRECTORY",
       showRemainingPrefix: "SHOW",
-      remainingWaves: "REMAINING WAVES",
+      remainingWaves: "REMAINING ENTRIES",
       removeCandidate: "Remove",
       publishedLabel: "PUBLISHED LABEL",
       selectedCandidateLegend: "SELECTED CANDIDATE",
@@ -244,7 +258,7 @@
     if (!isObject(data)) throw new Error(uiText("invalidDataObject"));
     if (data.schema_version !== "1.0") throw new Error(uiText("unsupportedDataVersion"));
     if (!isObject(data.metrics)) throw new Error(uiText("missingMetrics"));
-    if (!Array.isArray(data.candidates) || !Array.isArray(data.institutes) || !Array.isArray(data.waves)) {
+    if (!Array.isArray(data.candidates) || !Array.isArray(data.institutes) || !Array.isArray(data.waves) || !Array.isArray(data.source_scenarios)) {
       throw new Error(uiText("incompleteDirectories"));
     }
 
@@ -264,6 +278,7 @@
         || !wave.page_path_fr.startsWith("/sondages/")
         || !wave.page_path_en.startsWith("/en/sondages/")
         || !Array.isArray(wave.scenarios)
+        || Object.hasOwn(wave, "source_scenario_id")
       ) {
         throw new Error(uiText("malformedWave"));
       }
@@ -275,9 +290,78 @@
         }
         if (eventIds.has(scenario.event_id)) throw new Error(uiText("duplicateScenarioId"));
         eventIds.add(scenario.event_id);
+        if (scenario.candidates.some((candidate) => typeof candidate.score !== "number" || !Number.isFinite(candidate.score) || Object.hasOwn(candidate, "result"))) {
+          throw new Error(uiText("malformedScenario"));
+        }
       }
     }
+    const sourceIds = new Set();
+    const sourceSurveys = new Set();
+    for (const entry of data.source_scenarios) {
+      if (!isSourceScenario(entry) || entry.round !== "first_round" || entry.analysis_eligible !== false
+          || !["10319", "10333"].includes(entry.notice_id) || entry.survey_id !== `commission:${entry.notice_id}`
+          || !/^fr27-source-table-v1:[a-f0-9]{64}$/.test(entry.source_scenario_id)
+          || entry.evidence_status !== "SOURCE_DOCUMENT_VERIFIED"
+          || entry.pollster !== "OpinionWay" || entry.commissioner !== "CNEWS"
+          || !/^[a-f0-9]{64}$/.test(entry.record_sha256) || !/^[a-f0-9]{64}$/.test(entry.source?.pdf_sha256)
+          || entry.page_path_fr !== `/sondages/documents/opinionway-cnews-${entry.notice_id}/`
+          || entry.page_path_en !== `/en/sondages/documents/opinionway-cnews-${entry.notice_id}/`
+          || !/^\d{4}-\d{2}-\d{2}$/.test(entry.fieldwork_start) || !/^\d{4}-\d{2}-\d{2}$/.test(entry.fieldwork_end)
+          || ["event_id", "wave_id", "scenarios", "score"].some((key) => Object.hasOwn(entry, key))
+          || !Array.isArray(entry.candidates) || entry.candidates.length !== 13) {
+        throw new Error("Invalid reviewed source scenario");
+      }
+      if (sourceIds.has(entry.source_scenario_id) || sourceSurveys.has(entry.survey_id)) throw new Error("Duplicate source scenario/survey");
+      sourceIds.add(entry.source_scenario_id);
+      sourceSurveys.add(entry.survey_id);
+      const ids = new Set();
+      for (const candidate of entry.candidates) {
+        const result = candidate.result;
+        const exact = result?.kind === "exact" && typeof result.percent === "number" && Number.isFinite(result.percent)
+          && result.percent >= 0 && result.percent <= 100 && /^\d+(?:[.,]\d+)?%$/.test(result.literal)
+          && Number(result.literal.slice(0, -1).replace(",", ".")) === result.percent && !Object.hasOwn(result, "upper_percent");
+        const bound = result?.kind === "strict_upper_bound" && result.upper_percent === 1 && result.literal === "<1%" && !Object.hasOwn(result, "percent");
+        if (typeof candidate.candidate_id !== "string" || typeof candidate.candidate_name !== "string"
+            || candidate.identity_type !== "person" || ids.has(candidate.candidate_id)
+            || Object.hasOwn(candidate, "score") || (!exact && !bound)) throw new Error("Invalid typed source result");
+        ids.add(candidate.candidate_id);
+      }
+      if (JSON.stringify([...ids]) !== JSON.stringify(entry.candidate_ids)) throw new Error("Source candidate configuration changed");
+    }
     return data;
+  }
+
+  function isSourceScenario(entry) {
+    return entry?.kind === "reviewed_source_scenario";
+  }
+
+  function directoryEntries() {
+    // This union is for directories only. Analytics continue to read data.waves.
+    return [...state.data.waves, ...state.data.source_scenarios].sort((a, b) =>
+      b.fieldwork_end.localeCompare(a.fieldwork_end) || a.pollster.localeCompare(b.pollster, "fr")
+      || (a.wave_id || a.source_scenario_id).localeCompare(b.wave_id || b.source_scenario_id)
+    );
+  }
+
+  function directoryPollster(entry) {
+    return isSourceScenario(entry) ? `${entry.pollster} / ${entry.commissioner}` : entry.pollster;
+  }
+
+  function sourceStatus(entry) {
+    return `${uiText("sourceScenario")} · Notice ${entry.notice_id}`;
+  }
+
+  function directoryCounts(entries) {
+    const sources = entries.filter(isSourceScenario).length;
+    return `${formatInteger(entries.length - sources)} ${uiText("numericalWaves")}${sources ? ` + ${formatInteger(sources)} ${uiText("sourceScenarios")}` : ""}`;
+  }
+
+  function browseCandidates() {
+    const candidates = new Map(state.pickerCandidates.map((candidate) => [candidate.candidate_id, candidate]));
+    for (const source of state.data.source_scenarios) for (const candidate of source.candidates) {
+      if (!candidates.has(candidate.candidate_id)) candidates.set(candidate.candidate_id, candidate);
+    }
+    return [...candidates.values()];
   }
 
   function formatDate(iso, options = {}) {
@@ -604,6 +688,7 @@
   }
 
   function scoreObservationsForWave(wave, candidateId) {
+    if (isSourceScenario(wave)) return [];
     const observations = [];
     for (const scenario of wave.scenarios) {
       const candidate = scenario.candidates.find(
@@ -1200,6 +1285,7 @@
   }
 
   function rangeRowsForWave(wave) {
+    if (isSourceScenario(wave)) return [];
     const observed = new Map();
     for (const scenario of wave.scenarios) {
       for (const candidate of scenario.candidates) {
@@ -1318,7 +1404,7 @@
       createWavePageLink(
         wave,
         uiText("openPoll"),
-        "polling-wave-open-link"
+        isSourceScenario(wave) ? "polling-source-open-link polling-wave-open-link" : "polling-wave-open-link"
       )
     );
 
@@ -1340,13 +1426,14 @@
     thead.append(headerRow);
 
     const tbody = document.createElement("tbody");
-    for (const wave of state.data.waves.slice(0, LATEST_WAVE_LIMIT)) {
+    for (const wave of directoryEntries().slice(0, LATEST_WAVE_LIMIT)) {
       const row = document.createElement("tr");
+      if (isSourceScenario(wave)) row.dataset.sourceScenarioId = wave.source_scenario_id;
       const values = [
         `${formatDate(wave.fieldwork_start, { short: true })}–${formatDate(wave.fieldwork_end, { short: true })}`,
-        wave.pollster,
-        formatInteger(wave.scenario_count),
-        wave.sample_size == null ? "—" : formatInteger(wave.sample_size),
+        directoryPollster(wave),
+        isSourceScenario(wave) ? uiText("sourceScenario") : formatInteger(wave.scenario_count),
+        isSourceScenario(wave) ? `${formatInteger(wave.respondent_bases.adults)} ${uiText("adults")}` : wave.sample_size == null ? "—" : formatInteger(wave.sample_size),
         formatInteger(wave.candidate_ids.length),
       ];
       const labels = [uiText("fieldwork"), uiText("pollster"), uiText("scenarios"), uiText("sample"), uiText("candidates")];
@@ -1394,11 +1481,12 @@
     const tbody = document.createElement("tbody");
     for (const wave of waves) {
       const row = document.createElement("tr");
+      if (isSourceScenario(wave)) row.dataset.sourceScenarioId = wave.source_scenario_id;
       const values = [
         `${formatDate(wave.fieldwork_start, { short: true })}–${formatDate(wave.fieldwork_end, { short: true })}`,
-        wave.pollster,
-        formatInteger(wave.scenario_count),
-        wave.sample_size == null ? "—" : formatInteger(wave.sample_size),
+        directoryPollster(wave),
+        isSourceScenario(wave) ? uiText("sourceScenario") : formatInteger(wave.scenario_count),
+        isSourceScenario(wave) ? `${formatInteger(wave.respondent_bases.adults)} ${uiText("adults")}` : wave.sample_size == null ? "—" : formatInteger(wave.sample_size),
         formatInteger(wave.candidate_ids.length),
       ];
       const labels = [uiText("fieldwork"), uiText("pollster"), uiText("scenarios"), uiText("sample"), uiText("candidates")];
@@ -1430,8 +1518,9 @@
   }
 
   function candidateBrowseWaves(candidateId) {
-    return state.data.waves.filter((wave) =>
-      wave.scenarios.some((scenario) =>
+    return directoryEntries().filter((wave) => isSourceScenario(wave)
+      ? wave.candidate_ids.includes(candidateId)
+      : wave.scenarios.some((scenario) =>
         scenario.candidates.some(
           (candidate) => candidate.identity_type === "person" && candidate.candidate_id === candidateId
         )
@@ -1440,6 +1529,7 @@
   }
 
   function candidateWaveScoreMeta(wave, candidateId) {
+    if (isSourceScenario(wave)) return null;
     const scores = [];
     for (const scenario of wave.scenarios) {
       const candidate = scenario.candidates.find(
@@ -1461,24 +1551,31 @@
 
     const summary = document.createElement("div");
     summary.className = "polling-browse-summary";
-    summary.innerHTML = `<strong>${formatInteger(state.data.metrics.wave_count)} ${uiPlural(state.data.metrics.wave_count, "wave", "waves")} · ${formatInteger(state.data.metrics.scenario_count)} ${uiPlural(state.data.metrics.scenario_count, "scenario", "scenarios")}</strong><span>${formatDate(state.data.metrics.period_start, { short: true })} → ${formatDate(state.data.metrics.period_end, { short: true })}</span>`;
+    summary.innerHTML = `<strong>${directoryCounts(directoryEntries())} · ${formatInteger(state.data.metrics.scenario_count)} ${uiText("numericalResults")}</strong><span>${formatDate(state.data.metrics.period_start, { short: true })} → ${formatDate(state.data.metrics.period_end, { short: true })}</span>`;
     wrapper.append(summary);
 
-    const visible = state.data.waves.slice(0, state.browseWaveLimit);
+    const entries = directoryEntries();
+    const visible = entries.slice(0, state.browseWaveLimit);
     wrapper.append(buildBrowseWaveTable(visible));
 
-    if (state.data.waves.length > 15) {
+    if (entries.length > 15) {
       const action = document.createElement("button");
       action.type = "button";
       action.className = "polling-browse-more";
       action.dataset.browseAction = "toggle-all-waves";
-      const expanded = state.browseWaveLimit >= state.data.waves.length;
+      const expanded = state.browseWaveLimit >= entries.length;
       action.textContent = expanded
         ? uiText("collapseDirectory")
-        : `${uiText("showRemainingPrefix")} ${formatInteger(state.data.waves.length - visible.length)} ${uiText("remainingWaves")}`;
+        : `${uiText("showRemainingPrefix")} ${formatInteger(entries.length - visible.length)} ${uiText("remainingWaves")}`;
       wrapper.append(action);
     }
     nodes.browsePanel.append(wrapper);
+  }
+
+  function directoryPeriod(entries) {
+    const starts = entries.map((entry) => entry.fieldwork_start).filter(Boolean).sort();
+    const ends = entries.map((entry) => entry.fieldwork_end).filter(Boolean).sort();
+    return { start: starts[0], end: ends[ends.length - 1] };
   }
 
   function renderBrowseInstitutes() {
@@ -1496,16 +1593,18 @@
       const title = document.createElement("strong");
       title.textContent = institute.name;
       const counts = document.createElement("span");
-      counts.textContent = `${formatInteger(institute.wave_count)} ${uiPlural(institute.wave_count, "waveLower", "wavesLower")} · ${formatInteger(institute.scenario_count)} ${uiPlural(institute.scenario_count, "scenarioLower", "scenariosLower")}`;
+      const entries = directoryEntries().filter((entry) => entry.pollster === institute.name);
+      counts.textContent = `${directoryCounts(entries)} · ${formatInteger(institute.scenario_count)} ${uiText("numericalResults")}`;
       const period = document.createElement("small");
-      period.textContent = `${formatDate(institute.first_observed, { short: true })} → ${formatDate(institute.last_observed, { short: true })}`;
+      const browsingPeriod = directoryPeriod(entries);
+      period.textContent = `${formatDate(browsingPeriod.start, { short: true })} → ${formatDate(browsingPeriod.end, { short: true })}`;
       button.append(title, counts, period);
       grid.append(button);
     }
     wrapper.append(grid);
 
     if (state.browseInstitute) {
-      const waves = state.data.waves.filter((wave) => wave.pollster === state.browseInstitute);
+      const waves = directoryEntries().filter((wave) => wave.pollster === state.browseInstitute);
       const detail = document.createElement("div");
       detail.className = "polling-browse-detail";
       const head = document.createElement("div");
@@ -1513,7 +1612,7 @@
       const title = document.createElement("strong");
       title.textContent = state.browseInstitute;
       const meta = document.createElement("span");
-      meta.textContent = `${formatInteger(waves.length)} ${uiPlural(waves.length, "waveLower", "wavesLower")}`;
+      meta.textContent = directoryCounts(waves);
       head.append(title, meta);
       detail.append(head, buildBrowseWaveTable(waves));
       wrapper.append(detail);
@@ -1527,7 +1626,7 @@
   }
 
   function renderCandidateBrowseDetail(candidateId) {
-    const candidate = candidateById(candidateId);
+    const candidate = candidateById(candidateId) || browseCandidates().find((item) => item.candidate_id === candidateId);
     if (!candidate) return null;
     const waves = candidateBrowseWaves(candidateId);
     const detail = document.createElement("div");
@@ -1541,30 +1640,36 @@
     const latest = state.latestPollMetaByCandidate.get(candidateId);
     const meta = document.createElement("span");
     meta.textContent = latest
-      ? `${pickerMetaText(candidateId)} · ${formatInteger(waves.length)} ${uiPlural(waves.length, "waveLower", "wavesLower")}`
-      : `${formatInteger(waves.length)} ${uiPlural(waves.length, "waveLower", "wavesLower")}`;
+      ? `${uiText("numericalResults")}: ${pickerMetaText(candidateId)} · ${directoryCounts(waves)}`
+      : directoryCounts(waves);
     identity.append(title, meta);
     const add = document.createElement("button");
     add.type = "button";
     add.className = "polling-browse-compare";
     add.dataset.browseCompareCandidate = candidateId;
-    add.disabled = state.selectedCandidateIds.includes(candidateId) || state.selectedCandidateIds.length >= MAX_SELECTED_CANDIDATES;
+    add.disabled = !state.pickerCandidates.some((item) => item.candidate_id === candidateId) || state.selectedCandidateIds.includes(candidateId) || state.selectedCandidateIds.length >= MAX_SELECTED_CANDIDATES;
     add.textContent = state.selectedCandidateIds.includes(candidateId) ? uiText("alreadySelected") : uiText("addToComparison");
     head.append(identity, add);
     detail.append(head);
+    const boundary = document.createElement("p");
+    boundary.className = "polling-browse-hint";
+    boundary.textContent = uiText("sourceBoundary");
+    detail.append(boundary);
 
     const rows = document.createElement("div");
     rows.className = "polling-browse-candidate-waves";
     for (const wave of waves) {
-      const scoreMeta = candidateWaveScoreMeta(wave, candidateId);
-      if (!scoreMeta) continue;
+      const result = isSourceScenario(wave) ? wave.candidates.find((item) => item.candidate_id === candidateId)?.result : null;
+      const scoreMeta = isSourceScenario(wave) ? null : candidateWaveScoreMeta(wave, candidateId);
+      if (!scoreMeta && !result) continue;
       const row = document.createElement("div");
       row.className = "polling-browse-candidate-wave";
+      if (isSourceScenario(wave)) row.dataset.sourceScenarioId = wave.source_scenario_id;
       const date = document.createElement("span");
       date.append(
         createWavePageLink(
           wave,
-          formatDate(wave.fieldwork_end, { short: true })
+          isSourceScenario(wave) ? `${formatDate(wave.fieldwork_start, { short: true })}–${formatDate(wave.fieldwork_end, { short: true })}` : formatDate(wave.fieldwork_end, { short: true })
         )
       );
 
@@ -1572,15 +1677,15 @@
       pollster.append(
         createWavePageLink(
           wave,
-          wave.pollster
+          directoryPollster(wave)
         )
       );
       const score = document.createElement("span");
-      score.textContent = scoreMeta.minimum === scoreMeta.maximum
+      score.textContent = result ? result.literal : scoreMeta.minimum === scoreMeta.maximum
         ? formatScore(scoreMeta.minimum)
         : `${formatScore(scoreMeta.minimum)}–${formatScore(scoreMeta.maximum)}`;
       const tested = document.createElement("small");
-      tested.textContent = `${scoreMeta.scenarioCount} ${uiPlural(scoreMeta.scenarioCount, "scenarioLower", "scenariosLower")}`;
+      tested.textContent = result ? sourceStatus(wave) : `${scoreMeta.scenarioCount} ${uiPlural(scoreMeta.scenarioCount, "scenarioLower", "scenariosLower")}`;
       row.append(date, pollster, score, tested);
       rows.append(row);
     }
@@ -1594,7 +1699,7 @@
     const grid = document.createElement("div");
     grid.className = "polling-browse-candidate-grid";
 
-    for (const candidate of state.pickerCandidates) {
+    for (const candidate of browseCandidates()) {
       const meta = state.latestPollMetaByCandidate.get(candidate.candidate_id);
       const button = document.createElement("button");
       button.type = "button";
@@ -1604,10 +1709,10 @@
       const name = document.createElement("strong");
       name.textContent = candidate.candidate_name;
       const score = document.createElement("span");
-      score.textContent = pickerMetaText(candidate.candidate_id);
+      score.textContent = `${uiText("numericalResults")}: ${pickerMetaText(candidate.candidate_id)}`;
       const waves = document.createElement("small");
-      waves.textContent = `${formatInteger(candidate.wave_count)} ${uiPlural(candidate.wave_count, "waveLower", "wavesLower")}`;
-      if (!meta) score.textContent = uiText("noObservation");
+      waves.textContent = directoryCounts(candidateBrowseWaves(candidate.candidate_id));
+      if (!meta) score.textContent = uiText("noNumericalObservation");
       button.append(name, score, waves);
       grid.append(button);
     }
@@ -1631,9 +1736,9 @@
     for (const button of nodes.browseTabs.querySelectorAll("button[data-browse-mode]")) {
       button.setAttribute("aria-selected", String(button.dataset.browseMode === state.browseMode));
     }
-    nodes.browseCountAll.textContent = `${formatInteger(state.data.metrics.wave_count)} ${uiPlural(state.data.metrics.wave_count, "wave", "waves")}`;
+    nodes.browseCountAll.textContent = directoryCounts(directoryEntries());
     nodes.browseCountInstitutes.textContent = `${formatInteger(state.data.metrics.institute_count)} ${uiPlural(state.data.metrics.institute_count, "pollster", "pollsters")}`;
-    nodes.browseCountCandidates.textContent = `${formatInteger(state.pickerCandidates.length)} ${uiPlural(state.pickerCandidates.length, "candidate", "candidates")}`;
+    nodes.browseCountCandidates.textContent = `${formatInteger(browseCandidates().length)} ${uiPlural(browseCandidates().length, "candidate", "candidates")}`;
 
     if (state.browseMode === "institutes") renderBrowseInstitutes();
     else if (state.browseMode === "candidates") renderBrowseCandidates();
@@ -1712,7 +1817,7 @@
     nodes.browsePanel.addEventListener("click", (event) => {
       const action = event.target.closest("button[data-browse-action]");
       if (action?.dataset.browseAction === "toggle-all-waves") {
-        state.browseWaveLimit = state.browseWaveLimit >= state.data.waves.length ? 15 : state.data.waves.length;
+        state.browseWaveLimit = state.browseWaveLimit >= directoryEntries().length ? 15 : directoryEntries().length;
         renderBrowseExplorer();
         return;
       }

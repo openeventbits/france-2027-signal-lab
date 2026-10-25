@@ -856,7 +856,7 @@ class PollExplorerContractTests(unittest.TestCase):
             "EVIDENCE INSPECTOR",
             "SAME POLL · DIFFERENT BALLOTS",
             "VARIATION ACROSS PUBLISHED SCENARIOS",
-            "LATEST POLL WAVES",
+            "LATEST PUBLISHED POLLS",
             "EXPLORE POLLS",
             "NO POLLING AVERAGES",
             "NO FORECAST",
@@ -877,6 +877,77 @@ class PollExplorerContractTests(unittest.TestCase):
         )
         for phrase in forbidden_english_route_phrases:
             self.assertNotIn(phrase, en)
+
+
+class ReviewedSourceProjectionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.payload = explorer.build_poll_explorer(explorer.load_polls(ROOT / 'polls.json'))
+        cls.sources = cls.payload['source_scenarios']
+
+    def test_only_two_authenticated_published_configurations_are_projected(self):
+        from poll_source_tables import load_source_tables
+        record = load_source_tables()
+        self.assertEqual({s['notice_id'] for s in self.sources}, {'10319', '10333'})
+        for source in self.sources:
+            entry = record['tables'][source['notice_id']]
+            self.assertEqual(source['source_scenario_id'], entry['table']['source_table_id'])
+            self.assertEqual(source['record_sha256'], entry['record_sha256'])
+            self.assertEqual([c['result'] for c in source['candidates']], [r['result'] for r in entry['table']['rows']])
+            self.assertEqual([c['candidate_id'] for c in source['candidates']], [r['identity_id'] for r in entry['table']['rows']])
+            self.assertEqual(len(source['candidates']), 13)
+            self.assertFalse(source['analysis_eligible'])
+            self.assertFalse({'wave_id', 'event_id', 'scenarios'} & source.keys())
+            self.assertTrue(all('score' not in c for c in source['candidates']))
+
+    def test_exact_results_bounds_and_bases_remain_typed(self):
+        sources = {s['notice_id']: s for s in self.sources}
+        self.assertEqual([next(c['result']['literal'] for c in sources[n]['candidates'] if c['candidate_id']=='david-lisnard') for n in ['10319','10333']], ['4%','6%'])
+        bounds = [c['result'] for s in self.sources for c in s['candidates'] if c['result']['kind']=='strict_upper_bound']
+        self.assertEqual(len(bounds), 3)
+        self.assertTrue(all(b=={'kind':'strict_upper_bound','upper_percent':1.0,'literal':'<1%'} for b in bounds))
+        self.assertNotIn('expressed_certain_voters', sources['10319']['respondent_bases'])
+        self.assertEqual(sources['10333']['respondent_bases']['expressed_certain_voters'], 680)
+
+    def test_browsing_is_chronological_and_does_not_merge_presitrack(self):
+        entries = explorer.directory_entries(self.payload['waves'], self.sources)
+        self.assertEqual(len(entries), len(self.payload['waves'])+2)
+        self.assertEqual([e['fieldwork_end'] for e in entries], sorted([e['fieldwork_end'] for e in entries],reverse=True))
+        reference = explorer.directory_entries(self.payload['waves'][:2], self.sources)
+        self.assertEqual({e['notice_id'] for e in reference[:10] if 'source_scenario_id' in e}, {'10319','10333'})
+        same_dates = [e for e in entries if e['pollster']=='OpinionWay' and e['fieldwork_end']=='2026-10-14']
+        self.assertEqual(len(same_dates), 2)
+        self.assertEqual(sum('wave_id' in e for e in same_dates), 1)
+        self.assertEqual([e for e in entries if 'wave_id' in e], self.payload['waves'])
+
+    def test_duplicate_or_modified_source_projections_fail_closed(self):
+        for change in ('duplicate', 'score', 'candidate', 'source', 'base'):
+            sources = copy.deepcopy(self.sources)
+            if change=='duplicate': sources.append(sources[0])
+            if change=='score': sources[0]['candidates'][0]['result']['percent']=0.5
+            if change=='candidate': sources[0]['candidates'][0]['candidate_id']='someone-else'
+            if change=='source': sources[0]['source']['pdf_sha256']='0'*64
+            if change=='base': sources[0]['respondent_bases']['adults']=731
+            with self.subTest(change=change), self.assertRaises(explorer.PollExplorerError):
+                explorer.directory_entries(self.payload['waves'],sources)
+
+    def test_no_new_source_evidence_is_extracted_or_numeric_metrics_recounted(self):
+        from unittest.mock import patch
+        original = copy.deepcopy(self.payload)
+        with patch.object(explorer, 'reviewed_source_scenarios', return_value=[]):
+            numerical = explorer.build_poll_explorer(explorer.load_polls(ROOT/'polls.json'))
+        self.assertEqual({k:v for k,v in original.items() if k!='source_scenarios'}, {k:v for k,v in numerical.items() if k!='source_scenarios'})
+        with patch.object(explorer, 'load_source_tables', side_effect=ValueError('evidence changed')):
+            with self.assertRaisesRegex(ValueError, 'evidence changed'):
+                explorer.build_poll_explorer(explorer.load_polls(ROOT/'polls.json'))
+
+    def test_real_javascript_browsing_and_analytics_boundaries(self):
+        import shutil
+        import subprocess
+        node = shutil.which('node')
+        self.assertIsNotNone(node, 'Node is required for Polling Lab behavior checks')
+        result = subprocess.run([node, str(ROOT/'test_poll_source_projection.js')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
 
 
 if __name__ == "__main__":
