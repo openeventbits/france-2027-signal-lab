@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+from unittest.mock import patch
+from lxml import html
+import poll_source_tables as source
+import build_poll_hub_static_links as hubs
+import build_route_registry as routes
+import build_sitemaps as sitemaps
 import json
 import re
 import tempfile
@@ -1154,6 +1161,8 @@ class ExceptionalSourceTableTests(unittest.TestCase):
             "10327": (14, "39b82377458a44db5c7de3ad95ca4f7938f87dd791163083206538c32795fac5"),
             "10264": (12, "3e427407804098116e859a47f1ba3b0d0428145714b35c593e900e800768cd27"),
             "10260": (14, "bcc6f5e46048615f31188b9d98cd708339f276e8fe959d3c9c1b5833a1d58b0c"),
+            "10319": (12, "c66cc3da2bcdbf8cfcf5d93552242d8a20b09554eecee399be458e90282a079d"),
+            "10333": (12, "cfe91916d69dc57bb57aa4979f09d00430bd25983a0ee77d087a0cab7020df94"),
         }
         self.assertEqual(set(self.record["tables"]), set(expected))
         self.assertEqual(set(self.record["existing_pages"]), {"10327", "10260"})
@@ -1292,6 +1301,173 @@ class ExceptionalSourceTableTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "-B", "-S", "-c", code],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class CnewsSourcePublicationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.record = source.load_source_tables()
+        cls.review = json.loads((ROOT / 'fr27_reviewed_scenario_manifest.json').read_text(encoding='utf-8'))
+        cls.explorer = json.loads((ROOT / 'poll_explorer.json').read_text(encoding='utf-8'))
+
+    def test_reviewed_transcriptions_and_candidate_identities_are_exact(self):
+        for notice in ('10319', '10333'):
+            survey = next(s for s in self.review['surveys'] if s['document_id'] == notice)
+            scenario = next(s for s in survey['scenarios'] if s['round'] == 'first_round')
+            table = self.record['tables'][notice]['table']
+            self.assertEqual(table['rows'], scenario['rows'])
+            self.assertEqual(len(table['rows']), 13)
+            self.assertEqual(len({r['identity_id'] for r in table['rows']}), 13)
+            self.assertEqual(table['source']['published_column'], scenario['published_column'])
+            self.assertEqual(table['reviewed_scenario_id'], scenario['scenario_id'])
+            self.assertEqual(table['commissioner'], 'CNEWS')
+            self.assertEqual(table['numerical_comparisons'], 'excluded_whole_table')
+
+    def test_all_three_strict_bounds_have_no_exact_numeric_value(self):
+        bounds = [(n, r['identity_id'], r['result']) for n in ('10319', '10333')
+                  for r in self.record['tables'][n]['table']['rows'] if r['result']['kind'] != 'exact']
+        self.assertEqual([(n, identity) for n, identity, _ in bounds], [
+            ('10319', 'karim-bouamrane'), ('10333', 'nathalie-arthaud'), ('10333', 'karim-bouamrane')])
+        for _, _, result in bounds:
+            self.assertEqual(result, {'kind': 'strict_upper_bound', 'literal': '<1%', 'upper_percent': 1.0})
+            self.assertNotIn('percent', result)
+
+    def test_authentication_of_external_pdf_cache_is_fail_closed(self):
+        # Controlled document bytes, never copies or substitutes for originals.
+        record = copy.deepcopy(self.record)
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory)
+            for n in record['standalone_pages']:
+                raw = ('controlled source ' + n).encode()
+                (cache / (n + '.pdf')).write_bytes(raw)
+                record['tables'][n]['table']['source']['pdf_sha256'] = hashlib.sha256(raw).hexdigest()
+            with patch.object(source, 'load_source_tables', return_value=record):
+                self.assertEqual(len(source.authenticate_source_documents(cache)), 2)
+                (cache / '10319.pdf').write_bytes(b'changed source')
+                with self.assertRaisesRegex(ValueError, 'document changed: 10319'):
+                    source.authenticate_source_documents(cache)
+                (cache / '10319.pdf').unlink()
+                with self.assertRaises(FileNotFoundError):
+                    source.authenticate_source_documents(cache)
+
+    def test_published_row_source_population_or_route_changes_require_new_review(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'tables.json'
+            for change in ('literal', 'score', 'candidate', 'base', 'source', 'column', 'commissioner', 'route'):
+                with self.subTest(change=change):
+                    record = copy.deepcopy(self.record)
+                    table = record['tables']['10333']['table']
+                    if change == 'literal': table['rows'][0]['result']['literal'] = '0%'
+                    if change == 'score': table['rows'][1]['result']['percent'] = 17
+                    if change == 'candidate': table['rows'].pop()
+                    if change == 'base': table['respondent_bases'][0]['count'] = 731
+                    if change == 'source': table['source']['pdf_sha256'] = '0' * 64
+                    if change == 'column': table['source']['published_column'] = 'Brut'
+                    if change == 'commissioner': table['commissioner'] = 'Les Échos / Radio Classique'
+                    if change == 'route': record['standalone_pages']['10264'] = record['standalone_pages']['10333']
+                    path.write_text(json.dumps(record), encoding='utf-8')
+                    with self.assertRaisesRegex(ValueError, 'evidence changed'):
+                        source.load_source_tables(path)
+                    if change != 'route':
+                        # Changing only the collection pin cannot bypass the individual row pin.
+                        with patch.object(source, 'RECORD_SHA256', source.digest(record)):
+                            with self.assertRaisesRegex(ValueError, 'source table changed'):
+                                source.load_source_tables(path)
+
+    def test_individual_prior_records_keep_their_approved_hashes(self):
+        expected = {'10327': '20f19e4d8d2200408f23700bab1fe7108ace220152e81ad15f8d5564ecd00970',
+                    '10260': '535cb08075a8c3bb1eb9b8d9ddd0178b7296308872490e546e03c19250369788',
+                    '10264': '90fd17b6433f8af12e7fa0cd4914b142e91148e8da8d5e4d5c97e9f1feaacc70'}
+        # Bonnal's original pin is also authenticated by the collection's prior hash.
+        previous = {k: v for k, v in self.record.items() if k not in ('extension_review', 'standalone_pages')}
+        previous['tables'] = {k: v for k, v in previous['tables'].items() if k in expected}
+        self.assertEqual(source.digest(previous), '4ede22b9d7973257cedd2f76ff0edeb137ff43d8e67ca946800d7251d76eb526')
+        for n in expected:
+            self.assertEqual(self.record['tables'][n]['record_sha256'], expected[n])
+
+    def test_bases_population_nonexpression_and_weighting_are_distinct(self):
+        for n, expected in [('10319', [1043, 978, 731]), ('10333', [1033, 973, 731, 680])]:
+            table = self.record['tables'][n]['table']
+            self.assertEqual([b['count'] for b in table['respondent_bases']], expected)
+            self.assertEqual(table['methodology']['non_expression']['population_scope'], 'all_respondents')
+            self.assertEqual(table['methodology']['non_expression']['result']['literal'], '15%' if n == '10319' else '13%')
+            self.assertEqual(table['methodology']['expressed_base_status'], 'unverified' if n == '10319' else 'published')
+            self.assertEqual(table['questionnaire_other_options']['source_page'], 5)
+            self.assertFalse(table['questionnaire_other_options']['separate_candidate_scores'])
+
+    def test_four_pages_are_literal_bilingual_canonical_and_documentary(self):
+        for page in source.published_source_pages():
+            n = page['notice_id']
+            table = self.record['tables'][n]['table']
+            for language in ('fr', 'en'):
+                rendered = pages.render_published_source_page(n, language=language)
+                tree = html.fromstring(rendered)
+                self.assertEqual(tree.get('lang'), language)
+                canonical = 'https://france2027.app' + page[f'page_path_{language}']
+                self.assertEqual(tree.xpath('//link[@rel="canonical"]/@href'), [canonical])
+                self.assertEqual(dict(zip(tree.xpath('//link[@rel="alternate"]/@hreflang'), tree.xpath('//link[@rel="alternate"]/@href'))),
+                                 {'fr': 'https://france2027.app' + page['page_path_fr'], 'en': 'https://france2027.app' + page['page_path_en'], 'x-default': 'https://france2027.app' + page['page_path_fr']})
+                rows = tree.xpath('//tbody/tr')
+                self.assertEqual([(r.find('th').text_content(), r.find('td').text_content()) for r in rows],
+                                 [(r['published_name'], r['result']['literal']) for r in table['rows']])
+                self.assertEqual(len(rows), 13)
+                self.assertEqual(set(tree.xpath('//@data-coverage-state')), {'SOURCE_DOCUMENT_VERIFIED', 'DOCUMENTARY_COVERAGE_PUBLISHED', 'NUMERICAL_OBSERVATION_ABSENT'})
+                self.assertFalse(tree.xpath('//details[starts-with(@id,"scenario-")] | //script[@type="application/ld+json"]'))
+                self.assertIn(table['source']['pdf_url'] + '#page=12', tree.xpath('//a/@href'))
+                self.assertEqual(rendered, pages.render_published_source_page(n, language=language))
+                self.assertIn('candidate-app-hud', rendered.decode())
+                self.assertIn('candidate-masthead', rendered.decode())
+
+    def test_bonnal_has_no_public_renderer_or_routes(self):
+        with self.assertRaisesRegex(pages.PollPageError, 'no reviewed public route'):
+            pages.render_published_source_page('10264', language='fr')
+        with self.assertRaises(pages.PollPageError):
+            pages.render_published_source_page('10319', language='es')
+        self.assertEqual({p['notice_id'] for p in source.published_source_pages()}, {'10319', '10333'})
+
+    def test_manifest_routes_sitemap_and_hub_links_agree(self):
+        manifest = json.loads((ROOT / pages.MANIFEST_NAME).read_text(encoding='utf-8'))
+        registry = json.loads((ROOT / 'route_registry.json').read_text(encoding='utf-8'))
+        documentary = [r for r in registry['routes'] if r['kind'] == 'poll-source-evidence']
+        self.assertEqual(len(documentary), 4)
+        self.assertEqual(manifest['source_page_count'], 4)
+        self.assertEqual(manifest['wave_count'], len(self.explorer['waves']))
+        self.assertEqual(manifest['page_count'], 2 * len(self.explorer['waves']))
+        expected = {p[f'page_path_{lang}'] for p in source.published_source_pages() for lang in ('fr', 'en')}
+        self.assertEqual({r['path'] for r in documentary}, expected)
+        self.assertFalse(expected & {w[k] for w in self.explorer['waves'] for k in ('page_path_fr', 'page_path_en')})
+        xml = sitemaps.expected_artifacts(registry)
+        self.assertEqual(sum(v.count(('https://france2027.app' + path + '</loc>').encode()) for path in expected for v in xml.values()), 4)
+        for language in ('fr', 'en'):
+            tree = html.fromstring(hubs.HUBS[language].read_text(encoding='utf-8'))
+            links = tree.xpath('//*[@id="source-evidence"]//a/@href')
+            self.assertEqual(set(links), {p[f'page_path_{language}'] for p in source.published_source_pages()})
+            self.assertFalse(tree.xpath('//*[@data-static-poll-directory]//a[contains(@href,"/documents/")]'))
+            once = hubs.expected_document(hubs.HUBS[language], waves=self.explorer['waves'], language=language)
+            self.assertEqual(once, hubs.HUBS[language].read_text(encoding='utf-8'))
+
+    def test_reject_fabricated_manifest_route(self):
+        manifest = pages.manifest_payload(self.explorer['waves'])
+        manifest['source_pages'][0]['page_path_fr'] = '/sondages/fabricated/'
+        with self.assertRaisesRegex(routes.RouteRegistryError, 'Unreviewed'):
+            routes.discover_routes(manifest, json.loads((ROOT / 'candidate_candidacy_status.json').read_text(encoding='utf-8')), root=ROOT)
+
+    def test_no_analytics_or_ingestion_dependency_on_source_tables(self):
+        for name in ('fetch_polls.py', 'poll_contract.py', 'poll_migration.py', 'build_poll_explorer.py',
+                     'build_candidate_signals.py', 'assets/polling-lab.js'):
+            self.assertNotIn('poll_source_tables', (ROOT / name).read_text(encoding='utf-8'))
+        for page in source.published_source_pages():
+            self.assertNotIn(page['source_table_id'], json.dumps(self.explorer))
+
+    def test_unchanged_numeric_page_bytes_survive_windows_regeneration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'index.html'
+            original = b'<html>\r\nunchanged numerical page\r\n</html>\r\n'
+            path.write_bytes(original)
+            pages._atomic_write(path, original.replace(b'\r\n', b'\n'))
+            self.assertEqual(path.read_bytes(), original)
+            pages._atomic_write(path, b'<html>reviewed change</html>\n')
+            self.assertEqual(path.read_bytes(), b'<html>reviewed change</html>\n')
 
 
 if __name__ == "__main__":

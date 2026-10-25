@@ -1,4 +1,4 @@
-"""Three frozen, reviewed PDF tables for presentation only.
+"""Frozen, reviewed PDF tables for presentation only.
 
 No numerical observations, ingestion hooks, route registration or network I/O.
 The vendored records retain the original Phase 1 review and PDF content hashes.
@@ -10,7 +10,9 @@ import json
 from pathlib import Path
 
 RECORD_PATH = Path(__file__).with_name("poll_source_tables.json")
-RECORD_SHA256 = "4ede22b9d7973257cedd2f76ff0edeb137ff43d8e67ca946800d7251d76eb526"
+# Explicit Phase 3A collection extension pin; the three earlier record pins are
+# retained verbatim. No runtime repinning or source fetching is supported.
+RECORD_SHA256 = "2210c4943c4984099bf2c217433a8e4d4e0ed656052f5794c1c5c08c473c4737"
 
 
 def digest(value):
@@ -26,6 +28,30 @@ def load_source_tables(path=RECORD_PATH):
         if digest(entry["table"]) != entry["record_sha256"]:
             raise ValueError("Reviewed source table changed")
     return record
+
+
+def published_source_pages():
+    record = load_source_tables()
+    return [dict(page, notice_id=notice)
+            for notice, page in sorted(record["standalone_pages"].items())]
+
+
+def authenticate_source_documents(evidence_dir):
+    """Manually authenticate the two publication originals, without fetching.
+
+    Builders consume the frozen reviewed transcriptions; deployment does not
+    require a private PDF cache. This operator check authenticates that cache
+    before a documentary intake/review. Missing or changed bytes raise.
+    """
+    record = load_source_tables()
+    authenticated = {}
+    for notice in record["standalone_pages"]:
+        expected = record["tables"][notice]["table"]["source"]["pdf_sha256"]
+        actual = hashlib.sha256((Path(evidence_dir) / f"{notice}.pdf").read_bytes()).hexdigest()
+        if actual != expected:
+            raise ValueError(f"Original source document changed: {notice}")
+        authenticated[notice] = actual
+    return authenticated
 
 
 def numeric_context(wave):
@@ -56,6 +82,8 @@ def render_source_card(table, language, *, standalone=False):
         "10327": ("TABLEAU 6 SUR 8 DU PDF ORIGINAL", "TABLE 6 OF 8 IN THE ORIGINAL PDF"),
         "10260": ("HYPOTHÈSE 3 DU PDF ORIGINAL", "HYPOTHESIS 3 IN THE ORIGINAL PDF"),
         "10264": ("TABLEAU PUBLIÉ · PAGE 12", "PUBLISHED TABLE · PAGE 12"),
+        "10319": ("PREMIER TOUR · PAGE 12 · COLONNE PUBLIÉ", "FIRST ROUND · PAGE 12 · PUBLIÉ COLUMN"),
+        "10333": ("PREMIER TOUR · PAGE 12 · COLONNE PUBLIÉ", "FIRST ROUND · PAGE 12 · PUBLIÉ COLUMN"),
     }[notice][not fr]
     rows = []
     for row in table["rows"]:
@@ -100,3 +128,14 @@ def render_source_card(table, language, *, standalone=False):
         f'target="_blank" rel="noopener noreferrer">{"PDF ORIGINAL" if fr else "ORIGINAL PDF"} ↗</a>'
         '</div></div></details>'
     )
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Authenticate reviewed CNEWS originals from an external cache.")
+    parser.add_argument("--evidence-dir", type=Path, required=True)
+    arguments = parser.parse_args()
+    try:
+        print(json.dumps(authenticate_source_documents(arguments.evidence_dir), sort_keys=True))
+    except (OSError, ValueError) as error:
+        parser.exit(2, f"Source evidence authentication failed: {error}\n")

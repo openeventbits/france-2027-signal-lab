@@ -607,6 +607,443 @@
         },
         "numerical_comparisons": "excluded_whole_table"
       }
+    },
+    "10319": {
+      "record_sha256": "016881eef1a80903d7dc0a7d7f1148c86afe355739f2b87206b3723764bdb159",
+      "table": {
+        "schema_version": "1.0",
+        "review_decision_id": "FR27-PHASE3A-TABLE-10319-P12",
+        "notice": {
+          "notice_id": "commission:10319",
+          "title": "Sondage OpinionWay pour CNEWS — 2026-10-15",
+          "listed_date": "2026-10-15",
+          "listed_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10319-pres-iv-opinionway-cnews-15-octobre.pdf"
+        },
+        "source": {
+          "pdf_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10319-pres-iv-opinionway-cnews-15-octobre.pdf",
+          "pdf_sha256": "c66cc3da2bcdbf8cfcf5d93552242d8a20b09554eecee399be458e90282a079d",
+          "document_page_count": 16,
+          "pdf_page": 12,
+          "table_locator": "10319-first_round-p12-1",
+          "published_column": "Publié",
+          "unit": "percent"
+        },
+        "institute": "OpinionWay",
+        "commissioner": "CNEWS",
+        "publication_date": "2026-10-15",
+        "fieldwork_start": "2026-10-13",
+        "fieldwork_end": "2026-10-14",
+        "round": "first_round",
+        "reviewed_scenario_id": "10319-first_round-p12-1",
+        "rows": [
+          {
+            "published_name": "Nathalie Arthaud",
+            "identity_id": "nathalie-arthaud",
+            "result": {
+              "kind": "exact",
+              "literal": "1%",
+              "percent": 1.0
+            }
+          },
+          {
+            "published_name": "Jean-Luc Mélenchon",
+            "identity_id": "jean-luc-melenchon",
+            "result": {
+              "kind": "exact",
+              "literal": "15%",
+              "percent": 15.0
+            }
+          },
+          {
+            "published_name": "Fabien Roussel",
+            "identity_id": "fabien-roussel",
+            "result": {
+              "kind": "exact",
+              "literal": "1%",
+              "percent": 1.0
+            }
+          },
+          {
+            "published_name": "Marine Tondelier",
+            "identity_id": "marine-tondelier",
+            "result": {
+              "kind": "exact",
+              "literal": "2%",
+              "percent": 2.0
+            }
+          },
+          {
+            "published_name": "Raphaël Glucksmann",
+            "identity_id": "raphael-glucksmann",
+            "result": {
+              "kind": "exact",
+              "literal": "13%",
+              "percent": 13.0
+            }
+          },
+          {
+            "published_name": "Karim Bouamrane",
+            "identity_id": "karim-bouamrane",
+            "result": {
+              "kind": "strict_upper_bound",
+              "literal": "<1%",
+              "upper_percent": 1.0
+            }
+          },
+          {
+            "published_name": "Gabriel Attal",
+            "identity_id": "gabriel-attal",
+            "result": {
+              "kind": "exact",
+              "literal": "5%",
+              "percent": 5.0
+            }
+          },
+          {
+            "published_name": "Édouard Philippe",
+            "identity_id": "edouard-philippe",
+            "result": {
+              "kind": "exact",
+              "literal": "12%",
+              "percent": 12.0
+            }
+          },
+          {
+            "published_name": "Bruno Retailleau",
+            "identity_id": "bruno-retailleau",
+            "result": {
+              "kind": "exact",
+              "literal": "6%",
+              "percent": 6.0
+            }
+          },
+          {
+            "published_name": "David Lisnard",
+            "identity_id": "david-lisnard",
+            "result": {
+              "kind": "exact",
+              "literal": "4%",
+              "percent": 4.0
+            }
+          },
+          {
+            "published_name": "Nicolas Dupont-Aignan",
+            "identity_id": "nicolas-dupont-aignan",
+            "result": {
+              "kind": "exact",
+              "literal": "1%",
+              "percent": 1.0
+            }
+          },
+          {
+            "published_name": "Éric Zemmour",
+            "identity_id": "eric-zemmour",
+            "result": {
+              "kind": "exact",
+              "literal": "5%",
+              "percent": 5.0
+            }
+          },
+          {
+            "published_name": "Marine Le Pen",
+            "identity_id": "marine-le-pen",
+            "result": {
+              "kind": "exact",
+              "literal": "35%",
+              "percent": 35.0
+            }
+          }
+        ],
+        "respondent_bases": [
+          {
+            "scope": "adults",
+            "count": 1043,
+            "source_pages": [
+              3
+            ]
+          },
+          {
+            "scope": "registered_voters",
+            "count": 978,
+            "source_pages": [
+              3
+            ]
+          },
+          {
+            "scope": "certain_to_vote",
+            "count": 731,
+            "source_pages": [
+              4,
+              12
+            ]
+          }
+        ],
+        "population": {
+          "population_id": "fr_registered_adults",
+          "description": "French registered voters aged 18+, drawn from a representative national adult sample; vote-certainty and expressed bases are separate."
+        },
+        "questionnaire_other_options": {
+          "source_page": 5,
+          "published_labels": [
+            "Vous voteriez blanc ou nul",
+            "Vous vous abstiendriez"
+          ],
+          "separate_candidate_scores": false
+        },
+        "methodology": {
+          "collection_method": "Questionnaire auto-administré en ligne (CAWI) ; méthode des quotas (sexe, âge, catégorie socioprofessionnelle, catégorie d’agglomération, région).",
+          "source_pages": [
+            3
+          ],
+          "score_denominator": "candidate_shares_non_expression_reported_separately",
+          "published_base_label": "Personnes inscrites sur les listes électorales et certaines d’aller voter (9+10)",
+          "weighting": "Redressement sociodémographique + vote au premier tour de l’élection présidentielle de 2022 + vote au premier tour des élections législatives de 2024 sur les certains d’aller voter (note 9+10). La colonne Publié est conservée sans substitution par une colonne alternative.",
+          "weighting_pages": [
+            3
+          ],
+          "non_expression": {
+            "status": "published",
+            "result": {
+              "kind": "exact",
+              "percent": 15,
+              "literal": "15%"
+            },
+            "population_scope": "all_respondents",
+            "weighting": "Redressement sociodémographique sur la base de l’ensemble des répondants.",
+            "source_pages": [
+              3,
+              12
+            ]
+          },
+          "expressed_base_status": "unverified"
+        },
+        "evidence_limitations": [
+          "Boilerplate 903-person labels and template sample inconsistencies retained; not a respondent-base override. PrésiTrack notice p3 says 1001 adults but p9/report says 1043; CNEWS p3 says 1043. Same dates or apparent common respondents do not merge commissioning bodies."
+        ],
+        "numerical_comparisons": "excluded_whole_table",
+        "source_table_id": "fr27-source-table-v1:385d1d0f6593332475903234ddf1bb0c95622011241b9048bfd4bc7cf191ab9f"
+      }
+    },
+    "10333": {
+      "record_sha256": "409833c50d73fbab6bece3e72c0cd0945ab38403226cb9f27068d330498e0833",
+      "table": {
+        "schema_version": "1.0",
+        "review_decision_id": "FR27-PHASE3A-TABLE-10333-P12",
+        "notice": {
+          "notice_id": "commission:10333",
+          "title": "Sondage OpinionWay pour CNEWS — 2026-10-22",
+          "listed_date": "2026-10-22",
+          "listed_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10333-pres-iv-opinionway-cnews-22-octobre.pdf"
+        },
+        "source": {
+          "pdf_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10333-pres-iv-opinionway-cnews-22-octobre.pdf",
+          "pdf_sha256": "cfe91916d69dc57bb57aa4979f09d00430bd25983a0ee77d087a0cab7020df94",
+          "document_page_count": 16,
+          "pdf_page": 12,
+          "table_locator": "10333-first_round-p12-1",
+          "published_column": "Publié",
+          "unit": "percent"
+        },
+        "institute": "OpinionWay",
+        "commissioner": "CNEWS",
+        "publication_date": "2026-10-22",
+        "fieldwork_start": "2026-10-21",
+        "fieldwork_end": "2026-10-22",
+        "round": "first_round",
+        "reviewed_scenario_id": "10333-first_round-p12-1",
+        "rows": [
+          {
+            "published_name": "Nathalie Arthaud",
+            "identity_id": "nathalie-arthaud",
+            "result": {
+              "kind": "strict_upper_bound",
+              "literal": "<1%",
+              "upper_percent": 1.0
+            }
+          },
+          {
+            "published_name": "Jean-Luc Mélenchon",
+            "identity_id": "jean-luc-melenchon",
+            "result": {
+              "kind": "exact",
+              "literal": "16%",
+              "percent": 16.0
+            }
+          },
+          {
+            "published_name": "Fabien Roussel",
+            "identity_id": "fabien-roussel",
+            "result": {
+              "kind": "exact",
+              "literal": "1%",
+              "percent": 1.0
+            }
+          },
+          {
+            "published_name": "Marine Tondelier",
+            "identity_id": "marine-tondelier",
+            "result": {
+              "kind": "exact",
+              "literal": "1%",
+              "percent": 1.0
+            }
+          },
+          {
+            "published_name": "Raphaël Glucksmann",
+            "identity_id": "raphael-glucksmann",
+            "result": {
+              "kind": "exact",
+              "literal": "13%",
+              "percent": 13.0
+            }
+          },
+          {
+            "published_name": "Karim Bouamrane",
+            "identity_id": "karim-bouamrane",
+            "result": {
+              "kind": "strict_upper_bound",
+              "literal": "<1%",
+              "upper_percent": 1.0
+            }
+          },
+          {
+            "published_name": "Gabriel Attal",
+            "identity_id": "gabriel-attal",
+            "result": {
+              "kind": "exact",
+              "literal": "4%",
+              "percent": 4.0
+            }
+          },
+          {
+            "published_name": "Édouard Philippe",
+            "identity_id": "edouard-philippe",
+            "result": {
+              "kind": "exact",
+              "literal": "12%",
+              "percent": 12.0
+            }
+          },
+          {
+            "published_name": "Bruno Retailleau",
+            "identity_id": "bruno-retailleau",
+            "result": {
+              "kind": "exact",
+              "literal": "6%",
+              "percent": 6.0
+            }
+          },
+          {
+            "published_name": "David Lisnard",
+            "identity_id": "david-lisnard",
+            "result": {
+              "kind": "exact",
+              "literal": "6%",
+              "percent": 6.0
+            }
+          },
+          {
+            "published_name": "Nicolas Dupont-Aignan",
+            "identity_id": "nicolas-dupont-aignan",
+            "result": {
+              "kind": "exact",
+              "literal": "1%",
+              "percent": 1.0
+            }
+          },
+          {
+            "published_name": "Éric Zemmour",
+            "identity_id": "eric-zemmour",
+            "result": {
+              "kind": "exact",
+              "literal": "4%",
+              "percent": 4.0
+            }
+          },
+          {
+            "published_name": "Marine Le Pen",
+            "identity_id": "marine-le-pen",
+            "result": {
+              "kind": "exact",
+              "literal": "36%",
+              "percent": 36.0
+            }
+          }
+        ],
+        "respondent_bases": [
+          {
+            "scope": "adults",
+            "count": 1033,
+            "source_pages": [
+              3
+            ]
+          },
+          {
+            "scope": "registered_voters",
+            "count": 973,
+            "source_pages": [
+              3
+            ]
+          },
+          {
+            "scope": "certain_to_vote",
+            "count": 731,
+            "source_pages": [
+              4,
+              12
+            ]
+          },
+          {
+            "scope": "expressed_certain_voters",
+            "count": 680,
+            "source_pages": [
+              12
+            ]
+          }
+        ],
+        "population": {
+          "population_id": "fr_registered_adults",
+          "description": "French registered voters aged 18+, drawn from a representative national adult sample; vote-certainty and expressed bases are separate."
+        },
+        "questionnaire_other_options": {
+          "source_page": 5,
+          "published_labels": [
+            "Vous voteriez blanc ou nul",
+            "Vous vous abstiendriez"
+          ],
+          "separate_candidate_scores": false
+        },
+        "methodology": {
+          "collection_method": "Questionnaire auto-administré en ligne (CAWI) ; méthode des quotas (sexe, âge, catégorie socioprofessionnelle, catégorie d’agglomération, région).",
+          "source_pages": [
+            3
+          ],
+          "score_denominator": "candidate_shares_non_expression_reported_separately",
+          "published_base_label": "Personnes inscrites sur les listes électorales et certaines d’aller voter (9+10)",
+          "weighting": "Redressement sociodémographique + vote au premier tour de l’élection présidentielle de 2022 + vote au premier tour des élections législatives de 2024 sur les certains d’aller voter (note 9+10). La colonne Publié est conservée sans substitution par une colonne alternative.",
+          "weighting_pages": [
+            3
+          ],
+          "non_expression": {
+            "status": "published",
+            "result": {
+              "kind": "exact",
+              "percent": 13,
+              "literal": "13%"
+            },
+            "population_scope": "all_respondents",
+            "weighting": "Redressement sociodémographique sur la base de l’ensemble des répondants.",
+            "source_pages": [
+              3,
+              12
+            ]
+          },
+          "expressed_base_status": "published"
+        },
+        "evidence_limitations": [],
+        "numerical_comparisons": "excluded_whole_table",
+        "source_table_id": "fr27-source-table-v1:52b23f9e33beb09b00459c414cff38416711a71306ee84c11d1934c62e47ca3e"
+      }
     }
   },
   "existing_pages": {
@@ -617,6 +1054,24 @@
     "10260": {
       "wave_id": "wave-5cfde20f50cfb247",
       "numeric_context_sha256": "75c329deb60236247c4ee00ce5c41eb31d0492b94cdc58ff3faefdaf86c7c272"
+    }
+  },
+  "extension_review": {
+    "review_id": "FR27-PHASE3A-CNEWS-DOCUMENTARY-20261025",
+    "prior_collection_sha256": "4ede22b9d7973257cedd2f76ff0edeb137ff43d8e67ca946800d7251d76eb526",
+    "approved_manifest_sha256": "b9517b78cd5cd9aea6f797d9bfa60f4b12c1e3f67689714bbb2b6ecc12f4363a",
+    "scope": "10319 and 10333 first-round documentary publication only; no numerical admission"
+  },
+  "standalone_pages": {
+    "10319": {
+      "source_table_id": "fr27-source-table-v1:385d1d0f6593332475903234ddf1bb0c95622011241b9048bfd4bc7cf191ab9f",
+      "page_path_fr": "/sondages/documents/opinionway-cnews-10319/",
+      "page_path_en": "/en/sondages/documents/opinionway-cnews-10319/"
+    },
+    "10333": {
+      "source_table_id": "fr27-source-table-v1:52b23f9e33beb09b00459c414cff38416711a71306ee84c11d1934c62e47ca3e",
+      "page_path_fr": "/sondages/documents/opinionway-cnews-10333/",
+      "page_path_en": "/en/sondages/documents/opinionway-cnews-10333/"
     }
   }
 }
