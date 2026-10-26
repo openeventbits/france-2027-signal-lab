@@ -226,15 +226,19 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
 
-          git diff --check
+          git diff HEAD --check
 
           $changed =
-            @(git diff --name-only)
+            @(git diff HEAD --name-only)
 
           $allowedExact = @(
             "assets/og-cover.png",
             "en/index.html",
-            "index.html"
+            "index.html",
+            "sondages/documents/opinionway-cnews-10319/index.html",
+            "sondages/documents/opinionway-cnews-10333/index.html",
+            "en/sondages/documents/opinionway-cnews-10319/index.html",
+            "en/sondages/documents/opinionway-cnews-10333/index.html"
           )
 
           $unexpected =
@@ -269,7 +273,7 @@ jobs:
             throw "main moved during OG capture; run the workflow again"
           }
 
-          git add -- `
+          git add --update -- `
             assets/og-cover.png `
             en/index.html `
             index.html `
