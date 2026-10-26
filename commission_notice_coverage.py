@@ -18,6 +18,9 @@ RELEVANT_CLASSIFICATIONS = {"eligible", "unsupported"}
 BAROMETER_NOTICE_IDS = frozenset({"commission:10327", "commission:10284"})
 BAROMETER_REVIEW = Path(__file__).with_name("fr27_commission_barometer_review.json")
 BAROMETER_REVIEW_SHA256 = "f22afa82eb0bf8ecefae56e382d804a30715c71346b00ea445b0d6d1d61fe439"
+RECONCILIATION_NOTICE_IDS = frozenset({"commission:10332", "commission:10323", "commission:10319"})
+RECONCILIATION_REVIEW = Path(__file__).with_name("fr27_commission_reconciliation_review.json")
+RECONCILIATION_REVIEW_SHA256 = "fbf5f266752d44e59773d3485f8072219f90bee0ebadb9471b7b10e4eec97ff3"
 
 
 class CommissionCoverageError(ValueError):
@@ -283,24 +286,100 @@ def _reviewed_barometer_coverage(
             "method": "reviewed_barometer_complete_configurations"}
 
 
+def load_notice_reconciliation_review(path: Path = RECONCILIATION_REVIEW) -> dict[str, Any]:
+    """Authenticate the finite 26 October review; never derive or refresh pins."""
+    review = json.loads(Path(path).read_text(encoding="utf-8"))
+    if (_canonical_sha256(review) != RECONCILIATION_REVIEW_SHA256
+            or len(review["notices"]) != 3
+            or {r["notice_id"] for r in review["notices"]} != RECONCILIATION_NOTICE_IDS):
+        raise CommissionCoverageError("notice reconciliation evidence changed; explicit review required")
+    return review
+
+
+def _matches_reviewed_notice_identity(notice: dict[str, Any], identity: dict[str, Any]) -> bool:
+    return (
+        all(notice.get(field) == value
+            for field, value in identity.items() if field != "resolved_urls")
+        and notice.get("resolved_url") in identity["resolved_urls"]
+    )
+
+
+def matches_reviewed_yougov_identity_variant(notice: dict, historical_identity: dict) -> bool:
+    """Accept one reviewed replacement document without weakening Batch 2 identity.
+
+    The original complete eleven-object check remains in Batch 2. Both the old
+    identity being extended and the entire new identity must match this pin.
+    """
+    if historical_identity.get("notice_id") != "commission:10323":
+        return False
+    record = next(r for r in load_notice_reconciliation_review()["notices"]
+                  if r["notice_id"] == "commission:10323")
+    return (historical_identity == record["historical_notice_identity"]
+            and _matches_reviewed_notice_identity(notice, record["notice_identity"]))
+
+
+def _reviewed_reconciliation_coverage(notice: dict, events: list[dict]) -> dict:
+    """Apply only the Harris complete review or CNEWS source-identity veto.
+
+    Run before direct-ID and single-wave inference. CNEWS's bounded first-round
+    table remains documentary even when its three numerical runoffs are present.
+    Harris's scoped label bridge cannot clear a partial or changed collection.
+    """
+    record = next(r for r in load_notice_reconciliation_review()["notices"]
+                  if r["notice_id"] == notice["notice_id"])
+    if (not _matches_reviewed_notice_identity(notice, record["notice_identity"])
+            or (notice["classification"] != "eligible"
+                and notice.get("classification_reason") != (
+                    "document confirms 2027 presidential voting intentions, but no "
+                    "existing notice parser supports this listing"))):
+        return unresolved_coverage("reviewed_reconciliation_notice_identity_mismatch")
+    if record["outcome"] == "unresolved":
+        return unresolved_coverage(record["unresolved_method"])
+
+    selection = record["event_selection"]
+    expected = record["published_events"]
+    expected_ids = {e["event_id"] for e in expected}
+    # Include known IDs even when factual fields drift. Include every otherwise
+    # plausible object, in either round, to reject duplicates and extra lineups.
+    actual = [e for e in events if (
+        e.get("event_id") in expected_ids
+        or e.get("source_url") in selection["source_urls"]
+        or (e.get("pollster") in selection["pollster_labels"]
+            and e.get("fieldwork_start") == selection["fieldwork_start"]
+            and e.get("fieldwork_end") == selection["fieldwork_end"]))]
+    if sorted(actual, key=lambda e: e["event_id"]) != expected:
+        return unresolved_coverage("reviewed_reconciliation_incomplete_or_changed_configurations")
+    return {"state": "reconciled", "matched_event_ids": sorted(expected_ids),
+            "method": record["coverage_method"]}
+
+
 def reconcile_commission_notices(
     registry: dict[str, Any],
     events: Iterable[dict[str, Any]],
+    *,
+    reviewed_events: Iterable[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Derive one conservative coverage state for every relevant notice.
 
     Direct Commission provenance is recognized only through ``official_notice_id``.
     External-source reconciliation requires exact pollster, exact fieldwork window,
     and a compatible first-round event. Optional metadata only disambiguates
-    multiple otherwise-plausible published waves.
+    multiple otherwise-plausible published waves. ``reviewed_events`` supplies
+    the complete two-round corpus only to the scoped 26 October review; ordinary
+    matching retains its existing filtered evidence view.
     """
     published = list(events)
+    reviewed_published = published if reviewed_events is None else list(reviewed_events)
     for notice in registry.get("notices", []):
         synchronize_notice_coverage(notice)
         if not is_relevant_notice(notice):
             continue
 
         notice_id = notice["notice_id"]
+        if notice_id in {"commission:10332", "commission:10319"}:
+            notice["coverage"] = _reviewed_reconciliation_coverage(notice, reviewed_published)
+            validate_notice_coverage(notice)
+            continue
         if notice_id in BAROMETER_NOTICE_IDS:
             notice["coverage"] = _reviewed_barometer_coverage(notice, published)
             validate_notice_coverage(notice)

@@ -2593,6 +2593,7 @@ def main() -> None:
     coverage_counts = reconcile_commission_notices(
         discovery.registry,
         commission_validation_events,
+        reviewed_events=[*events, *second_round_events],
     )
     if args.wikipedia_source == "french" and not args.french_fixture:
         from reviewed_polling_accuracy import reconcile_batch1_notice_coverage

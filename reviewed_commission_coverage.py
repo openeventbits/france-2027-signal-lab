@@ -14,7 +14,7 @@ from pathlib import Path
 
 from commission_notice_coverage import (
     coverage_summary, is_relevant_notice, unresolved_coverage,
-    validate_notice_coverage,
+    validate_notice_coverage, matches_reviewed_yougov_identity_variant,
 )
 from fetch_polls import normalize, validate_second_round_event
 from poll_contract import FIRST_ROUND, validate_poll_events
@@ -71,7 +71,7 @@ def _notice_matches(notice: dict, identity: dict) -> bool:
         all(notice.get(field) == value
             for field, value in identity.items() if field != "resolved_urls")
         and notice.get("resolved_url") in identity["resolved_urls"]
-    )
+    ) or matches_reviewed_yougov_identity_variant(notice, identity)
 
 
 def _notice(registry: dict, notice_id: str) -> dict | None:
