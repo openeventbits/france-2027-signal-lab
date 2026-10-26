@@ -418,7 +418,15 @@ class ElectionBarometerCoverageTests(unittest.TestCase):
 
     def test_original_tables_match_all_numeric_values_and_record_the_literal_conflict(self):
         from poll_migration import candidate_identity
-        events = {e["event_id"]: e for e in self.first + self.second}
+        from run_update_polls_contract_tests import historical_inputs
+
+        # This is the immutable 439-object review, also when run directly against
+        # a later production corpus. Keep current-count assertions separate.
+        historical = historical_inputs()
+        reviewed_ids = {e["event_id"] for e in historical["polls.json"]
+                        + historical["second_round_polls.json"]["events"]}
+        events = {e["event_id"]: e for e in self.first + self.second
+                  if e["event_id"] in reviewed_ids}
         self.assertEqual(len(events), 439)
         total = 0
         conflicts = []
@@ -491,7 +499,7 @@ class ElectionBarometerCoverageTests(unittest.TestCase):
             classification="unsupported", classification_reason=reason,
             content_sha256="0" * 64))["state"], "unresolved")
 
-    def test_complete_coverage_is_idempotent_and_does_not_mutate_any_of_439_events(self):
+    def test_complete_coverage_is_idempotent_without_mutating_published_events(self):
         before = copy.deepcopy(self.first + self.second)
         self.assertEqual(self.coverage(), self.coverage())
         self.assertEqual(before, self.first + self.second)
@@ -532,6 +540,13 @@ class ElectionBarometerCoverageTests(unittest.TestCase):
 
 
 class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
+    def test_audited_production_contains_454_observations(self):
+        root = Path(__file__).resolve().parent
+        first = json.loads((root / "polls.json").read_text(encoding="utf-8"))
+        second = json.loads((root / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        self.assertEqual((len(first), len(second)), (346, 108))
+        self.assertEqual(len({e["event_id"] for e in first + second}), 454)
+
     def test_tracked_registry_supports_legacy_and_reconciled_deployment_states(
         self,
     ):
@@ -594,7 +609,10 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
             if event.get("migration_source_locator") not in audited_locators
         ]
         stored_summary = coverage_summary(payload)
-        summary = reconcile_commission_notices(payload, commission_evidence)
+        second = json.loads((root / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        summary = reconcile_commission_notices(
+            payload, commission_evidence, reviewed_events=events + second,
+        )
         # Live publication also applies reviewed, exact configuration evidence.
         # Reproduce the deployed layers rather than treating generic matching
         # alone as authoritative for the six mixed-sample Elabe configurations.

@@ -127,9 +127,13 @@ POST_CUTOVER_LOGIC_REVIEWS = {
         "reviewed_sha256": "a04615962171715e961c5fb2efd9dcda9c0dceb8d025ea4af0d402a8293c9991",
     },
     "commission_notice_coverage.py": {
-        "review_id": "FR27-COMMISSION-ELECTION-BAROMETERS",
+        "review_id": "FR27-COMMISSION-RECONCILIATION-20261026",
         "historical_sha256": "0f467cccb64cb9bfc73ce58f4b874cf6d145233c8bad6736c8bd603a9b19c1b4",
-        "reviewed_sha256": "e49835baf78545eadffae2d3bc9a100fcaca8d93cc0624e3f85ff49ac2352984",
+        "reviewed_sha256": "7a2b67e1508b21154b57e96ad7618e86c5805c48ef34fd202a0ae669d49ce9a2",
+        "previous_review": {
+            "review_id": "FR27-COMMISSION-ELECTION-BAROMETERS",
+            "reviewed_sha256": "e49835baf78545eadffae2d3bc9a100fcaca8d93cc0624e3f85ff49ac2352984",
+        },
     },
 }
 PRODUCTION_ENGLISH_SOURCE = {

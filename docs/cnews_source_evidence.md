@@ -95,8 +95,10 @@ numerical match or authorize a new baseline attestation.
 The public page states are `SOURCE_DOCUMENT_VERIFIED`,
 `DOCUMENTARY_COVERAGE_PUBLISHED` and `NUMERICAL_OBSERVATION_ABSENT`. In local
 review builds, “published” describes the generated public page representation;
-deployment still requires separate review. The known false Commission 10319
-association remains untouched and needs a separate reviewed correction.
+deployment still requires separate review. The separate
+[26 October reconciliation review](commission_notice_reconciliation_20261026.md)
+rejects the false Commission 10319 association to PrésiTrack. Its first-round
+numerical gap remains open; both documentary records and all runoffs are retained.
 
 ## Phase 3B browsing projection
 
