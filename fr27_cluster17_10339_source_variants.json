@@ -1,0 +1,710 @@
+{
+  "review_id": "FR27-CLUSTER17-10339-retain-published-2026-10-27",
+  "study_id": "cluster17-politico-2026-10-19-22",
+  "study_binding_sha256": "38126d09b740bdb82aba2d6dd6318640a560d6209265a0e3a28e6617df4b463d",
+  "decision": "Retain the three complete published 3000-adult observations; recognize only the documented source representations of the same study.",
+  "sample_bases": {
+    "retained": {
+      "sample_size": 3000,
+      "population": "French adults aged 18 and over",
+      "sample_scope_in_event": "reported"
+    },
+    "incoming": {
+      "sample_size": 2817,
+      "population": "Registered voters drawn from the same 3000 adults",
+      "sample_scope_in_parser": "reported"
+    },
+    "expressed_intentions": {
+      "H1": 2523,
+      "H2": 2505,
+      "H3": 2525
+    },
+    "weighted_effective": {
+      "H1": 1920,
+      "H2": 1889,
+      "H3": 1917
+    }
+  },
+  "documentary_evidence": [
+    {
+      "url": "https://cluster17.com/wp-content/uploads/2026/10/ITV-Politico-Octobre-C17.pdf",
+      "content_sha256": "f97e63a028f809d62db0d961a4a271ef38581dac2fda6c58ec36f8be35ac8448",
+      "methodology_page": 2,
+      "hypothesis_pages": [
+        5,
+        9,
+        13
+      ]
+    },
+    {
+      "url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10339-pres-iv-cluster17-politico-26-octobre.pdf",
+      "content_sha256": "1e57245dee35ccde8b4ab658d1c4fc2521023fa7ac333cb4e7ff8e7263f6ba08",
+      "methodology_page": 2,
+      "hypothesis_pages": [
+        18,
+        19,
+        20
+      ]
+    }
+  ],
+  "discovery_evidence": [
+    {
+      "revision": 240741132,
+      "url": "https://fr.wikipedia.org/w/index.php?oldid=240741132",
+      "fixture": "test_fixtures/fr27_polling/fr_mediawiki_240741132.json.gz",
+      "api_response_sha256": "4647dd31da34d5d6eec400aee09e3d13feacfbc3470bda83d38208b92e6376e5",
+      "locators": {
+        "H1": "FR-T0R6",
+        "H2": "FR-T0R7",
+        "H3": "FR-T0R8"
+      }
+    },
+    {
+      "revision": 240766888,
+      "url": "https://fr.wikipedia.org/w/index.php?oldid=240766888",
+      "fixture": "test_fixtures/fr27_polling/fr_mediawiki_240766888.json.gz",
+      "api_response_sha256": "15ad17a8e7a9fa67b90aef8008a8358da219e568d79fc0208d217087471bef2b",
+      "locators": {
+        "H1": "FR-T0R6",
+        "H2": "FR-T0R7",
+        "H3": "FR-T0R8"
+      }
+    }
+  ],
+  "historical_discovery_evidence": {
+    "revision": 240731388,
+    "url": "https://fr.wikipedia.org/w/index.php?oldid=240731388",
+    "api_response_sha256": "e8baa854dc8fd68275bbacb8ab1f58e095e24c95812374f00a336e4c79534f08",
+    "locators": {
+      "H1": "FR-T0R6",
+      "H3": "FR-T0R7"
+    },
+    "source_url": "https://www.politico.eu/article/sondage-exclusif-2027-la-chute-de-philippe-relegue-derriere-melenchon/"
+  },
+  "identity_rule": "Exact full factual key plus enumerated URL and authenticated retained object. Revisions and locators are provenance only. No sample alias, score coercion, event mutation or new study admission.",
+  "decisions": [
+    {
+      "hypothesis": "H1",
+      "retained_event_id": "2b452c95a3681f12d01f1d1524977e951d13da68ab124fb6d83db16ebfddcea6",
+      "retained_object_sha256": "25a08bcaeff164d81e54d6c5c2f5355aaf58c937590e9f7ce06b8a07da1a20fe",
+      "retained_factual_key": {
+        "round": "first_round",
+        "pollster_identity": "cluster17",
+        "fieldwork_start": "2026-10-19",
+        "fieldwork_end": "2026-10-22",
+        "sample_size": 3000,
+        "sample_scope": "reported",
+        "candidates": [
+          {
+            "candidate_id": "bruno-retailleau",
+            "score": "8"
+          },
+          {
+            "candidate_id": "edouard-philippe",
+            "score": "16"
+          },
+          {
+            "candidate_id": "eric-zemmour",
+            "score": "4"
+          },
+          {
+            "candidate_id": "fabien-roussel",
+            "score": "2"
+          },
+          {
+            "candidate_id": "jean-luc-melenchon",
+            "score": "18.5"
+          },
+          {
+            "candidate_id": "marine-le-pen",
+            "score": "33"
+          },
+          {
+            "candidate_id": "marine-tondelier",
+            "score": "2"
+          },
+          {
+            "candidate_id": "nathalie-arthaud",
+            "score": "0.5"
+          },
+          {
+            "candidate_id": "nicolas-dupont-aignan",
+            "score": "3"
+          },
+          {
+            "candidate_id": "raphael-glucksmann",
+            "score": "13"
+          }
+        ]
+      },
+      "source_variants": [
+        {
+          "factual_key": {
+            "round": "first_round",
+            "pollster_identity": "cluster17",
+            "fieldwork_start": "2026-10-19",
+            "fieldwork_end": "2026-10-22",
+            "sample_size": 2817,
+            "sample_scope": "reported",
+            "candidates": [
+              {
+                "candidate_id": "bruno-retailleau",
+                "score": "8"
+              },
+              {
+                "candidate_id": "edouard-philippe",
+                "score": "16"
+              },
+              {
+                "candidate_id": "eric-zemmour",
+                "score": "4"
+              },
+              {
+                "candidate_id": "fabien-roussel",
+                "score": "2"
+              },
+              {
+                "candidate_id": "jean-luc-melenchon",
+                "score": "18.5"
+              },
+              {
+                "candidate_id": "marine-le-pen",
+                "score": "33"
+              },
+              {
+                "candidate_id": "marine-tondelier",
+                "score": "2"
+              },
+              {
+                "candidate_id": "nathalie-arthaud",
+                "score": "0.5"
+              },
+              {
+                "candidate_id": "nicolas-dupont-aignan",
+                "score": "3"
+              },
+              {
+                "candidate_id": "raphael-glucksmann",
+                "score": "13"
+              }
+            ]
+          },
+          "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10339-pres-iv-cluster17-politico-26-octobre.pdf"
+        },
+        {
+          "factual_key": {
+            "round": "first_round",
+            "pollster_identity": "cluster17",
+            "fieldwork_start": "2026-10-19",
+            "fieldwork_end": "2026-10-22",
+            "sample_size": 3000,
+            "sample_scope": "reported",
+            "candidates": [
+              {
+                "candidate_id": "bruno-retailleau",
+                "score": "8"
+              },
+              {
+                "candidate_id": "edouard-philippe",
+                "score": "16"
+              },
+              {
+                "candidate_id": "eric-zemmour",
+                "score": "4"
+              },
+              {
+                "candidate_id": "fabien-roussel",
+                "score": "2"
+              },
+              {
+                "candidate_id": "jean-luc-melenchon",
+                "score": "18.5"
+              },
+              {
+                "candidate_id": "marine-le-pen",
+                "score": "33"
+              },
+              {
+                "candidate_id": "marine-tondelier",
+                "score": "2"
+              },
+              {
+                "candidate_id": "nathalie-arthaud",
+                "score": "0.5"
+              },
+              {
+                "candidate_id": "nicolas-dupont-aignan",
+                "score": "3"
+              },
+              {
+                "candidate_id": "raphael-glucksmann",
+                "score": "13"
+              }
+            ]
+          },
+          "source_url": "https://cluster17.com/wp-content/uploads/2026/10/ITV-Politico-Octobre-C17.pdf"
+        },
+        {
+          "factual_key": {
+            "round": "first_round",
+            "pollster_identity": "cluster17",
+            "fieldwork_start": "2026-10-19",
+            "fieldwork_end": "2026-10-22",
+            "sample_size": 3000,
+            "sample_scope": "reported",
+            "candidates": [
+              {
+                "candidate_id": "bruno-retailleau",
+                "score": "8"
+              },
+              {
+                "candidate_id": "edouard-philippe",
+                "score": "16"
+              },
+              {
+                "candidate_id": "eric-zemmour",
+                "score": "4"
+              },
+              {
+                "candidate_id": "fabien-roussel",
+                "score": "2"
+              },
+              {
+                "candidate_id": "jean-luc-melenchon",
+                "score": "18.5"
+              },
+              {
+                "candidate_id": "marine-le-pen",
+                "score": "33"
+              },
+              {
+                "candidate_id": "marine-tondelier",
+                "score": "2"
+              },
+              {
+                "candidate_id": "nathalie-arthaud",
+                "score": "0.5"
+              },
+              {
+                "candidate_id": "nicolas-dupont-aignan",
+                "score": "3"
+              },
+              {
+                "candidate_id": "raphael-glucksmann",
+                "score": "13"
+              }
+            ]
+          },
+          "source_url": "https://www.politico.eu/article/sondage-exclusif-2027-la-chute-de-philippe-relegue-derriere-melenchon/"
+        }
+      ],
+      "document_pages": {
+        "institute": 5,
+        "commission": 18
+      }
+    },
+    {
+      "hypothesis": "H2",
+      "retained_event_id": "26e5f0ab3df1861400351a6794f56ca2e3b51099bd12941866aaae7d23d56fa6",
+      "retained_object_sha256": "fc68afe036ebe93bf6d9f09f3979620c10b163934dd4989fc4fcc98473ef1d05",
+      "retained_factual_key": {
+        "round": "first_round",
+        "pollster_identity": "cluster17",
+        "fieldwork_start": "2026-10-19",
+        "fieldwork_end": "2026-10-22",
+        "sample_size": 3000,
+        "sample_scope": "reported",
+        "candidates": [
+          {
+            "candidate_id": "bruno-retailleau",
+            "score": "10"
+          },
+          {
+            "candidate_id": "eric-zemmour",
+            "score": "4"
+          },
+          {
+            "candidate_id": "fabien-roussel",
+            "score": "2"
+          },
+          {
+            "candidate_id": "gabriel-attal",
+            "score": "12"
+          },
+          {
+            "candidate_id": "jean-luc-melenchon",
+            "score": "19.5"
+          },
+          {
+            "candidate_id": "marine-le-pen",
+            "score": "32.5"
+          },
+          {
+            "candidate_id": "marine-tondelier",
+            "score": "2"
+          },
+          {
+            "candidate_id": "nathalie-arthaud",
+            "score": "0.5"
+          },
+          {
+            "candidate_id": "nicolas-dupont-aignan",
+            "score": "3.5"
+          },
+          {
+            "candidate_id": "raphael-glucksmann",
+            "score": "14"
+          }
+        ]
+      },
+      "source_variants": [
+        {
+          "factual_key": {
+            "round": "first_round",
+            "pollster_identity": "cluster17",
+            "fieldwork_start": "2026-10-19",
+            "fieldwork_end": "2026-10-22",
+            "sample_size": 2817,
+            "sample_scope": "reported",
+            "candidates": [
+              {
+                "candidate_id": "bruno-retailleau",
+                "score": "10"
+              },
+              {
+                "candidate_id": "eric-zemmour",
+                "score": "4"
+              },
+              {
+                "candidate_id": "fabien-roussel",
+                "score": "2"
+              },
+              {
+                "candidate_id": "gabriel-attal",
+                "score": "12"
+              },
+              {
+                "candidate_id": "jean-luc-melenchon",
+                "score": "19.5"
+              },
+              {
+                "candidate_id": "marine-le-pen",
+                "score": "32.5"
+              },
+              {
+                "candidate_id": "marine-tondelier",
+                "score": "2"
+              },
+              {
+                "candidate_id": "nathalie-arthaud",
+                "score": "0.5"
+              },
+              {
+                "candidate_id": "nicolas-dupont-aignan",
+                "score": "3.5"
+              },
+              {
+                "candidate_id": "raphael-glucksmann",
+                "score": "14"
+              }
+            ]
+          },
+          "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10339-pres-iv-cluster17-politico-26-octobre.pdf"
+        },
+        {
+          "factual_key": {
+            "round": "first_round",
+            "pollster_identity": "cluster17",
+            "fieldwork_start": "2026-10-19",
+            "fieldwork_end": "2026-10-22",
+            "sample_size": 3000,
+            "sample_scope": "reported",
+            "candidates": [
+              {
+                "candidate_id": "bruno-retailleau",
+                "score": "10"
+              },
+              {
+                "candidate_id": "eric-zemmour",
+                "score": "4"
+              },
+              {
+                "candidate_id": "fabien-roussel",
+                "score": "2"
+              },
+              {
+                "candidate_id": "gabriel-attal",
+                "score": "12"
+              },
+              {
+                "candidate_id": "jean-luc-melenchon",
+                "score": "19.5"
+              },
+              {
+                "candidate_id": "marine-le-pen",
+                "score": "32.5"
+              },
+              {
+                "candidate_id": "marine-tondelier",
+                "score": "2"
+              },
+              {
+                "candidate_id": "nathalie-arthaud",
+                "score": "0.5"
+              },
+              {
+                "candidate_id": "nicolas-dupont-aignan",
+                "score": "3.5"
+              },
+              {
+                "candidate_id": "raphael-glucksmann",
+                "score": "14"
+              }
+            ]
+          },
+          "source_url": "https://cluster17.com/wp-content/uploads/2026/10/ITV-Politico-Octobre-C17.pdf"
+        }
+      ],
+      "document_pages": {
+        "institute": 9,
+        "commission": 19
+      }
+    },
+    {
+      "hypothesis": "H3",
+      "retained_event_id": "335645e494e1d3665674719bd7406dc07f7f8f6fe960bba8cd2f0a2b468e773d",
+      "retained_object_sha256": "4c5923b51b63d8ea8bb50a5d94c34d33b24c994793f03c942e3f7da5204a7b87",
+      "retained_factual_key": {
+        "round": "first_round",
+        "pollster_identity": "cluster17",
+        "fieldwork_start": "2026-10-19",
+        "fieldwork_end": "2026-10-22",
+        "sample_size": 3000,
+        "sample_scope": "reported",
+        "candidates": [
+          {
+            "candidate_id": "bruno-retailleau",
+            "score": "7"
+          },
+          {
+            "candidate_id": "david-lisnard",
+            "score": "8"
+          },
+          {
+            "candidate_id": "edouard-philippe",
+            "score": "17"
+          },
+          {
+            "candidate_id": "eric-zemmour",
+            "score": "3.5"
+          },
+          {
+            "candidate_id": "fabien-roussel",
+            "score": "2"
+          },
+          {
+            "candidate_id": "francois-hollande",
+            "score": "6.5"
+          },
+          {
+            "candidate_id": "jean-luc-melenchon",
+            "score": "19.5"
+          },
+          {
+            "candidate_id": "marine-le-pen",
+            "score": "30.5"
+          },
+          {
+            "candidate_id": "marine-tondelier",
+            "score": "2.5"
+          },
+          {
+            "candidate_id": "nathalie-arthaud",
+            "score": "0.5"
+          },
+          {
+            "candidate_id": "nicolas-dupont-aignan",
+            "score": "3"
+          }
+        ]
+      },
+      "source_variants": [
+        {
+          "factual_key": {
+            "round": "first_round",
+            "pollster_identity": "cluster17",
+            "fieldwork_start": "2026-10-19",
+            "fieldwork_end": "2026-10-22",
+            "sample_size": 2817,
+            "sample_scope": "reported",
+            "candidates": [
+              {
+                "candidate_id": "bruno-retailleau",
+                "score": "7"
+              },
+              {
+                "candidate_id": "david-lisnard",
+                "score": "8"
+              },
+              {
+                "candidate_id": "edouard-philippe",
+                "score": "17"
+              },
+              {
+                "candidate_id": "eric-zemmour",
+                "score": "3.5"
+              },
+              {
+                "candidate_id": "fabien-roussel",
+                "score": "2"
+              },
+              {
+                "candidate_id": "francois-hollande",
+                "score": "6.5"
+              },
+              {
+                "candidate_id": "jean-luc-melenchon",
+                "score": "19.5"
+              },
+              {
+                "candidate_id": "marine-le-pen",
+                "score": "30.5"
+              },
+              {
+                "candidate_id": "marine-tondelier",
+                "score": "2.5"
+              },
+              {
+                "candidate_id": "nathalie-arthaud",
+                "score": "0.5"
+              },
+              {
+                "candidate_id": "nicolas-dupont-aignan",
+                "score": "3"
+              }
+            ]
+          },
+          "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10339-pres-iv-cluster17-politico-26-octobre.pdf"
+        },
+        {
+          "factual_key": {
+            "round": "first_round",
+            "pollster_identity": "cluster17",
+            "fieldwork_start": "2026-10-19",
+            "fieldwork_end": "2026-10-22",
+            "sample_size": 3000,
+            "sample_scope": "reported",
+            "candidates": [
+              {
+                "candidate_id": "bruno-retailleau",
+                "score": "7"
+              },
+              {
+                "candidate_id": "david-lisnard",
+                "score": "8"
+              },
+              {
+                "candidate_id": "edouard-philippe",
+                "score": "17"
+              },
+              {
+                "candidate_id": "eric-zemmour",
+                "score": "3.5"
+              },
+              {
+                "candidate_id": "fabien-roussel",
+                "score": "2"
+              },
+              {
+                "candidate_id": "francois-hollande",
+                "score": "6.5"
+              },
+              {
+                "candidate_id": "jean-luc-melenchon",
+                "score": "19.5"
+              },
+              {
+                "candidate_id": "marine-le-pen",
+                "score": "30.5"
+              },
+              {
+                "candidate_id": "marine-tondelier",
+                "score": "2.5"
+              },
+              {
+                "candidate_id": "nathalie-arthaud",
+                "score": "0.5"
+              },
+              {
+                "candidate_id": "nicolas-dupont-aignan",
+                "score": "3"
+              }
+            ]
+          },
+          "source_url": "https://cluster17.com/wp-content/uploads/2026/10/ITV-Politico-Octobre-C17.pdf"
+        },
+        {
+          "factual_key": {
+            "round": "first_round",
+            "pollster_identity": "cluster17",
+            "fieldwork_start": "2026-10-19",
+            "fieldwork_end": "2026-10-22",
+            "sample_size": 3000,
+            "sample_scope": "reported",
+            "candidates": [
+              {
+                "candidate_id": "bruno-retailleau",
+                "score": "7"
+              },
+              {
+                "candidate_id": "david-lisnard",
+                "score": "8"
+              },
+              {
+                "candidate_id": "edouard-philippe",
+                "score": "17"
+              },
+              {
+                "candidate_id": "eric-zemmour",
+                "score": "3.5"
+              },
+              {
+                "candidate_id": "fabien-roussel",
+                "score": "2"
+              },
+              {
+                "candidate_id": "francois-hollande",
+                "score": "6.5"
+              },
+              {
+                "candidate_id": "jean-luc-melenchon",
+                "score": "19.5"
+              },
+              {
+                "candidate_id": "marine-le-pen",
+                "score": "30.5"
+              },
+              {
+                "candidate_id": "marine-tondelier",
+                "score": "2.5"
+              },
+              {
+                "candidate_id": "nathalie-arthaud",
+                "score": "0.5"
+              },
+              {
+                "candidate_id": "nicolas-dupont-aignan",
+                "score": "3"
+              }
+            ]
+          },
+          "source_url": "https://www.politico.eu/article/sondage-exclusif-2027-la-chute-de-philippe-relegue-derriere-melenchon/"
+        }
+      ],
+      "document_pages": {
+        "institute": 13,
+        "commission": 20
+      }
+    }
+  ]
+}

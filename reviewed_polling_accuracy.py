@@ -1,4 +1,4 @@
-"""Bounded Batch 1 decisions and OpinionWay 10318 source-variant retention.
+"""Bounded Batch 1 decisions and independent reviewed source-variant retention.
 
 This supplements, rather than widens, the older first-round expansion and
 ten-record runoff reconciliation contracts. Exact complete prior/canonical
@@ -43,7 +43,7 @@ def load_source_retention_review(path: Path = SOURCE_RETENTION_REVIEW) -> dict:
     return review
 
 
-def reviewed_source_retention(rows: dict, first: list[dict]) -> tuple[dict, list[dict]]:
+def _opinionway_source_retention(rows: dict, first: list[dict]) -> tuple[dict, list[dict]]:
     """Map two exact source variants to authenticated, unmodified prior events.
 
     This reuses the reconciliation loop's handled-key mechanism. Documentary
@@ -92,6 +92,118 @@ def reviewed_source_retention(rows: dict, first: list[dict]) -> tuple[dict, list
                        "retained_event_id": event_id,
                        "review_id": review["review_id"]})
     return handled, report
+
+
+CLUSTER17_SOURCE_RETENTION_REVIEW = Path(__file__).with_name(
+    "fr27_cluster17_10339_source_variants.json"
+)
+CLUSTER17_SOURCE_RETENTION_SHA256 = (
+    "a639fb75b0b268ae4aeed7f83e6c98b4aee88fd15905f97400fb7ab72133fab3"
+)
+
+
+def load_cluster17_source_retention_review(
+    path: Path = CLUSTER17_SOURCE_RETENTION_REVIEW,
+) -> dict:
+    """Authenticate this finite review independently of the OpinionWay review."""
+    review = json.loads(Path(path).read_text(encoding="utf-8"))
+    if _content_digest(review) != CLUSTER17_SOURCE_RETENTION_SHA256:
+        raise ValueError("Cluster17 10339 source-retention review changed; explicit review required")
+    return review
+
+
+def _cluster17_source_retention(rows: dict, first: list[dict]) -> tuple[dict, list[dict]]:
+    """Recognize exact documentary variants without changing a published object."""
+    from poll_studies import load_binding, object_digest, validate_study_membership
+
+    review = load_cluster17_source_retention_review()
+    # Read/authenticate the file afresh; a cached projection cannot hide disk drift.
+    binding = load_binding()
+    if (object_digest(binding) != review["study_binding_sha256"]
+            or binding["study_id"] != review["study_id"]):
+        raise ValueError("Cluster17 10339 study binding changed")
+    members = {member["event_id"]: member for member in binding["members"]}
+    decisions = review["decisions"]
+    target_ids = [decision["retained_event_id"] for decision in decisions]
+    if len(target_ids) != 3 or len(set(target_ids)) != 3 or set(target_ids) != set(members):
+        raise ValueError("Cluster17 10339 retained target identities changed")
+
+    allowed = {}
+    for decision in decisions:
+        target = decision["retained_event_id"]
+        member = members[target]
+        if (decision["retained_object_sha256"] != member["object_sha256"]
+                or decision["hypothesis"] != member["document_hypothesis"]):
+            raise ValueError("Cluster17 10339 retained object pin changed")
+        canonical = factual_key_from_dict(decision["retained_factual_key"], "10339 retained key")
+        for variant in decision["source_variants"]:
+            incoming = factual_key_from_dict(variant["factual_key"], "10339 source variant")
+            pair = (incoming, variant["source_url"])
+            if pair in allowed:
+                raise ValueError("Cluster17 10339 duplicate reviewed source variant")
+            allowed[pair] = (target, canonical)
+
+    documents = {url for _key, url in allowed}
+    exact_source_keys = {key for key, _url in allowed}
+    source_rows = []
+    for round_name in (FIRST_ROUND, SECOND_ROUND):
+        for row in rows[round_name]:
+            if row["source_url"] in documents:
+                source_rows.append((round_name, row))
+                continue
+            # Exact reviewed facts with another URL cannot gain an exemption.
+            # An unrelated row's weaker wave/lineup anchor is never a selector.
+            try:
+                key = exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
+            except ValueError:
+                continue
+            if key in exact_source_keys:
+                source_rows.append((round_name, row))
+
+    if not source_rows and not set(target_ids).intersection(e["event_id"] for e in first):
+        return {}, []
+    by_id = {event["event_id"]: event for event in first}
+    if len(by_id) != len(first):
+        raise ValueError("Cluster17 10339 duplicate prior event ID")
+    validate_study_membership(first)
+    for decision in decisions:
+        target = decision["retained_event_id"]
+        retained = by_id.get(target)
+        if (retained is None
+                or object_digest(retained) != decision["retained_object_sha256"]
+                or exact_factual_key(retained) != factual_key_from_dict(
+                    decision["retained_factual_key"], "10339 retained key")):
+            raise ValueError("Cluster17 10339 retained event changed or missing")
+
+    handled, report, seen = {}, [], set()
+    for round_name, row in source_rows:
+        key = exact_factual_key(row, sample_scope=row.get("sample_scope", "reported"))
+        match = allowed.get((key, row["source_url"]))
+        if key.round != round_name or match is None:
+            raise ValueError("Cluster17 10339 unreviewed source facts/provenance")
+        target, canonical = match
+        slot = (round_name, row["source_locator"])
+        if target in seen or slot in handled:
+            raise ValueError("Cluster17 10339 duplicate source representations")
+        seen.add(target)
+        handled[slot] = canonical
+        report.append({"source_locator": row["source_locator"],
+                       "source_sample_size": key.sample_size,
+                       "retained_event_id": target,
+                       "review_id": review["review_id"]})
+    return handled, report
+
+
+def reviewed_source_retention(rows: dict, first: list[dict]) -> tuple[dict, list[dict]]:
+    """Combine independent, pinned reviews at the existing handled-key boundary."""
+    handled, report = _opinionway_source_retention(rows, first)
+    cluster_handled, cluster_report = _cluster17_source_retention(rows, first)
+    if (set(handled).intersection(cluster_handled)
+            or set(handled.values()).intersection(cluster_handled.values())
+            or {item["retained_event_id"] for item in report}.intersection(
+                item["retained_event_id"] for item in cluster_report)):
+        raise ValueError("Overlapping reviewed source-retention decisions")
+    return {**handled, **cluster_handled}, report + cluster_report
 
 
 def load_batch1_review(path: Path = REGISTRY) -> dict:

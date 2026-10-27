@@ -57,3 +57,36 @@ homepage, explorer, page, candidate, route, search and publication contracts.
 Any future member or document change requires a separate documentary review and
 new explicit pins. The homepage's separate 101/102 completeness defect (Gate 2)
 is deliberately unchanged.
+
+## Commission 10339 discovery representation
+
+The separate `fr27_cluster17_10339_source_variants.json` review recognizes the
+three exact source configurations through the existing reviewed source-retention
+boundary in `reviewed_polling_accuracy.py`. It does not change the binding or
+any published observation. Its complete review digest, retained object hashes,
+exact factual keys and explicitly enumerated URLs authenticate the decision.
+
+The institute report's methodology (PDF p. 2, SHA-256 above) describes 3,000
+adults. Commission notice 10339 (methodology p. 2; H1/H2/H3 published result
+tables pp. 18/19/20) identifies 2,817 registered voters drawn from those same
+3,000 adults. Its SHA-256 is
+`1e57245dee35ccde8b4ab658d1c4fc2521023fa7ac333cb4e7ff8e7263f6ba08`.
+The expressed-intention bases are 2,523 / 2,505 / 2,525 and the weighted
+effective samples are 1,920 / 1,889 / 1,917; none silently replaces the retained
+sample or `reported` scope. Every published score and complete candidate lineup
+agrees between the two documents and the retained observations.
+
+Wikipedia revision 240766888 changed the common sample cell from 3,000 to 2,817
+and the institute-PDF link to the Commission PDF. New frozen fixtures preserve
+that failing representation and its parent 240741132. Earlier revision
+240731388 documents the 3,000/Politico representations of H1 and H3. Only those
+observed URL/factual-key pairs are approved, together with the 3,000/institute
+representations of all three hypotheses. Revision IDs and row locators record
+provenance and cannot select an event. Unknown facts or URLs, duplicate source
+representations, altered retained objects and changed review/binding pins fail
+closed. The independent OpinionWay 10318 review remains unchanged.
+
+Run `test_reviewed_cluster17_source_retention.py` and the existing
+`test_reviewed_source_retention.py` with the scheduled production contract suite.
+Full replay preserves every typed first-round and runoff object and its order;
+no additional event, study, label alias or numerical correction is admitted.
