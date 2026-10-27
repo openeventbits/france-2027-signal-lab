@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 from poll_ballot_labels import RN_CONDITIONAL_OPTION
+from poll_studies import compatibility_pages, load_binding
 from poll_source_tables import (load_source_tables, published_source_pages,
                                 render_source_card, source_table_for_wave)
 from urllib.parse import urlparse
@@ -535,6 +536,15 @@ def render_scenario(
 
     source_meta = source_available if source else source_unavailable
     open_attr = " open" if open_by_default else ""
+    reviewed_anchor = (
+        f'<span id="scenario-{_escape(scenario["event_id"])}"></span>'
+        if scenario.get("document_hypothesis") else ""
+    )
+    document_label = (
+        f'<span>{_escape(scenario["source_pollster"])} · '
+        f'{_escape(scenario["document_hypothesis"])} (PDF p. {_escape(scenario["document_page"])})</span>'
+        if scenario.get("document_hypothesis") else ""
+    )
 
     return (
         f'<details class="poll-detail-scenario" '
@@ -567,6 +577,7 @@ def render_scenario(
         "</span>"
         "</summary>"
         '<div class="poll-detail-scenario-body">'
+        f"{reviewed_anchor}"
         '<div class="poll-detail-table-wrap">'
         '<table class="poll-detail-table">'
         "<thead><tr>"
@@ -577,6 +588,7 @@ def render_scenario(
         "</table>"
         "</div>"
         '<div class="poll-detail-scenario-foot">'
+        f"{document_label}"
         f'<span>{event_label}: {_escape(scenario.get("event_id", "—"))}</span>'
         f"{total_markup}"
         f"{source_markup}"
@@ -1373,6 +1385,41 @@ def render_published_source_page(notice, *, language, template_root=ROOT):
                            footer=prepare_footer(shell["footer"], len(_load_json(root / "poll_explorer.json")["waves"])))
 
 
+def render_compatibility_page(page, *, language, shell, wave_count):
+    """Serve legacy fragments as real links; never a second analytical wave."""
+    fr = language == "fr"
+    canonical = "https://france2027.app" + page[f"canonical_path_{language}"]
+    canonical_fr = "https://france2027.app" + page["canonical_path_fr"]
+    canonical_en = "https://france2027.app" + page["canonical_path_en"]
+    title = "Cluster17 / Politico · 19–22 octobre 2026" if fr else "Cluster17 / Politico · 19–22 October 2026"
+    description = ("Les trois hypothèses de cette enquête sont réunies sur une seule page."
+                   if fr else "The three hypotheses from this study are together on one page.")
+    heading = "Retrouver les scénarios" if fr else "Find the scenarios"
+    links = []
+    members = {m["event_id"]: m for m in load_binding()["members"]}
+    for index, event_id in enumerate(page["legacy_scenario_event_ids"], 1):
+        label = members[event_id]["document_hypothesis"]
+        destination = canonical + "#scenario-" + event_id
+        links.append(f'<section id="scenario-{index}"><span id="scenario-{event_id}"></span>'
+                     f'<p><a href="{destination}">{label} · {"Voir le scénario" if fr else "View scenario"}</a></p></section>')
+    head = f'''  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{_escape(title)} · France 2027 Signal Lab</title>
+  <meta name="description" content="{_escape(description)}">
+  <meta name="robots" content="noindex,follow">
+  <link rel="canonical" href="{canonical}">
+  <link rel="alternate" hreflang="fr" href="{canonical_fr}">
+  <link rel="alternate" hreflang="en" href="{canonical_en}">
+  <link rel="alternate" hreflang="x-default" href="{canonical_fr}">
+'''
+    content = (f'<section class="poll-detail-hero"><h1>{_escape(title)}</h1>'
+               f'<p>{_escape(description)}</p><p><a href="{canonical}">{"Voir l’enquête complète" if fr else "View the complete study"}</a></p>'
+               f'<h2>{heading}</h2>{"".join(links)}</section>')
+    return render_document(language=language, head=head, content=content,
+                           asset_prefix="/assets", header=prepare_header(shell[language]["header"], language, page),
+                           footer=prepare_footer(shell[language]["footer"], wave_count))
+
+
 def manifest_payload(waves: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -1380,6 +1427,8 @@ def manifest_payload(waves: list[dict[str, Any]]) -> dict[str, Any]:
         "page_count": len(waves) * 2,
         "source_page_count": len(published_source_pages()) * 2,
         "source_pages": published_source_pages(),
+        "compatibility_page_count": len(compatibility_pages(waves)) * 2,
+        "compatibility_pages": compatibility_pages(waves),
         "pages": [
             {
                 "wave_id": wave["wave_id"],
@@ -1520,6 +1569,13 @@ def expected_artifacts(
             )
 
     manifest = manifest_payload(waves)
+    for page in manifest["compatibility_pages"]:
+        for language in ("fr", "en"):
+            relative = page_file_from_url(page[f"page_path_{language}"])
+            if relative in artifacts:
+                raise PollPageError("Compatibility route collides with a numerical wave")
+            artifacts[relative] = render_compatibility_page(
+                page, language=language, shell=shell, wave_count=wave_count)
     for page in manifest["source_pages"]:
         for language in ("fr", "en"):
             relative = page_file_from_url(page[f"page_path_{language}"])
@@ -1535,7 +1591,8 @@ def expected_artifacts(
 def _registered_page_files(manifest: dict[str, Any]) -> set[Path]:
     files: set[Path] = set()
 
-    for page in manifest.get("pages", []) + manifest.get("source_pages", []):
+    for page in (manifest.get("pages", []) + manifest.get("source_pages", [])
+                 + manifest.get("compatibility_pages", [])):
         if not isinstance(page, dict):
             continue
 

@@ -355,13 +355,13 @@
   const openFromHash = ({ scroll = false } = {}) => {
     const hash = window.location.hash.replace(/^#/, "");
 
-    if (!/^scenario-\d+$/.test(hash)) return;
+    if (!/^scenario-(?:\d+|[a-f0-9]{64})$/.test(hash)) return;
 
     const target = document.getElementById(hash);
 
     if (!target) return;
 
-    openScenario(target, {
+    openScenario(target.closest?.(".poll-detail-scenario") || target, {
       updateHash: false,
       scroll
     });

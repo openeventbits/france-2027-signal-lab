@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 from poll_source_tables import published_source_pages
+from poll_studies import load_binding
 
 from agenda_page_contract import AgendaPageContractError, validate_agenda_manifest
 from candidate_page_contract import project_candidate_route_index
@@ -760,6 +761,39 @@ def current_snapshot(
     return snapshot
 
 
+def compatibility_snapshot(*, root, poll_manifest_path):
+    """Audit legacy files separately; canonical route/search counts exclude them."""
+    manifest = _load_json(poll_manifest_path)
+    binding = load_binding()
+    canonical = next((p for p in manifest.get("pages", [])
+                      if p.get("wave_id") == binding["canonical_wave_id"]), None)
+    expected = [] if canonical is None else [{
+        **binding["compatibility"], "canonical_wave_id": binding["canonical_wave_id"],
+        "canonical_path_fr": canonical["page_path_fr"],
+        "canonical_path_en": canonical["page_path_en"],
+    }]
+    if manifest.get("compatibility_pages", []) != expected:
+        raise RouteRegistryError("Reviewed poll compatibility routes changed")
+    records = []
+    for page in expected:
+        for language in ("fr", "en"):
+            relative = _source_file(page[f"page_path_{language}"])
+            source = root / relative
+            document = source.read_text(encoding="utf-8")
+            target = _canonical_url(page[f"canonical_path_{language}"])
+            _validate_canonical(document, target, source_file=relative)
+            if '<meta name="robots" content="noindex,follow">' not in document:
+                raise RouteRegistryError("Poll compatibility page must not be indexed")
+            for event_id in page["legacy_scenario_event_ids"]:
+                if f'{target}#scenario-{event_id}' not in document:
+                    raise RouteRegistryError("Poll compatibility scenario destination missing")
+            records.append({"path": page[f"page_path_{language}"],
+                            "canonical_url": target, "language": language,
+                            "source_file": relative.as_posix(),
+                            "content_sha256": hashlib.sha256(document.encode()).hexdigest()})
+    return records
+
+
 def build_registry(
     *,
     root: Path = ROOT,
@@ -830,6 +864,7 @@ def build_registry(
 
     return {
         "schema_version": SCHEMA_VERSION,
+        "compatibility_pages": compatibility_snapshot(root=root, poll_manifest_path=poll_manifest_path),
         "route_count": len(routes),
         "family_counts": dict(
             sorted(family_counts.items())
@@ -894,6 +929,9 @@ def check_registry(
     }
 
     errors: list[str] = []
+
+    if registry.get("compatibility_pages", []) != compatibility_snapshot(root=root, poll_manifest_path=poll_manifest_path):
+        errors.append("out of date: compatibility pages")
 
     if set(current_by_id) != set(registered_by_id):
         missing = sorted(
