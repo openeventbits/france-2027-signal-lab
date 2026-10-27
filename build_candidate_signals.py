@@ -38,6 +38,8 @@ from poll_contract import (
     MAX_COMPLETE_TOTAL,
     MIN_COMPLETE_TOTAL,
 )
+from poll_studies import (package_key as study_package_key, projected_pollster,
+                          scenario_order, validate_study_membership)
 from fetch_news_wire import (
     CAMPAIGN_AGENDA_TOPICS,
     POLICY_AGENDA_TOPICS,
@@ -462,12 +464,7 @@ def candidate_universe_from_candidacy_status(
 
 
 def _package_key(event: dict[str, Any]) -> tuple[str, str, str, int | None]:
-    return (
-        event["pollster"],
-        event["fieldwork_start"],
-        event["fieldwork_end"],
-        event.get("sample_size"),
-    )
+    return study_package_key(event)
 
 
 def _serialized_package_key(
@@ -500,7 +497,7 @@ def _comparable_candidate_count(
     event: dict[str, Any],
     events: list[dict[str, Any]],
 ) -> int:
-    pollster_key = _normalize_comparable_text(event["pollster"])
+    pollster_key = _normalize_comparable_text(projected_pollster(event))
     count = 0
     for candidate in event["candidates"]:
         candidate_name = candidate["name"]
@@ -508,7 +505,7 @@ def _comparable_candidate_count(
             previous["round"] == event["round"]
             and previous["scenario_key"] == event["scenario_key"]
             and previous["fieldwork_end"] < event["fieldwork_end"]
-            and _normalize_comparable_text(previous["pollster"]) == pollster_key
+            and _normalize_comparable_text(projected_pollster(previous)) == pollster_key
             and _event_candidate_score(previous, candidate_name) is not None
             for previous in events
         )
@@ -531,10 +528,11 @@ def french_compatible_sort_key(value: str) -> tuple[str, str]:
 
 
 def build_poll_packages(polls: Any) -> list[dict[str, Any]]:
-    """Group first-round hypotheses by the exact Race at a Glance key."""
+    """Group by exact raw identity plus the finite authenticated study binding."""
 
     indexed_events = validated_first_round_events(polls)
     events = [event for _index, event in indexed_events]
+    validate_study_membership(events)
     ordered_events = sorted(
         indexed_events,
         key=lambda item: (
@@ -558,7 +556,7 @@ def build_poll_packages(polls: Any) -> list[dict[str, Any]]:
             package = {
                 "package_key_values": list(key),
                 "package_key": _serialized_package_key(key),
-                "pollster": event["pollster"],
+                "pollster": key[0],
                 "fieldwork_start": event["fieldwork_start"],
                 "fieldwork_end": event["fieldwork_end"],
                 "sample_size": event.get("sample_size"),
@@ -571,6 +569,9 @@ def build_poll_packages(polls: Any) -> list[dict[str, Any]]:
         package["events"].append(event)
 
     for package in packages:
+        # Retain the canonical wave's old H2 #scenario-1 anchor. H1/H3 follow.
+        # Other packages preserve their original stable input order.
+        package["events"].sort(key=scenario_order)
         selected_event = package["events"][0]
         selected_count = -1
         selected_index = 0

@@ -26,6 +26,7 @@ from build_candidate_signals import (
 from candidate_identity import CandidateIdentityError, candidate_id, canonical_candidate_name
 from poll_ballot_labels import RN_CONDITIONAL_OPTION, RN_CONDITIONAL_DISPLAY_NAMES
 from poll_source_tables import load_source_tables, digest as source_digest
+from poll_studies import reviewed_member, load_binding
 
 
 SCHEMA_VERSION = "1.0"
@@ -205,7 +206,7 @@ def _scenario_projection(
             }
         )
 
-    return {
+    projection = {
         "event_id": event["event_id"],
         "scenario_key": event["scenario_key"],
         "hypothesis": hypothesis,
@@ -215,6 +216,12 @@ def _scenario_projection(
         "reported_total": event["reported_total"],
         "candidates": candidates,
     }
+    member = reviewed_member(event)
+    if member:
+        projection.update(source_pollster=event["pollster"],
+                          document_hypothesis=member["document_hypothesis"],
+                          document_page=member["pdf_page"])
+    return projection
 
 
 def _route_slug_component(value: str) -> str:
@@ -402,6 +409,13 @@ def build_poll_explorer(polls: Any) -> dict[str, Any]:
             "candidate_ids": candidate_ids,
             "scenarios": scenarios,
         }
+        if any(reviewed_member(event) for event in package["events"]):
+            binding = load_binding()
+            if wave_id != binding["canonical_wave_id"]:
+                raise PollExplorerError("Reviewed study canonical wave identity changed")
+            wave.update(study_id=binding["study_id"],
+                        source_pollster_labels=sorted({event["pollster"] for event in package["events"]}),
+                        source_document=dict(binding["source_document"]))
         waves.append(wave)
 
         for scenario in scenarios:

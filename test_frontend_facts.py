@@ -610,7 +610,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             "sourceNetworkMetrics",
         )
         self.assertIn("subtractCalendarMonths(latestDate, 6)", coverage)
-        self.assertIn(".map(item => item.event.pollster)", coverage)
+        self.assertIn(".map(item => globalThis.FR27PollStudies?.pollster(item.event) ?? item.event.pollster)", coverage)
         self.assertIn(
             '(coverage.count === 1 ? "pollster" : "pollsters") +',
             self.index,
@@ -1068,7 +1068,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
             comparison,
         )
         self.assertIn(
-            "normalizeComparableText(previous.pollster) !== currentPollster",
+            "normalizeComparableText(globalThis.FR27PollStudies?.pollster(previous) ?? previous.pollster) !== currentPollster",
             comparison,
         )
         self.assertNotIn("preferredPool", comparison)
