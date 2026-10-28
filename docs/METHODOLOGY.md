@@ -595,6 +595,32 @@ Candidate-bound electoral support, including local support committees, retains
 its existing eligibility. News records remain available independently of ledger
 promotion.
 
+Campaign-launch coverage can share a ledger development only when each report
+independently identifies one reviewed occurrence: the same actor, action,
+explicit place and source-confirmed event date. The occurrence registry contains
+event facts and evidence links, not an article-membership list. Article URLs,
+candidate/action overlap and title similarity do not establish this identity.
+An ambiguous occurrence, conflicting date/place, multiple candidate association,
+roundup or separate headline action prevents broader launch grouping.
+
+The conservative reporting window starts at the separately documented scheduled
+start and ends 48 hours later. Publication time bounds matching; it does not
+supply the event date or prove that a scheduled event happened. Each registered
+occurrence also needs source evidence that it occurred. Advance coverage remains
+separate, labeled as not establishing a completed launch. Scheduled-announcement
+developments and compound political actions retain their own source records.
+
+Launch groups require compatibility with every member, preventing an overlapping
+middle report from bridging different events. Existing non-launch candidacy,
+endorsement, alliance and complaint grouping keeps its established rules. The
+earliest independently eligible publication is primary, with deterministic source
+ordering and the earliest valid member detection time. Its article ID and trusted
+publication date remain authoritative; a separately confirmed `event_date` does
+not backdate that publication. Every additional stored source link retains its
+publisher and publication timestamp and can be opened from the grouped card.
+Source-link counts do not imply unique publishers, independent reporting or even
+distinct publisher pages: multiple delivery URLs can resolve to the same article.
+
 The current ledger uses a 14-day inclusive Paris-date window and retains every qualifying unique change in that period.
 
 Allowed public categories include:

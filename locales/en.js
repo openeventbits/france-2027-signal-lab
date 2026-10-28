@@ -1278,6 +1278,7 @@
     "what_changed.loading": "Loading source-linked dashboard changes",
     "what_changed.loading_count": "Loading source-linked update count",
     "what_changed.meta.campaign_change": "Candidate, endorsement, selection or campaign-status change",
+    "what_changed.meta.launch_preview": "Advance campaign-launch coverage; not a completed-event report",
     "what_changed.meta.claimant": "Claimant: {value}",
     "what_changed.meta.dated": "Dated",
     "what_changed.meta.fieldwork_ended": "Fieldwork ended",

@@ -998,6 +998,7 @@
     "what_changed.loading": "Chargement des évolutions sourcées",
     "what_changed.loading_count": "Chargement du nombre d’évolutions",
     "what_changed.meta.campaign_change": "Candidature, soutien, sélection ou statut de campagne",
+    "what_changed.meta.launch_preview": "Avant le lancement de campagne · ne constate pas sa réalisation",
     "what_changed.meta.claimant": "Auteur : {value}",
     "what_changed.meta.dated": "Daté",
     "what_changed.meta.fieldwork_ended": "Terrain clos",
