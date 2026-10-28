@@ -509,5 +509,301 @@ class ReviewedScenarioCoverageTests(unittest.TestCase):
             self.assertEqual(self.assess()['summary']['status_counts']['NUMERIC_VERIFIED'], 14)
 
 
+class CurrentCommissionCoverageTests(unittest.TestCase):
+    """Synthetic bytes and corpus; explicit test-only anchors, never live poll JSON."""
+    @contextlib.contextmanager
+    def fixture(self, change=None):
+        packet, old_pin = copy.deepcopy(coverage._load_review())
+        review = coverage._read_json(coverage._CURRENT_REVIEW_PATH)
+        survey = next(s for s in packet['surveys'] if s['survey_id'] == 'commission:10333')
+        document = next(d for d in packet['documents'] if d['document_id'] == '10333')
+        pdf = b'%PDF-current-controlled-10333'
+        document['sha256'] = hashlib.sha256(pdf).hexdigest()
+        events = []
+        for sc in survey['scenarios']:
+            binding = sc['reviewed_event_binding']
+            if binding:
+                event = {'event_id': binding['event_id'], 'round': sc['round'], 'pollster': 'OpinionWay',
+                         'commissioner': None, 'publication_date': None, 'fieldwork_start': '2026-10-21',
+                         'fieldwork_end': '2026-10-22', 'sample_size': 973, 'sample_scope': 'reported',
+                         'source_url': binding['source_url'],
+                         'candidates': [{'name': r['published_name'], 'score': r['result']['percent']} for r in sc['rows']]}
+                binding['event_object_sha256'] = coverage._digest(event)
+                events.append(event)
+        source = coverage._read_json(ROOT / 'poll_source_tables.json')
+        table = source['tables']['10333']['table']
+        table['source']['pdf_sha256'] = document['sha256']
+        if change:
+            change(packet, events, source, review)
+        source['tables']['10333']['record_sha256'] = coverage._digest(table)
+        old_pin['manifest_sha256'] = coverage._digest(packet)
+        review.update(manifest_sha256=coverage._digest(packet), historical_pin_sha256=coverage._digest(old_pin),
+                      document=copy.deepcopy(document), survey_sha256=coverage._digest(survey))
+        review['notice_identity']['content_sha256'] = document['sha256']
+        review['identity_source_sha256'] = {n: hashlib.sha256((ROOT / n).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+                                            for n in old_pin['identity_source_sha256']}
+        for expected, sc in zip(review['scenarios'], survey['scenarios']):
+            expected['reviewed_event_binding'] = copy.deepcopy(sc['reviewed_event_binding'])
+        proof = review['documentary']
+        proof.update(source_tables_sha256=coverage._digest(source), record_sha256=coverage._digest(table))
+        first, second = [e for e in events if e['round'] == 'first_round'], [e for e in events if e['round'] == 'second_round']
+        review['corpora'] = {n: {'count': len(es), 'sha256': coverage._digest(sorted(es, key=lambda e: e['event_id']))}
+                             for n, es in [('polls.json', first), ('second_round_polls.json', second)]}
+        with tempfile.TemporaryDirectory(prefix='fr27-current-controlled-') as directory:
+            root = Path(directory)
+            cache, corpus, publication = root / 'evidence', root / 'corpus', root / 'publication'
+            for path in (cache, corpus, publication):
+                path.mkdir()
+            (cache / '10333.pdf').write_bytes(pdf)
+            write_json(corpus / 'polls.json', first)
+            write_json(corpus / 'second_round_polls.json', {'events': second})
+            write_json(publication / 'commission_notice_registry.json', {'notices': [review['notice_identity']]})
+            write_json(publication / 'poll_source_tables.json', source)
+            write_json(publication / 'poll_pages_manifest.json', {'source_pages': [proof['registration']]})
+            from html import escape
+            for lang, pin in proof['pages'].items():
+                page = publication / pin['relative_path']
+                page.parent.mkdir(parents=True)
+                rows = ''.join('<tr><th scope="row">' + escape(r['published_name']) + '</th><td data-published-literal="'
+                               + escape(r['result']['literal'], quote=True) + '">' + escape(r['result']['literal'])
+                               + '</td></tr>' for r in table['rows'])
+                html = '<html lang="' + lang + '"><link rel="canonical" href="https://france2027.app' + proof['registration']['page_path_' + lang] + '">'
+                html += '<details id="source-table-10333"><table>' + rows + '</table></details>'
+                html += ''.join('<span data-coverage-state="' + s + '"></span>' for s in (
+                    'SOURCE_DOCUMENT_VERIFIED', 'DOCUMENTARY_COVERAGE_PUBLISHED', 'NUMERICAL_OBSERVATION_ABSENT'))
+                html += '<a href="' + document['url'] + '#page=12">PDF</a><details>Footer</details></html>'
+                page.write_text(html, encoding='utf8')
+                pin['sha256_lf'] = hashlib.sha256(page.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+            manifest_path, pin_path, review_path = root / 'manifest.json', root / 'historical-pin.json', root / 'current-review.json'
+            for path, obj in ((manifest_path, packet), (pin_path, old_pin), (review_path, review)):
+                write_json(path, obj)
+            with patch.object(coverage, '_MANIFEST_PATH', manifest_path), patch.object(coverage, '_PIN_PATH', pin_path), \
+                 patch.object(coverage, '_PIN_SHA256', coverage._digest(old_pin)), \
+                 patch.object(coverage, '_CURRENT_REVIEW_PATH', review_path), \
+                 patch.object(coverage, '_CURRENT_REVIEW_SHA256', coverage._digest(review)), \
+                 patch.object(coverage, '_CURRENT_PUBLICATION_ROOT', publication):
+                yield cache, corpus, publication, review_path, manifest_path
+
+    def assess(self, fixture):
+        return coverage._assess_current_coverage(fixture[0], corpus_dir=fixture[1])
+
+    def test_current_reference_and_independent_dimensions(self):
+        with self.fixture() as f:
+            report = self.assess(f)
+            self.assertEqual(report['result'], 'ASSESSED')
+            self.assertEqual(report['summary'], {'expected_configurations': 4, 'verified_numerical_configurations': 3,
+                'published_documentary_only_configurations': 1, 'configurations_without_either_representation': 0,
+                'configurations_lacking_faithful_numerical_representation': 1, 'numerically_complete': False})
+            self.assertEqual(report['production_notice_coverage']['state'], 'unresolved')
+            first = report['scenarios'][0]
+            self.assertEqual(first['numerical_coverage'], {'state': 'absent', 'reason': 'non_exact_source_values', 'event_binding': None})
+            self.assertEqual(first['documentary_coverage']['state'], 'published')
+            bounds = [r for r in first['rows'] if r['result']['kind'] == 'strict_upper_bound']
+            self.assertEqual([r['identity_id'] for r in bounds], ['nathalie-arthaud', 'karim-bouamrane'])
+            self.assertTrue(all(r['result'] == {'kind': 'strict_upper_bound', 'literal': '<1%', 'upper_percent': 1.0} for r in bounds))
+            self.assertEqual([s['respondent_bases']['expressed_certain_voters'] for s in report['scenarios']], [680, 518, 574, 603])
+            self.assertTrue(all(s['documentary_coverage']['state'] == 'reviewed-only' for s in report['scenarios'][1:]))
+
+    def test_current_missing_or_changed_pdf_never_claims_absence(self):
+        for raw, state in ((None, 'unavailable'), (b'changed', 'changed')):
+            with self.subTest(state=state), self.fixture() as f:
+                path = f[0] / '10333.pdf'
+                path.unlink() if raw is None else path.write_bytes(raw)
+                report = self.assess(f)
+                self.assertEqual(report['source_authentication']['state'], state)
+                self.assertEqual(report['result'], 'REVIEW_REQUIRED')
+                self.assertIsNone(report['summary']['numerically_complete'])
+                self.assertIsNone(report['summary']['configurations_lacking_faithful_numerical_representation'])
+                self.assertTrue(all(s['numerical_coverage']['state'] == 'unverified' for s in report['scenarios']))
+                self.assertEqual(report['scenarios'][0]['documentary_coverage']['state'], 'published')
+
+    def test_current_missing_or_changed_publication_inputs(self):
+        names = ['poll_source_tables.json', 'poll_pages_manifest.json',
+                 'sondages/documents/opinionway-cnews-10333/index.html',
+                 'en/sondages/documents/opinionway-cnews-10333/index.html']
+        for name in names:
+            for missing in (True, False):
+                with self.subTest(name=name, missing=missing), self.fixture() as f:
+                    path = f[2] / name
+                    path.unlink() if missing else path.write_text('{}', encoding='utf8')
+                    report = self.assess(f)
+                    self.assertEqual(report['result'], 'REVIEW_REQUIRED')
+                    self.assertEqual(report['scenarios'][0]['documentary_coverage']['state'], 'unverified')
+                    self.assertEqual(report['summary']['verified_numerical_configurations'], 3)
+                    self.assertIsNone(report['summary']['configurations_without_either_representation'])
+
+    def test_current_stale_complete_corpus_has_no_claims(self):
+        mutations = [lambda es: es.pop(), lambda es: es[0].update(event_id='0' * 64),
+                     lambda es: es[0].update(commissioner='Wrong'),
+                     lambda es: es[0]['candidates'][0].update(score=30),
+                     lambda es: es.append(dict(es[0], event_id='1' * 64))]
+        for mutation in mutations:
+            with self.subTest(mutation=mutation), self.fixture() as f:
+                rows = coverage._read_json(f[1] / 'second_round_polls.json')
+                mutation(rows['events'])
+                write_json(f[1] / 'second_round_polls.json', rows)
+                with self.assertRaises(coverage.CoverageDiagnosticError) as caught:
+                    self.assess(f)
+                self.assertEqual(caught.exception.code, 'BASELINE_STALE')
+                self.assertNotIn('summary', caught.exception.details)
+        with self.fixture() as f:
+            (f[1] / 'polls.json').unlink()
+            with self.assertRaises(coverage.CoverageDiagnosticError):
+                self.assess(f)
+
+    def test_current_duplicate_ids_rejected_even_in_attested_fixture(self):
+        with self.fixture(lambda p, es, s, r: es.append(copy.deepcopy(es[0]))) as f:
+            with self.assertRaisesRegex(coverage.CoverageDiagnosticError, 'Duplicate historical event ID'):
+                self.assess(f)
+
+    def test_current_duplicate_configuration_with_other_id_requires_review(self):
+        with self.fixture(lambda p, es, s, r: es.append(dict(es[0], event_id='e' * 64))) as f:
+            report = self.assess(f)
+            self.assertEqual(report['result'], 'REVIEW_REQUIRED')
+            self.assertEqual(report['scenarios'][1]['numerical_coverage']['state'], 'conflicting')
+            self.assertIsNone(report['summary']['numerically_complete'])
+
+    def test_current_conflicting_full_objects_and_sample_substitutions(self):
+        changes = [('source_url', 'https://wrong.invalid'), ('pollster', 'Ifop'), ('commissioner', 'Wrong'),
+                   ('publication_date', '2026-10-23'), ('sample_size', 731), ('sample_size', 518),
+                   ('sample_scope', 'certain_to_vote'), ('fieldwork_end', '2026-10-23'),
+                   ('population_id', 'wrong'), ('extra_metadata', 'changed')]
+        for field, value in changes:
+            with self.subTest(field=field, value=value), self.fixture(lambda p, es, s, r: es[0].update({field: value})) as f:
+                report = self.assess(f)
+                self.assertEqual(report['result'], 'REVIEW_REQUIRED')
+                self.assertNotEqual(report['scenarios'][1]['numerical_coverage']['state'], 'verified')
+        for value in (0, 0.5, True, '31'):
+            with self.subTest(score=value), self.fixture(lambda p, es, s, r: es[0]['candidates'][0].update(score=value)) as f:
+                self.assertEqual(self.assess(f)['result'], 'REVIEW_REQUIRED')
+
+    def test_current_wrong_lineup_round_and_missing_bound_event(self):
+        changes = [lambda es: es[0]['candidates'].pop(),
+                   lambda es: es[0]['candidates'][0].update(name='Gabriel Attal'),
+                   lambda es: es[0].update(round='first_round'), lambda es: es.pop(0)]
+        for change in changes:
+            with self.subTest(change=change), self.fixture(lambda p, es, s, r: change(es)) as f:
+                report = self.assess(f)
+                self.assertEqual(report['result'], 'REVIEW_REQUIRED')
+                self.assertIsNone(report['summary']['configurations_lacking_faithful_numerical_representation'])
+
+    def test_current_non_exact_source_cannot_verify_invented_or_omitted_rows(self):
+        for invented in (0, 0.5, 1, '0', True, None):
+            def change(packet, events, source, review):
+                survey = next(s for s in packet['surveys'] if s['survey_id'] == 'commission:10333')
+                rows = survey['scenarios'][0]['rows']
+                event = {'event_id': 'f' * 64, 'pollster': 'OpinionWay', 'round': 'first_round',
+                         'fieldwork_start': '2026-10-21', 'fieldwork_end': '2026-10-22', 'sample_size': 973,
+                         'source_url': survey['accepted_source_urls'][0],
+                         'candidates': [{'name': r['published_name'], 'score': r['result'].get('percent', invented)}
+                                        for r in rows if invented is not None or r['result']['kind'] == 'exact']}
+                events.append(event)
+            with self.subTest(invented=invented), self.fixture(change) as f:
+                report = self.assess(f)
+                self.assertEqual(report['result'], 'REVIEW_REQUIRED')
+                self.assertNotEqual(report['scenarios'][0]['numerical_coverage']['state'], 'verified')
+
+    def test_current_documentary_semantic_conflicts_survive_collection_attestation(self):
+        changes = [lambda t: t['source'].update(pdf_page=13), lambda t: t['source'].update(published_column='Brut'),
+                   lambda t: t.update(commissioner='Wrong'), lambda t: t.update(institute='Ifop'),
+                   lambda t: t['source'].update(pdf_sha256='0' * 64), lambda t: t['rows'].pop(),
+                   lambda t: t['rows'][0].update(result={'kind': 'exact', 'percent': 0, 'literal': '0%'}),
+                   lambda t: t['respondent_bases'][1].update(count=731),
+                   lambda t: t.update(reviewed_scenario_id='10333-second_round-p13-1')]
+        for change in changes:
+            with self.subTest(change=change), self.fixture(lambda p, es, s, r: change(s['tables']['10333']['table'])) as f:
+                report = self.assess(f)
+                self.assertEqual(report['result'], 'REVIEW_REQUIRED')
+                self.assertEqual(report['scenarios'][0]['documentary_coverage']['state'], 'unverified')
+
+    def test_current_overlay_manifest_notice_and_identity_authentication(self):
+        with self.fixture() as f:
+            review = coverage._read_json(f[3]); review['scope'].append('commission:10319'); write_json(f[3], review)
+            with self.assertRaisesRegex(coverage.CoverageDiagnosticError, 'overlay changed'):
+                self.assess(f)
+        with self.fixture() as f:
+            packet = coverage._read_json(f[4]); packet['surveys'][0]['scenarios'].clear(); write_json(f[4], packet)
+            with self.assertRaisesRegex(coverage.CoverageDiagnosticError, 'manifest changed'):
+                self.assess(f)
+        for field in ('content_sha256', 'commissioner', 'institute', 'resolved_url'):
+            with self.subTest(field=field), self.fixture() as f:
+                path = f[2] / 'commission_notice_registry.json'; registry = coverage._read_json(path)
+                registry['notices'][0][field] = 'wrong'; write_json(path, registry)
+                with self.assertRaisesRegex(coverage.CoverageDiagnosticError, 'notice identity changed'):
+                    self.assess(f)
+        with self.fixture() as f:
+            original = Path.read_bytes
+            def changed(path):
+                return b'changed' if path == ROOT / 'fetch_polls.py' else original(path)
+            with patch.object(Path, 'read_bytes', changed):
+                with self.assertRaisesRegex(coverage.CoverageDiagnosticError, 'identity implementation changed'):
+                    self.assess(f)
+
+    def test_current_scope_inventory_and_binding_assignments_are_authenticated(self):
+        for change in (lambda r: r.update(scope=['commission:10319']),
+                       lambda r: r['scenarios'].pop(),
+                       lambda r: r['scenarios'].append(copy.deepcopy(r['scenarios'][0])),
+                       lambda r: r['scenarios'][1].update(reviewed_event_binding=r['scenarios'][2]['reviewed_event_binding']),
+                       lambda r: r['scenarios'][0].update(pdf_page=13),
+                       lambda r: r['scenarios'][0].update(published_column='Brut')):
+            with self.subTest(change=change), self.fixture() as f:
+                review = coverage._read_json(f[3]); change(review); write_json(f[3], review)
+                with self.assertRaises(coverage.CoverageDiagnosticError):
+                    self.assess(f)
+
+    def test_current_route_registration_and_html_are_independently_verified(self):
+        with self.fixture() as f:
+            path = f[2] / 'poll_pages_manifest.json'; manifest = coverage._read_json(path)
+            manifest['source_pages'].append(copy.deepcopy(manifest['source_pages'][0])); write_json(path, manifest)
+            self.assertEqual(self.assess(f)['result'], 'REVIEW_REQUIRED')
+        for fragment, replacement in [('Nathalie Arthaud', 'Wrong'), ('&lt;1%', '0%'),
+                                      ('source-table-10333', 'scenario-1'), ('#page=12', '#page=13'),
+                                      ('rel="canonical"', 'rel="alternate"')]:
+            with self.subTest(fragment=fragment), self.fixture() as f:
+                review = coverage._read_json(f[3]); pin = review['documentary']['pages']['fr']; path = f[2] / pin['relative_path']
+                path.write_text(path.read_text(encoding='utf8').replace(fragment, replacement), encoding='utf8')
+                pin['sha256_lf'] = hashlib.sha256(path.read_bytes()).hexdigest(); write_json(f[3], review)
+                # Test-only new page attestation reaches semantic checks; never runtime repinning.
+                with patch.object(coverage, '_CURRENT_REVIEW_SHA256', coverage._digest(review)):
+                    self.assertEqual(self.assess(f)['result'], 'REVIEW_REQUIRED')
+
+    def test_current_determinism_wrapper_order_and_cross_platform_pages(self):
+        with self.fixture() as f:
+            expected = self.assess(f)
+            path = f[1] / 'second_round_polls.json'; obj = coverage._read_json(path)
+            obj.update(events=list(reversed(obj['events'])), generated_at='wrapper only'); write_json(path, obj)
+            for page in f[2].rglob('*.html'):
+                page.write_bytes(page.read_bytes().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
+            self.assertEqual(expected, self.assess(f))
+
+    def test_current_cli_is_offline_read_only_and_never_generates_ids(self):
+        import poll_contract
+        with self.fixture() as f:
+            before = {p: p.read_bytes() for p in f[0].parent.rglob('*') if p.is_file()}
+            with patch('socket.socket.connect', side_effect=AssertionError('No network')), \
+                 patch.object(Path, 'write_bytes', side_effect=AssertionError('No writes')), \
+                 patch.object(Path, 'write_text', side_effect=AssertionError('No writes')), \
+                 patch.object(poll_contract, 'make_event_id', side_effect=AssertionError('No new IDs')), \
+                 patch.object(poll_contract, 'make_scenario_key', side_effect=AssertionError('No new keys')), \
+                 contextlib.redirect_stdout(io.StringIO()) as stream:
+                code = coverage._main(['--review', '10333-20261028', '--evidence-dir', str(f[0]), '--corpus-dir', str(f[1])])
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(stream.getvalue())['summary']['verified_numerical_configurations'], 3)
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
+
+    def test_current_cli_stale_and_unverified_do_not_emit_success(self):
+        for stale in (True, False):
+            with self.subTest(stale=stale), self.fixture() as f:
+                write_json(f[1] / 'second_round_polls.json', {'events': []}) if stale else (f[0] / '10333.pdf').unlink()
+                with contextlib.redirect_stdout(io.StringIO()) as stream:
+                    code = coverage._main(['--review', '10333-20261028', '--evidence-dir', str(f[0]), '--corpus-dir', str(f[1])])
+                output = json.loads(stream.getvalue())
+                self.assertEqual(code, 2)
+                self.assertNotEqual(output['result'], 'ASSESSED')
+                if stale:
+                    self.assertNotIn('scenarios', output)
+                    self.assertNotIn('summary', output)
+
+
 if __name__ == '__main__':
     unittest.main()
