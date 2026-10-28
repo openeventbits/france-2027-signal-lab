@@ -579,6 +579,22 @@ Campaign events receive deterministic stable identifiers so that repeated collec
 
 It is not intended to duplicate the full news feed.
 
+News promotion requires a concrete headline-level action. A leading label for
+an earlier presidential election identifies a historical campaign report, even
+when RSS supplies a recent publication timestamp. This does not exclude new
+2027 actions that mention an earlier election, or fresh legal and procedural
+outcomes concerning an earlier race. A publisher update alone does not establish
+a new political action.
+
+For party-only support, a topical descriptor such as an interview's “soutien à
+LFI” is insufficient. The headline must report an endorsement action, formal
+announcement, electoral rallying or call to vote. Presidential context must be
+visible in the headline unless the action itself establishes the electoral
+meaning; summary language and upstream election flags cannot supply it.
+Candidate-bound electoral support, including local support committees, retains
+its existing eligibility. News records remain available independently of ledger
+promotion.
+
 The current ledger uses a 14-day inclusive Paris-date window and retains every qualifying unique change in that period.
 
 Allowed public categories include:

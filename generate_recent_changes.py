@@ -68,6 +68,19 @@ RETROSPECTIVE_CAMPAIGN_HEADLINE_PHRASES = (
     "retour sur les soutiens",
     "histoire des soutiens",
 )
+# A leading election label identifies the subject of the reported action.
+# A year mentioned elsewhere (for example a new 2027 act recalling 2017)
+# does not establish a historical campaign. This is a ledger-only boundary.
+HISTORICAL_PRESIDENTIAL_HEADING = re.compile(
+    r"^(?:elections?\s+)?presidentielles?\s+(?:de\s+)?"
+    r"(?P<year>(?:19|20)\d{2})\s*[:\-–—]"
+)
+FORMAL_SUPPORT_ACTION = re.compile(
+    r"\b(?:annonce|annoncent|officialise|officialisent|confirme|confirment|"
+    r"apporte|apportent|accorde|accordent|declare|declarent)\s+"
+    r"(?:(?:publiquement|officiellement)\s+)?"
+    r"(?:(?:son|leur|un|le|l)\s+)?(?:soutien|appui|ralliement)\b"
+)
 CONTEXTUAL_CAMPAIGN_ACTION_PHRASES = (
     "se prepare",
     "acte la rupture",
@@ -356,6 +369,51 @@ def first_matching_phrase(text: str, phrases: Iterable[str]) -> str | None:
     return next((phrase for phrase in phrases if phrase in text), None)
 
 
+def material_electoral_support(
+    headline: str,
+    candidate_names: set[str],
+    has_candidate_in_headline: bool,
+    has_presidential_context_in_headline: bool,
+) -> bool:
+    """Distinguish a reported endorsement from a topical support descriptor.
+
+    The ingestion classifier intentionally retains broad party associations.
+    For party-only associations the ledger additionally requires an action:
+    a verb, attributed endorsement, or formal announcement. Bare 'soutien à
+    LFI' in an interview topic list supplies none, even if upstream flags or
+    summaries mention an election. Candidate-bound support keeps its existing
+    semantics, including local electoral support committees.
+    """
+    text = normalized_title(headline)
+    if has_candidate_in_headline:
+        return bool(classify_structured_electoral_support(
+            text, sorted(candidate_names),
+        )["matched_terms"])
+    formal_action = bool(FORMAL_SUPPORT_ACTION.search(text))
+
+    def keep_action(match: re.Match[str]) -> str:
+        prefix, tail = text[:match.start()], text[match.end():]
+        if (
+            re.search(r"\bau\s*$", prefix)
+            or re.match(r"\s+(?:d|de|du|des)\s+", tail)
+            or re.search(FORMAL_SUPPORT_ACTION.pattern + r"$", text[:match.end()])
+        ):
+            return match.group()
+        return " "
+
+    action_text = re.sub(r"\b(?:soutien|appui)\b", keep_action, text)
+    support = classify_structured_electoral_support(
+        action_text, sorted(candidate_names),
+    )
+    terms = set(support["matched_terms"])
+    return bool(terms) and (
+        has_candidate_in_headline
+        or has_presidential_context_in_headline
+        or formal_action
+        or bool(terms & {"call_to_vote_for", "electoral_rallying"})
+    )
+
+
 def classify_news_change(
     item: dict[str, Any],
 ) -> tuple[str, str] | None:
@@ -432,6 +490,17 @@ def classify_news_change(
             "Concrete presidential-election legal or procedural development.",
         )
 
+    # A fresh feed timestamp cannot turn an explicitly historical campaign
+    # report into a new action in this race. Legal/procedural outcomes above
+    # remain eligible even when they concern an earlier election.
+    heading_text = "".join(
+        character for character in unicodedata.normalize("NFKD", headline.lower())
+        if not unicodedata.combining(character)
+    )
+    historical_heading = HISTORICAL_PRESIDENTIAL_HEADING.match(heading_text)
+    if historical_heading and int(historical_heading["year"]) < 2027:
+        return None
+
     if has_other_election_context and not has_presidential_context_in_headline:
         return None
 
@@ -443,11 +512,10 @@ def classify_news_change(
     ):
         return None
 
-    electoral_support = classify_structured_electoral_support(
-        headline_text,
-        sorted(candidate_names),
-    )
-    if electoral_support["matched_terms"]:
+    if material_electoral_support(
+        headline, candidate_names, has_candidate_in_headline,
+        has_presidential_context_in_headline,
+    ):
         return (
             "campaign",
             "Concrete candidate, endorsement, selection or campaign-status change.",
