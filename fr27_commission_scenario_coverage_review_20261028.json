@@ -1,0 +1,223 @@
+{
+  "schema_version": "fr27-commission-scenario-coverage-review/1",
+  "review_id": "FR27-COMMISSION-SCENARIO-10333-20261028",
+  "baseline_sha": "9637403e40a8a77bb1031faafad5d291b3993830",
+  "scope": [
+    "commission:10333"
+  ],
+  "review_basis": "Scoped Phase 1 approval after the read-only 10333 audit: original PDF and all literal rows reviewed; three unchanged complete runoff objects; three unrelated Cluster17 first-round additions. This independent attestation does not replace the historical review.",
+  "manifest_sha256": "b9517b78cd5cd9aea6f797d9bfa60f4b12c1e3f67689714bbb2b6ecc12f4363a",
+  "historical_pin_sha256": "beb40745a83348562dd1a75835a3865667fbad09560f9def4253166f8218f469",
+  "notice_identity": {
+    "notice_id": "commission:10333",
+    "listed_date": "2026-10-22",
+    "category": "Pres",
+    "title": "10333 Pres IV OPINIONWAY Cnews 22 octobre",
+    "institute": "OpinionWay",
+    "commissioner": "Cnews",
+    "listed_url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2352",
+    "resolved_url": "http://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10333-pres-iv-opinionway-cnews-22-octobre.pdf",
+    "classification": "unsupported",
+    "classification_reason": "document confirms 2027 presidential voting intentions, but no existing notice parser supports this listing",
+    "first_discovered_at": "2026-10-23T16:28:07.655901Z",
+    "content_sha256": "cfe91916d69dc57bb57aa4979f09d00430bd25983a0ee77d087a0cab7020df94",
+    "confirmed_rounds": [
+      "first_round",
+      "second_round"
+    ],
+    "coverage": {
+      "state": "unresolved",
+      "matched_event_ids": [],
+      "method": "no_exact_published_wave"
+    },
+    "survey_metadata": {
+      "fieldwork_start": "2026-10-21",
+      "fieldwork_end": "2026-10-22"
+    }
+  },
+  "document": {
+    "document_id": "10333",
+    "official_notice_id": "commission:10333",
+    "url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10333-pres-iv-opinionway-cnews-22-octobre.pdf",
+    "sha256": "cfe91916d69dc57bb57aa4979f09d00430bd25983a0ee77d087a0cab7020df94",
+    "evidence_key": "10333.pdf",
+    "reviewed": true
+  },
+  "survey_sha256": "ba35d20b2edaa5877c128e710ee923afad9fa392b1b79b6ab15a0f0257e50475",
+  "expected_by_round": {
+    "first_round": 1,
+    "second_round": 3
+  },
+  "scenarios": [
+    {
+      "scenario_id": "10333-first_round-p12-1",
+      "round": "first_round",
+      "pdf_page": 12,
+      "published_column": "Publié",
+      "candidate_ids": [
+        "nathalie-arthaud",
+        "jean-luc-melenchon",
+        "fabien-roussel",
+        "marine-tondelier",
+        "raphael-glucksmann",
+        "karim-bouamrane",
+        "gabriel-attal",
+        "edouard-philippe",
+        "bruno-retailleau",
+        "david-lisnard",
+        "nicolas-dupont-aignan",
+        "eric-zemmour",
+        "marine-le-pen"
+      ],
+      "rows_sha256": "b06e3725ae8ccb2343399d0c6c0fc9f62975af3f8c805d423c17bd757a0d671b",
+      "respondent_bases": {
+        "expressed_certain_voters": 680
+      },
+      "reviewed_event_binding": null
+    },
+    {
+      "scenario_id": "10333-second_round-p13-1",
+      "round": "second_round",
+      "pdf_page": 13,
+      "published_column": "Publié",
+      "candidate_ids": [
+        "jean-luc-melenchon",
+        "marine-le-pen"
+      ],
+      "rows_sha256": "649731d5895e0dfc94abdf9795fa06ca662ffae71edbf99946478f0a6175caeb",
+      "respondent_bases": {
+        "expressed_certain_voters": 518
+      },
+      "reviewed_event_binding": {
+        "event_id": "a8de0876a090ae834c855ab01609e187699517db8c2a0408625e978021f7fa4e",
+        "event_object_sha256": "aa78d9e79325821e7a4139e2cd0612c72dba28370ec6d2e1737643772b5ed99e",
+        "source_url": "https://www.cnews.fr/france/2026-10-22/sondage-marine-le-pen-conforte-son-avance-au-premier-tour-de-lelection",
+        "legacy_metadata_bridge": {
+          "commissioner": "CNews",
+          "population_id": "fr_registered_adults",
+          "reported_sample_base": "registered_voters",
+          "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+          "evidence": [
+            {
+              "document_id": "10333",
+              "page": 3
+            },
+            {
+              "document_id": "10333",
+              "page": 13
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario_id": "10333-second_round-p14-1",
+      "round": "second_round",
+      "pdf_page": 14,
+      "published_column": "Publié",
+      "candidate_ids": [
+        "edouard-philippe",
+        "marine-le-pen"
+      ],
+      "rows_sha256": "06c9d9b3217805e0ecb7c1cb6a68a93ee76096bf0e5f519dc866de9c17a2032f",
+      "respondent_bases": {
+        "expressed_certain_voters": 574
+      },
+      "reviewed_event_binding": {
+        "event_id": "7e32cd718b1f8ed6c74a06213c5fc6c451ed407484437fe2aa10bafa0c2dcdee",
+        "event_object_sha256": "fb17347d69f9ad2a1833807c98b652148c3b559581b4a14813e8d6636980a498",
+        "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10333-pres-iv-opinionway-cnews-22-octobre.pdf",
+        "legacy_metadata_bridge": {
+          "commissioner": "CNews",
+          "population_id": "fr_registered_adults",
+          "reported_sample_base": "registered_voters",
+          "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+          "evidence": [
+            {
+              "document_id": "10333",
+              "page": 3
+            },
+            {
+              "document_id": "10333",
+              "page": 14
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario_id": "10333-second_round-p15-1",
+      "round": "second_round",
+      "pdf_page": 15,
+      "published_column": "Publié",
+      "candidate_ids": [
+        "raphael-glucksmann",
+        "marine-le-pen"
+      ],
+      "rows_sha256": "257ee7418cea2d0dc068d1fdf368c702b9a32eb01570bc18f42fcd2233431984",
+      "respondent_bases": {
+        "expressed_certain_voters": 603
+      },
+      "reviewed_event_binding": {
+        "event_id": "958f109b9119fd764d32cf7eb16cc373f29954dec1f6f0a1e2f186ddc7ad219e",
+        "event_object_sha256": "ec62e1834a57390022bce3407f72695d7da1051cf56d2bf9658f121a3501c564",
+        "source_url": "https://www.cnews.fr/france/2026-10-22/sondage-marine-le-pen-conforte-son-avance-au-premier-tour-de-lelection",
+        "legacy_metadata_bridge": {
+          "commissioner": "CNews",
+          "population_id": "fr_registered_adults",
+          "reported_sample_base": "registered_voters",
+          "rationale": "Phase 2A reviewed exact object; cited methodology and table authenticate this scoped bridge.",
+          "evidence": [
+            {
+              "document_id": "10333",
+              "page": 3
+            },
+            {
+              "document_id": "10333",
+              "page": 15
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "corpora": {
+    "polls.json": {
+      "count": 349,
+      "sha256": "e1f2919e043deb72956188ee730177751dfe64012de1ff2f506fac977564d149"
+    },
+    "second_round_polls.json": {
+      "count": 108,
+      "sha256": "44993718ac263f57029767521739dc309289671e508f77dbbebc4a331419c811"
+    }
+  },
+  "identity_source_sha256": {
+    "poll_migration.py": "37ce3cdac0e520f549dfe8d938593909e5d9a3da8242c3caf7720addae4136a9",
+    "poll_contract.py": "d2dc32ad925acb6f0cb6b55e2019358c65ecc367c3f21e7542c4bee3db55077f",
+    "fetch_polls.py": "cfcb24b2d8b81f25221254ada08064c9a7bb9fcaf0e385b2a968f5104d463332",
+    "candidate_identity.py": "ba52bf110a260c90ff3e9437e2cbbe09eab405f2129ad3e9c5396a4537e46094",
+    "poll_ballot_labels.py": "5b817ce494efed57cbc5fb2b3749335c22f25f52df21f8c82bb375266a72d319"
+  },
+  "documentary": {
+    "scenario_id": "10333-first_round-p12-1",
+    "source_table_id": "fr27-source-table-v1:52b23f9e33beb09b00459c414cff38416711a71306ee84c11d1934c62e47ca3e",
+    "record_sha256": "409833c50d73fbab6bece3e72c0cd0945ab38403226cb9f27068d330498e0833",
+    "source_tables_sha256": "2210c4943c4984099bf2c217433a8e4d4e0ed656052f5794c1c5c08c473c4737",
+    "registration": {
+      "source_table_id": "fr27-source-table-v1:52b23f9e33beb09b00459c414cff38416711a71306ee84c11d1934c62e47ca3e",
+      "page_path_fr": "/sondages/documents/opinionway-cnews-10333/",
+      "page_path_en": "/en/sondages/documents/opinionway-cnews-10333/",
+      "notice_id": "10333"
+    },
+    "pages": {
+      "fr": {
+        "relative_path": "sondages/documents/opinionway-cnews-10333/index.html",
+        "sha256_lf": "b0bad73128b81d6473e989dd2f0ffb9ff968befe0d30d36faaa0ddd1de6901a8"
+      },
+      "en": {
+        "relative_path": "en/sondages/documents/opinionway-cnews-10333/index.html",
+        "sha256_lf": "8d4376889360fd217a6de7f49db8fb94772fb9b84a4031653c46f103000cecba"
+      }
+    }
+  }
+}

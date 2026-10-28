@@ -1,6 +1,6 @@
 """Manually invoked, read-only reviewed historical scenario coverage diagnostic.
 
-Only assess_coverage is a public assessment API; it authenticates every input.
+The historical API and the separately selected current CLI review authenticate every input.
 No fetching, extraction, ingestion, repinning, event-ID generation or file writes.
 """
 from __future__ import annotations
@@ -10,6 +10,7 @@ import collections
 from datetime import date
 from decimal import Decimal, InvalidOperation
 import hashlib
+from html.parser import HTMLParser
 import importlib
 import json
 from pathlib import Path
@@ -23,6 +24,10 @@ _PIN_PATH = _ROOT / "fr27_reviewed_scenario_pin.json"
 _PIN_SHA256 = "beb40745a83348562dd1a75835a3865667fbad09560f9def4253166f8218f469"
 SCHEMA = "fr27-reviewed-scenario-coverage/1"
 ROUNDS = ("first_round", "second_round")
+_CURRENT_REVIEW_PATH = _ROOT / 'fr27_commission_scenario_coverage_review_20261028.json'
+_CURRENT_REVIEW_SHA256 = 'ab12b29dab779b33a9ce630b4f67d334b0ef3cc83423b1b3f6204e12faf93e7a'
+_CURRENT_PUBLICATION_ROOT = _ROOT
+_CURRENT_SCHEMA = 'fr27-commission-scenario-coverage-review/1'
 
 
 class CoverageDiagnosticError(ValueError):
@@ -450,15 +455,233 @@ def assess_coverage(evidence_dir, *, corpus_dir=None):
         raise CoverageDiagnosticError('Unavailable or invalid diagnostic input: ' + str(exc)) from exc
 
 
+class _DocumentaryPage(HTMLParser):
+    """Inspect the reviewed publication, without importing a builder or fetching."""
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.language = None
+        self.canonicals, self.rows, self.links = [], [], []
+        self.states, self.cards = set(), []
+        self.cell, self.name, self.score, self.literal = None, '', '', None
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == 'html':
+            self.language = attrs.get('lang')
+        if tag == 'link' and attrs.get('rel') == 'canonical':
+            self.canonicals.append(attrs.get('href'))
+        if tag == 'a':
+            self.links.append(attrs.get('href'))
+        if 'data-coverage-state' in attrs:
+            self.states.add(attrs['data-coverage-state'])
+        if tag == 'details' and str(attrs.get('id', '')).startswith(('source-table-', 'scenario-')):
+            self.cards.append(attrs.get('id'))
+        if tag == 'tr':
+            self.name, self.score, self.literal = '', '', None
+        if tag == 'th' and attrs.get('scope') == 'row':
+            self.cell = 'name'
+        if tag == 'td' and 'data-published-literal' in attrs:
+            self.cell, self.literal = 'score', attrs['data-published-literal']
+
+    def handle_data(self, data):
+        if self.cell == 'name':
+            self.name += data
+        elif self.cell == 'score':
+            self.score += data
+
+    def handle_endtag(self, tag):
+        if tag in ('th', 'td'):
+            self.cell = None
+        if tag == 'tr' and self.literal is not None:
+            self.rows.append((self.name.strip(), self.score.strip(), self.literal))
+
+
+def _load_current_review():
+    review = _read_json(_CURRENT_REVIEW_PATH)
+    _require(_digest(review) == _CURRENT_REVIEW_SHA256,
+             'Current review overlay changed; explicit review required')
+    _require(review['schema_version'] == _CURRENT_SCHEMA
+             and review['scope'] == ['commission:10333'], 'Current review scope changed')
+    packet, historical_pin = _load_review()
+    _require(_digest(packet) == review['manifest_sha256']
+             and _digest(historical_pin) == review['historical_pin_sha256'],
+             'Current/historical review relationship changed')
+    _require(set(review['identity_source_sha256']) == set(historical_pin['identity_source_sha256']),
+             'Incomplete current identity dependency inventory')
+    for name, expected in review['identity_source_sha256'].items():
+        actual = hashlib.sha256((_ROOT / name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+        _require(actual == expected, 'Current identity implementation changed: ' + name)
+    surveys = [s for s in packet['surveys'] if s['survey_id'] == 'commission:10333']
+    documents = [d for d in packet['documents'] if d['document_id'] == '10333']
+    _require(len(surveys) == len(documents) == 1, 'Current review requires one exact study')
+    survey, document = surveys[0], documents[0]
+    _require(_digest(survey) == review['survey_sha256'] and document == review['document'],
+             'Reviewed study/document identity changed')
+    scoped = dict(packet, surveys=surveys, documents=documents)
+    rules = _IdentityRules()
+    _validate_manifest(scoped, rules)
+    expected = review['scenarios']
+    _require(len(expected) == 4 and len({s['scenario_id'] for s in expected}) == 4,
+             'Current review requires four distinct scenario assignments')
+    _require(survey['inventory_review'] == {'complete': True, 'expected_by_round': review['expected_by_round']}
+             and review['expected_by_round'] == {'first_round': 1, 'second_round': 3},
+             'Current scenario inventory is incomplete')
+    actual = [{'scenario_id': sc['scenario_id'], 'round': sc['round'],
+               'pdf_page': sc['table_evidence']['page'], 'published_column': sc['published_column'],
+               'candidate_ids': [row['identity_id'] for row in sc['rows']],
+               'rows_sha256': _digest(sc['rows']), 'respondent_bases': sc['respondent_bases'],
+               'reviewed_event_binding': sc['reviewed_event_binding']} for sc in survey['scenarios']]
+    _require(sorted(actual, key=lambda s: s['scenario_id']) == sorted(expected, key=lambda s: s['scenario_id']),
+             'Current scenario configuration, evidence or binding changed')
+    notices = _read_json(_CURRENT_PUBLICATION_ROOT / 'commission_notice_registry.json')['notices']
+    matching = [n for n in notices if n['notice_id'] == 'commission:10333']
+    _require(matching == [review['notice_identity']], 'Current Commission notice identity changed')
+    _require(review['notice_identity']['content_sha256'] == document['sha256'],
+             'Commission notice/document hash conflict')
+    return review, scoped, rules
+
+
+def _authenticate_current_documentary(review, packet, rules):
+    """Join frozen literals, explicit route registration and both actual HTML files."""
+    proof = review['documentary']
+    survey, document = packet['surveys'][0], packet['documents'][0]
+    assigned = [sc for sc in survey['scenarios'] if sc['scenario_id'] == proof['scenario_id']]
+    _require(len(assigned) == 1, 'Unknown documentary scenario assignment')
+    scenario = assigned[0]
+    _require(scenario['round'] == 'first_round' and scenario['reviewed_event_binding'] is None,
+             'Documentary assignment must retain the unbound first round')
+    source = _read_json(_CURRENT_PUBLICATION_ROOT / 'poll_source_tables.json')
+    _require(_digest(source) == proof['source_tables_sha256'], 'Documentary collection changed')
+    entry = source['tables']['10333']
+    table = entry['table']
+    _require(_digest(table) == entry['record_sha256'] == proof['record_sha256'],
+             'Documentary record changed')
+    _require(table['source_table_id'] == proof['source_table_id']
+             and table['reviewed_scenario_id'] == scenario['scenario_id']
+             and table['notice']['notice_id'] == survey['survey_id'], 'Documentary source binding conflict')
+    _require(table['source']['pdf_url'] == document['url']
+             and table['source']['pdf_sha256'] == document['sha256']
+             and table['source']['pdf_page'] == scenario['table_evidence']['page']
+             and table['source']['table_locator'] == scenario['scenario_id']
+             and table['source']['published_column'] == scenario['published_column'],
+             'Documentary PDF/page/column conflict')
+    _require(table['rows'] == scenario['rows'] and len(table['rows']) == 13,
+             'Documentary candidate literals changed')
+    _require(table['round'] == scenario['round']
+             and rules.institute(table['institute'], survey, packet) == survey['institute_id']
+             and rules.normalize(table['commissioner']) == rules.normalize(survey['commissioner'])
+             and table['fieldwork_start'] == survey['fieldwork']['start']
+             and table['fieldwork_end'] == survey['fieldwork']['end']
+             and table['publication_date'] == survey['publication_date']
+             and table['population'] == survey['population'], 'Documentary study identity conflict')
+    bases = table['respondent_bases']
+    _require(len({b['scope'] for b in bases}) == len(bases)
+             and {b['scope']: b['count'] for b in bases} == survey['respondent_bases'] | scenario['respondent_bases'],
+             'Documentary respondent-base conflict')
+    _require(table['numerical_comparisons'] == 'excluded_whole_table', 'Documentary numeric eligibility changed')
+    registration = proof['registration']
+    _require(registration == dict(source['standalone_pages']['10333'], notice_id='10333'),
+             'Documentary route association changed')
+    registered = _read_json(_CURRENT_PUBLICATION_ROOT / 'poll_pages_manifest.json')['source_pages']
+    relevant = [r for r in registered if r.get('notice_id') == '10333'
+                or any(r.get('page_path_' + lang) == registration['page_path_' + lang] for lang in ('fr', 'en'))]
+    _require(relevant == [registration], 'Missing, changed or duplicate documentary registration')
+    _require(set(proof['pages']) == {'fr', 'en'}, 'Both documentary languages required')
+    page_hashes = {}
+    for lang, page in sorted(proof['pages'].items()):
+        route = registration['page_path_' + lang]
+        relative = route.lstrip('/') + 'index.html'
+        path = (_CURRENT_PUBLICATION_ROOT / relative).resolve()
+        _require(page['relative_path'] == relative and _CURRENT_PUBLICATION_ROOT.resolve() in path.parents,
+                 'Documentary page escaped its registered route')
+        raw = path.read_bytes().replace(b'\r\n', b'\n')
+        actual = hashlib.sha256(raw).hexdigest()
+        _require(actual == page['sha256_lf'], 'Documentary page changed: ' + lang)
+        html = _DocumentaryPage()
+        html.feed(raw.decode('utf8'))
+        expected_rows = [(r['published_name'], r['result']['literal'], r['result']['literal']) for r in table['rows']]
+        _require(html.language == lang and html.canonicals == ['https://france2027.app' + route]
+                 and html.rows == expected_rows and html.cards == ['source-table-10333']
+                 and html.states == {'SOURCE_DOCUMENT_VERIFIED', 'DOCUMENTARY_COVERAGE_PUBLISHED', 'NUMERICAL_OBSERVATION_ABSENT'}
+                 and document['url'] + '#page=' + str(scenario['table_evidence']['page']) in html.links,
+                 'Documentary page semantics conflict: ' + lang)
+        page_hashes[lang] = actual
+    return {'state': 'published', 'reason': None, 'source_table_id': proof['source_table_id'],
+            'record_sha256': proof['record_sha256'], 'registration': registration, 'page_sha256_lf': page_hashes}
+
+
+def _assess_current_coverage(evidence_dir, *, corpus_dir=None):
+    """CLI-only current review; no injectable events, pins, approval flags or writes."""
+    try:
+        review, packet, rules = _load_current_review()
+        events = _authenticate_corpus(_ROOT if corpus_dir is None else Path(corpus_dir), review)
+        states = _document_states(packet, Path(evidence_dir))
+        source = states['10333']
+        source_state = {'VERIFIED': 'verified', 'UNAVAILABLE': 'unavailable', 'HASH_MISMATCH': 'changed'}[source['state']]
+        try:
+            documentary = _authenticate_current_documentary(review, packet, rules)
+        except (OSError, KeyError, TypeError, ValueError, AttributeError) as exc:
+            documentary = {'state': 'unverified', 'reason': str(exc)}
+        historical = _reconcile(packet, events, states, rules)
+        scenarios = []
+        definitions = {sc['scenario_id']: sc for sc in packet['surveys'][0]['scenarios']}
+        for assessed in historical['surveys'][0]['scenarios']:
+            sc = definitions[assessed['scenario_id']]
+            first = sc['round'] == 'first_round'
+            doc = documentary if first else {'state': 'reviewed-only' if source_state == 'verified' else 'unverified', 'reason': None}
+            status = assessed['status']
+            if source_state != 'verified' or (first and doc['state'] != 'published'):
+                numeric, reason = 'unverified', 'required_evidence_unverified'
+            elif status == 'NUMERIC_VERIFIED':
+                numeric, reason = 'verified', None
+            elif status == 'MISSING_CONFIRMED':
+                numeric = 'absent'
+                reason = ('non_exact_source_values' if any(v is None for v in _source_vector(sc, rules).values())
+                          else 'no_faithful_numerical_configuration')
+            else:
+                numeric, reason = 'conflicting', 'reviewed_binding_missing_or_conflicting'
+            scenarios.append({'scenario_id': sc['scenario_id'], 'round': sc['round'],
+                              'source_authentication': source_state, 'pdf_page': sc['table_evidence']['page'],
+                              'published_column': sc['published_column'], 'rows': sc['rows'],
+                              'respondent_bases': packet['surveys'][0]['respondent_bases'] | sc['respondent_bases'],
+                              'numerical_coverage': {'state': numeric, 'reason': reason,
+                                                     'event_binding': sc['reviewed_event_binding'] if numeric == 'verified' else None},
+                              'documentary_coverage': doc, 'rejected_candidates': assessed['rejected_candidates']})
+        complete = all(sc['numerical_coverage']['state'] in ('verified', 'absent') for sc in scenarios)
+        verified = sum(sc['numerical_coverage']['state'] == 'verified' for sc in scenarios)
+        summary = {'expected_configurations': len(scenarios), 'verified_numerical_configurations': verified,
+                   'published_documentary_only_configurations': sum(sc['numerical_coverage']['state'] == 'absent'
+                       and sc['documentary_coverage']['state'] == 'published' for sc in scenarios) if complete else None,
+                   'configurations_without_either_representation': sum(sc['numerical_coverage']['state'] != 'verified'
+                       and sc['documentary_coverage']['state'] != 'published' for sc in scenarios) if complete else None,
+                   'configurations_lacking_faithful_numerical_representation': len(scenarios) - verified if complete else None,
+                   'numerically_complete': verified == len(scenarios) if complete else None}
+        return {'schema_version': _CURRENT_SCHEMA, 'review_id': review['review_id'],
+                'result': 'ASSESSED' if complete else 'REVIEW_REQUIRED', 'notice_id': 'commission:10333',
+                'review_sha256': _digest(review), 'baseline_sha': review['baseline_sha'],
+                'manifest_sha256': review['manifest_sha256'], 'historical_pin_sha256': review['historical_pin_sha256'],
+                'corpus_attestation': review['corpora'], 'identity_source_sha256': review['identity_source_sha256'],
+                'source_authentication': dict(source, state=source_state),
+                'production_notice_coverage': review['notice_identity']['coverage'],
+                'summary': summary, 'scenarios': scenarios}
+    except CoverageDiagnosticError:
+        raise
+    except (OSError, KeyError, TypeError, ValueError, AttributeError) as exc:
+        raise CoverageDiagnosticError('Unavailable or invalid current review input: ' + str(exc)) from exc
+
+
 def _main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence-dir', required=True, type=Path,
                         help='External directory containing the five original reviewed PDFs')
     parser.add_argument('--corpus-dir', type=Path, default=None,
                         help='Directory containing both numerical JSON files (default: this checkout)')
+    parser.add_argument('--review', choices=('historical', '10333-20261028'), default='historical',
+                        help='Explicit reviewed assessment; historical behavior remains the default')
     args = parser.parse_args(argv)
     try:
-        report = assess_coverage(args.evidence_dir, corpus_dir=args.corpus_dir)
+        assessor = assess_coverage if args.review == 'historical' else _assess_current_coverage
+        report = assessor(args.evidence_dir, corpus_dir=args.corpus_dir)
     except CoverageDiagnosticError as exc:
         print(json.dumps({'result': exc.code, 'message': str(exc), 'details': exc.details}, sort_keys=True))
         return 2
