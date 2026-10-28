@@ -6,6 +6,8 @@ and the narrow candidate identity and candidacy-status helpers.
 
 from __future__ import annotations
 
+from poll_scope import default_2027_eligible, load_scope_registry, validate_scope_registry
+
 import argparse
 import copy
 import json
@@ -527,10 +529,13 @@ def french_compatible_sort_key(value: str) -> tuple[str, str]:
     return normalized, unicodedata.normalize("NFC", value).casefold()
 
 
-def build_poll_packages(polls: Any) -> list[dict[str, Any]]:
+def build_poll_packages(polls: Any, *, include_historical: bool = True) -> list[dict[str, Any]]:
     """Group by exact raw identity plus the finite authenticated study binding."""
 
     indexed_events = validated_first_round_events(polls)
+    if not include_historical:
+        indexed_events = [(index, event) for index, event in indexed_events
+                          if default_2027_eligible(event)]
     events = [event for _index, event in indexed_events]
     validate_study_membership(events)
     ordered_events = sorted(
@@ -594,7 +599,7 @@ def build_poll_packages(polls: Any) -> list[dict[str, Any]]:
 def select_featured_polling_package(polls: Any) -> dict[str, Any]:
     """Return the first package under exact Race at a Glance ranking rules."""
 
-    packages = build_poll_packages(polls)
+    packages = build_poll_packages(polls, include_historical=False)
     ranked = sorted(
         packages,
         key=lambda package: (
@@ -722,7 +727,7 @@ def project_candidate_poll_history(
     """
 
     packages = sorted(
-        build_poll_packages(polls),
+        build_poll_packages(polls, include_historical=False),
         key=lambda package: (
             _parse_date(
                 package["fieldwork_end"],
@@ -4311,6 +4316,7 @@ def build_from_paths(
         claims_path,
         candidacy_status_path,
     )
+    validate_scope_registry(load_scope_registry(), polls)
     payload = build_candidate_signals(
         polls,
         news,

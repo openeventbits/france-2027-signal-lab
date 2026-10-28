@@ -27,6 +27,7 @@ from candidate_identity import CandidateIdentityError, candidate_id, canonical_c
 from poll_ballot_labels import RN_CONDITIONAL_OPTION, RN_CONDITIONAL_DISPLAY_NAMES
 from poll_source_tables import load_source_tables, digest as source_digest
 from poll_studies import reviewed_member, load_binding
+from poll_scope import RETROSPECTIVE, scope_record, load_scope_registry, validate_scope_registry
 
 
 SCHEMA_VERSION = "1.0"
@@ -207,6 +208,8 @@ def _scenario_projection(
         )
 
     projection = {
+        "election_scope": scope_record(event)["scope"],
+        "scope_review": scope_record(event),
         "event_id": event["event_id"],
         "scenario_key": event["scenario_key"],
         "hypothesis": hypothesis,
@@ -338,6 +341,9 @@ def directory_entries(waves, source_scenarios=None):
 
 def build_poll_explorer(polls: Any) -> dict[str, Any]:
     indexed_events = validated_first_round_events(polls)
+    # Reusable projection also serves finite synthetic/source-review subsets.
+    # The file/publication boundary below requires the complete registry.
+    validate_scope_registry(load_scope_registry(), polls, require_all=False)
     packages = build_poll_packages(polls)
     identities = _candidate_identity_directory(indexed_events)
 
@@ -514,7 +520,43 @@ def build_poll_explorer(polls: Any) -> dict[str, Any]:
         "waves": waves,
         "source_scenarios": reviewed_source_scenarios(),
     }
+    payload["default_2027"] = default_2027_projection(waves)
+    payload["historical_archive"] = {
+        "scope": RETROSPECTIVE,
+        "scenario_count": sum(s["election_scope"] == RETROSPECTIVE for w in waves for s in w["scenarios"]),
+        "wave_count": sum(any(s["election_scope"] == RETROSPECTIVE for s in w["scenarios"]) for w in waves),
+    }
     return payload
+
+
+def default_2027_projection(waves):
+    """Default counts do not assert individual verification of election scope."""
+    selected = [(wave, [s for s in wave["scenarios"] if s["election_scope"] != RETROSPECTIVE])
+                for wave in waves]
+    selected = [(wave, scenarios) for wave, scenarios in selected if scenarios]
+    candidates, institutes = {}, {}
+    for wave, scenarios in selected:
+        for directory, identities in (
+            (institutes, {wave["pollster"]: wave["pollster"]}),
+            (candidates, {c["candidate_id"]: c["candidate_name"] for s in scenarios
+                          for c in s["candidates"] if c["identity_type"] == "person"}),
+        ):
+            for identifier, name in identities.items():
+                stats = directory.setdefault(identifier, {"name": name, "wave_count": 0,
+                    "scenario_count": 0, "first_observed": wave["fieldwork_start"], "last_observed": wave["fieldwork_end"]})
+                stats["wave_count"] += 1
+                stats["scenario_count"] += (len(scenarios) if directory is institutes else
+                    sum(any(c["candidate_id"] == identifier for c in s["candidates"]) for s in scenarios))
+                stats["first_observed"] = min(stats["first_observed"], wave["fieldwork_start"])
+                stats["last_observed"] = max(stats["last_observed"], wave["fieldwork_end"])
+    return {"metrics": {"wave_count": len(selected),
+        "scenario_count": sum(len(scenarios) for _, scenarios in selected),
+        "candidate_count": len(candidates), "institute_count": len(institutes),
+        "period_start": min((w["fieldwork_start"] for w, _ in selected), default=None),
+        "period_end": max((w["fieldwork_end"] for w, _ in selected), default=None)},
+        "candidates": [dict(candidate_id=k, candidate_name=v["name"], **{a:b for a,b in v.items() if a != "name"})
+                       for k,v in sorted(candidates.items())],
+        "institutes": [dict(v) for _,v in sorted(institutes.items())]}
 
 
 def serialize_poll_explorer(payload: dict[str, Any]) -> bytes:
@@ -550,6 +592,7 @@ def build_from_paths(
     output_path: Path | str = "poll_explorer.json",
 ) -> dict[str, Any]:
     polls = load_polls(polls_path)
+    validate_scope_registry(load_scope_registry(), polls)
     payload = build_poll_explorer(polls)
     write_poll_explorer(payload, output_path)
     return payload

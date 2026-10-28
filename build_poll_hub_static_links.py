@@ -248,6 +248,11 @@ def render_table(
             candidate_text = ", ".join(c["candidate_name"] + " " + c["result"]["literal"] for c in wave["candidates"])
         scenario_text = (("SCÉNARIO SOURCE VÉRIFIÉ" if language == "fr" else "VERIFIED SOURCE SCENARIO")
                          + " · Notice " + wave["notice_id"] if source else format_number(scenario_count, language))
+        historical = sum(s.get("election_scope") == "retrospective_2022_revote" for s in wave.get("scenarios", []))
+        if historical:
+            plural = "s" if historical > 1 else ""
+            scenario_text += (f" · {historical} scénario{plural} rétrospectif{plural} 2022" if language == "fr"
+                              else f" · {historical} retrospective 2022 archive scenario{plural}")
         sample_text = (format_number(wave["respondent_bases"]["adults"], language)
                        + (" adultes" if language == "fr" else " adults") if source
                        else "n=" + format_number(sample_size, language))
@@ -399,7 +404,7 @@ def render_hub(
     return document
 
 
-def render_source_links(language):
+def render_source_links(language, waves=None):
     fr = language == "fr"
     record = load_source_tables()
     links = []
@@ -414,7 +419,29 @@ def render_source_links(language):
             + '</h2></div></div><div class="polling-inspector-empty"><p>'
             + ("Preuves documentaires avec valeurs littérales, dont &lt;1%. Ces tableaux ne sont pas des vagues numériques et ne participent pas aux tendances du Polling Lab."
                if fr else "Documentary evidence with literal values, including &lt;1%. These tables are not numerical waves and do not enter Polling Lab trends.")
-            + '</p><ul>' + ''.join(links) + '</ul></div></section>\n' + SOURCE_END)
+            + '</p><ul>' + ''.join(links) + '</ul></div></section>\n'
+            + render_historical_archive(language, waves) + '\n' + SOURCE_END)
+
+
+def render_historical_archive(language, waves=None):
+    """A crawlable, keyboard-accessible archive of exact original scenarios."""
+    waves = load_explorer()["waves"] if waves is None else waves
+    fr = language == "fr"
+    links = []
+    for wave in waves:
+        for index, scenario in enumerate(wave["scenarios"], 1):
+            if scenario.get("election_scope") != "retrospective_2022_revote":
+                continue
+            label = f'{wave["pollster"]} · {format_date_range(wave["fieldwork_start"], wave["fieldwork_end"], language)} · ' + ("scénario" if fr else "scenario") + f' {index}'
+            href = wave_path(wave, language) + f'#scenario-{index}'
+            links.append(f'<li data-event-id="{escape(scenario["event_id"])}"><a href="{escape(href)}">{escape(label)} →</a></li>')
+    total = sum(len(w["scenarios"]) for w in waves)
+    explanation = (f"{len(links)} scénarios rétrospectifs 2022 confirmés par leurs sources, exclus des comparaisons et historiques de candidats de la vue 2027. Le corpus conserve {total} scénarios ; la vue 2027 en affiche {total - len(links)}. Tous les autres scénarios ne sont pas vérifiés individuellement. Les résultats originaux et les références restent accessibles ci-dessous."
+                   if fr else f"{len(links)} source-confirmed retrospective 2022 scenarios, excluded from 2027 comparisons and candidate histories. The corpus retains {total} scenarios; the 2027 view displays {total - len(links)}. The other scenarios have not all been individually verified. Original results and evidence remain accessible below.")
+    title = "ARCHIVES RÉTROSPECTIVES 2022" if fr else "2022 RETROSPECTIVE ARCHIVE"
+    return ('<section class="polling-panel" id="historical-archive" aria-labelledby="historical-archive-title">'
+            f'<div class="polling-panel-head"><h2 id="historical-archive-title">{title}</h2></div>'
+            f'<div class="polling-inspector-empty"><p>{explanation}</p><ul>{"".join(links)}</ul></div></section>')
 
 
 def normalized_template(document: str) -> str:
@@ -468,7 +495,7 @@ def expected_document(
     marker = '<footer id="candidate-app-hud"'
     if document.count(marker) != 1:
         raise StaticPollHubError("Expected exactly one shared hub footer")
-    return document.replace(marker, render_source_links(language) + '\n\n    ' + marker, 1)
+    return document.replace(marker, render_source_links(language, waves) + '\n\n    ' + marker, 1)
 
 
 def main(argv: list[str] | None = None) -> int:

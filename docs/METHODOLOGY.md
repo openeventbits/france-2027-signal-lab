@@ -110,6 +110,45 @@ Candidate identity, conservative status transitions, provenance, retained last-g
 
 ## First-round polling
 
+### Election scope and historical archive
+
+`poll_election_scope.json` is a versioned, source-reviewed sidecar keyed by immutable
+event ID. It authenticates the complete original observation and records an evidence
+URL, document page or section, review date and rationale. A missing, duplicated or
+changed reviewed observation stops the production projection. Poll records, scores,
+source URLs, scenario keys, wave identities and historical anchors remain unchanged.
+
+The default 2027 view excludes only `retrospective_2022_revote` scenarios confirmed
+by original institute reports or publisher explanations. All other observations are
+`not_yet_reviewed` unless an explicit review assigns `presidential_2027_scenario`.
+Their continued inclusion does not assert individually verified 2027 scope. No date,
+candidate name (including Emmanuel Macron), lineup, source domain or scenario-key
+match assigns election scope. Source questions govern review decisions.
+
+Filtering happens per scenario before comparisons, previous-poll differences,
+candidate histories and within-wave ranges. The March 2023 Ifop study retains all
+six scenarios on its source page, including the original retrospective `#scenario-4`;
+its other five scenarios remain in default calculations. The bilingual Polling Lab
+links directly to each retained scenario in its **2022 retrospective archive**.
+
+The explorer's existing `metrics`, `waves`, candidate and institute directories remain
+the complete numerical corpus. `default_2027` supplies separate scoped metrics and
+directories; `historical_archive` counts excluded scenarios and waves containing them.
+The main Polling Lab metrics describe the default view. Complete browsing directories,
+source-page scenario counts, and the application HUD describe the archived corpus.
+The two verified non-numerical source tables remain separate, unchanged evidence.
+
+At the 2026-10-28 review base: 349 numerical scenarios, 83 waves, 47 tested people,
+11 institutes, fieldwork from 2022-10-25 to 2026-10-22 remain archived. The default
+view has 343 scenarios, 78 waves, 44 tested people and 11 institutes, starting on
+2023-03-30. Six retrospective scenarios occur in six waves; five waves contain only
+retrospective evidence and one wave has mixed scope. These are dated audit counts,
+not permanent production thresholds. See [the source audit](POLLING_SCOPE_REVIEW_2026-10-28.md).
+
+Recent Changes continues to record newly sourced polling evidence irrespective of
+scope: its role is an evidence ledger, rather than a 2027 polling trend. The scope
+correction does not fabricate new publication dates or new ledger developments.
+
 FR27 treats a poll as an **event**, not as a collection of disconnected candidate scores.
 
 A first-round poll event contains the pollster, fieldwork period, round, hypothesis, source URL, and the complete set of candidate results reported for that scenario.

@@ -29,6 +29,13 @@ jobs:
       - name: Verify Node.js
         run: node --version
 
+      - name: Validate reviewed election scope and bilingual polling behavior
+        run: |
+          python -B poll_scope.py --check
+          python -B -m unittest -v test_poll_scope
+          node test_poll_scope.js
+          node test_poll_source_projection.js
+
       - name: Run dashboard integration smoke tests
         env:
           PYTHONDONTWRITEBYTECODE: "1"
