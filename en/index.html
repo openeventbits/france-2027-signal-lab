@@ -3630,6 +3630,15 @@
       white-space: nowrap;
     }
 
+    .changes-ledger-support {
+      margin-top: 5px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .changes-ledger-support summary { cursor: pointer; color: var(--cyan); }
+    .changes-ledger-supporting-link { display: block; overflow-wrap: anywhere; }
+
     .changes-ledger-visual {
       display: flex;
       align-items: center;
@@ -7425,7 +7434,7 @@
         <!-- FR27 SEMANTIC SNAPSHOT: WHAT CHANGED START -->
       <div class="panel-head">
         <h2 id="what-changed-title" data-i18n="dashboard.what_changed">WHAT CHANGED</h2>
-        <div class="changes-ledger-summary" id="changes-ledger-summary" aria-live="polite">51 CHANGES · LAST 14 DAYS</div>
+        <div class="changes-ledger-summary" id="changes-ledger-summary" aria-live="polite">45 CHANGES · LAST 14 DAYS</div>
       </div>
       <div class="what-changed-list" id="what-changed-list" aria-live="polite" aria-busy="false" data-fr27-semantic-snapshot="true">
         <div class="changes-ledger-scroll" tabindex="0">
@@ -10215,6 +10224,12 @@
       const supportNote = ledgerSupportingSourceNote(item.supporting_source_count);
 
       if (item.category === "campaign") {
+        if (String(item.summary || "").startsWith("Advance campaign-launch coverage;")) {
+          return dateNote + " · " + translate(
+            "what_changed.meta.launch_preview",
+            "Advance campaign-launch coverage; not a completed-event report"
+          ) + supportNote;
+        }
         return dateNote + " · " + translate(
           "what_changed.meta.campaign_change",
           "Candidate, endorsement, selection or campaign-status change"
@@ -10348,6 +10363,8 @@
             item.published_at.includes("T") ? "datetime" : "date",
           sourceName: item.primary_source.name,
           sourceUrl,
+          supportingSources: Array.isArray(item.supporting_sources)
+            ? item.supporting_sources.filter(source => safeSourceUrl(source?.url)) : [],
           sourceIconKey: item.source_icon_key,
           meta: ledgerEntryMetadata(item),
           candidates: Array.isArray(item.candidate_names)
@@ -10432,6 +10449,24 @@
 
       meta.appendChild(source);
       copy.appendChild(meta);
+      if (entry.supportingSources?.length) {
+        const details = document.createElement("details");
+        details.className = "changes-ledger-support";
+        const label = document.createElement("summary");
+        label.textContent = ledgerSupportingSourceNote(entry.supportingSources.length).replace(/^ · /, "");
+        details.appendChild(label);
+        entry.supportingSources.forEach(support => {
+          const link = document.createElement("a");
+          link.className = "changes-ledger-supporting-link";
+          link.href = safeSourceUrl(support.url);
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = support.name + (support.published_at ? " · " + ledgerCompactDate(support.published_at) : "");
+          if (support.published_at) link.setAttribute("title", support.published_at);
+          details.appendChild(link);
+        });
+        copy.appendChild(details);
+      }
       article.appendChild(copy);
       article.appendChild(ledgerSourceVisual(entry));
 

@@ -242,6 +242,10 @@ result = {
     aria: node.getAttribute("aria-label"),
     href: node.href
   })),
+  supportingLinks: byClass(list, "changes-ledger-supporting-link").map(node => ({
+    text: node.textContent, href: node.href, published: node.getAttribute("title")
+  })),
+  supportingDisclosures: byClass(list, "changes-ledger-support").map(node => node.children[0].textContent),
   wordmarks: byClass(list, "changes-ledger-wordmark").map(node => node.textContent),
   filteredCategories: input.clickCampaign
     ? byClass(list, "changes-ledger-category").map(node => node.textContent)
@@ -364,6 +368,33 @@ def run_harness(locale="fr", state="loaded", recent_changes=None, click_campaign
 
 
 class WhatChangedLocalizationTests(unittest.TestCase):
+    def test_grouped_source_links_are_accessible_in_both_languages(self):
+        data = payload()
+        data["items"][0]["supporting_sources"] = [
+            {"name": "Publisher A", "url": "https://example.test/support-a", "published_at": "2026-09-07T09:00:00Z"},
+            {"name": "Publisher A", "url": "https://example.test/support-b", "published_at": "2026-09-07T10:00:00Z"},
+        ]
+        data["items"][0]["supporting_source_count"] = 2
+        for locale in ["fr", "en"]:
+            result = run_harness(locale=locale, recent_changes=data)
+            self.assertEqual([s["href"] for s in result["supportingLinks"]],
+                             [s["url"] for s in data["items"][0]["supporting_sources"]])
+            self.assertEqual([s["published"] for s in result["supportingLinks"]],
+                             [s["published_at"] for s in data["items"][0]["supporting_sources"]])
+            self.assertEqual(len(result["supportingDisclosures"]), 1)
+            self.assertTrue(result["payloadUnchanged"])
+
+    def test_launch_preview_is_explicit_in_both_languages(self):
+        data = payload()
+        data["items"][0]["summary"] = "Advance campaign-launch coverage; not a completed-event report."
+        original = json.dumps(data, ensure_ascii=False)
+        french = " | ".join(run_harness(recent_changes=data)["metadata"])
+        english = " | ".join(run_harness(locale="en", recent_changes=data)["metadata"])
+        self.assertIn("Avant le lancement de campagne", french)
+        self.assertIn("ne constate pas sa réalisation", french)
+        self.assertIn("not a completed-event report", english)
+        self.assertEqual(json.dumps(data, ensure_ascii=False), original)
+
     def test_french_title_and_compact_summary(self):
         result = run_harness(recent_changes=payload())
         self.assertEqual(result["title"], "ÉVOLUTIONS")

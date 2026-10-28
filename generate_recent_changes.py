@@ -22,9 +22,13 @@ from fetch_news_wire import (
     classify_structured_electoral_support,
     normalize,
 )
+from campaign_event_identity import (
+    PREVIEW_SUMMARY, launch_identity, launch_preview, launch_report, load_occurrences,
+)
 
 
 SCHEMA_VERSION = 1
+CAMPAIGN_OCCURRENCES = load_occurrences()
 WINDOW_DAYS = 14
 MAX_ITEMS = 0  # zero means retain every qualifying change in the window
 PARIS = ZoneInfo("Europe/Paris")
@@ -916,6 +920,21 @@ def news_entries_match(left: dict[str, Any], right: dict[str, Any]) -> bool:
         return False
     if left["primary_source"]["url"] == right["primary_source"]["url"]:
         return True
+    # Launch paraphrases require independent agreement on the same reviewed
+    # occurrence. Never fall back to candidate/action/token similarity here.
+    if launch_report(left) or launch_report(right):
+        left_identity = launch_identity(left, CAMPAIGN_OCCURRENCES)
+        right_identity = launch_identity(right, CAMPAIGN_OCCURRENCES)
+        if left_identity is not None or right_identity is not None:
+            return left_identity is not None and left_identity == right_identity
+        # Preserve exact same-day headline syndication without inventing an
+        # occurrence for an unlocated or compound article.
+        return (
+            normalized_title(left["headline"]) == normalized_title(right["headline"])
+            and date_key(left["trusted_change_at"]) == date_key(right["trusted_change_at"])
+            and left.get("candidate_ids") == right.get("candidate_ids")
+            and left.get("event_date") == right.get("event_date")
+        )
     if normalized_title(left["headline"]) == normalized_title(right["headline"]):
         return True
 
@@ -1028,7 +1047,12 @@ def cluster_news_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     clusters: list[list[dict[str, Any]]] = []
     for entry in sorted(entries, key=lambda item: (date_sort_value(item["trusted_change_at"]), item["id"])):
         for cluster in clusters:
-            if any(news_entries_match(entry, member) for member in cluster):
+            # Launch coverage must match every member: a matching middle
+            # article cannot bridge different occurrences or genres. Existing
+            # non-launch support/alliance/complaint grouping retains its rules.
+            matches = [news_entries_match(entry, member) for member in cluster]
+            launch_cluster = launch_report(entry) or any(launch_report(member) for member in cluster)
+            if (all(matches) if launch_cluster else any(matches)):
                 cluster.append(entry)
                 break
         else:
@@ -1042,6 +1066,8 @@ def cluster_news_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         )
         supporters = [item for item in cluster if item is not primary]
         result = {key: value for key, value in primary.items() if not key.startswith("_")}
+        if launch_preview(primary, CAMPAIGN_OCCURRENCES):
+            result["summary"] = PREVIEW_SUMMARY
         result["candidate_ids"] = sorted({candidate for item in cluster for candidate in item["candidate_ids"]})
         result["candidate_names"] = sorted({candidate for item in cluster for candidate in item["candidate_names"]})
         result["supporting_sources"] = [
@@ -1053,11 +1079,29 @@ def cluster_news_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
             for item in supporters
         ]
         result["supporting_source_count"] = len(result["supporting_sources"])
+        identity = launch_identity(primary, CAMPAIGN_OCCURRENCES)
+        if identity is not None:
+            result["event_date"] = identity[3]
+            # Detection is inherited only from an actual member report and
+            # cannot precede that report's publication. Preview detection is
+            # not the detection of a completed launch.
+            detections = [
+                parse_datetime(item["detected_at"])
+                for item in cluster
+                if parse_datetime(item["detected_at"]) is not None
+                and parse_datetime(item["published_at"]) is not None
+                and parse_datetime(item["detected_at"]) >= parse_datetime(item["published_at"])
+                and parse_datetime(item["detected_at"]) <= parse_datetime(item["generated_at"])
+            ]
+            if detections:
+                result["detected_at"] = utc_text(min(detections))
+            elif parse_datetime(primary["generated_at"]) >= parse_datetime(primary["published_at"]):
+                result["detected_at"] = primary["generated_at"]
         if supporters:
             result["summary"] = (
-                primary["summary"] + " "
-                + f"{len(supporters)} additional monitored publisher"
-                + (" supports" if len(supporters) == 1 else "s support")
+                result["summary"] + " "
+                + f"{len(supporters)} additional source link"
+                + (" documents" if len(supporters) == 1 else "s document")
                 + " the development."
             )
         merged.append(result)

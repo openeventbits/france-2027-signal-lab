@@ -276,6 +276,19 @@ def _render_change_item(item: dict[str, Any], language: str) -> str:
         item["trusted_change_date_kind"]
     ]
     category = CATEGORY_LABELS[language][item["category"]]
+    preview = ""
+    if item["summary"].startswith("Advance campaign-launch coverage;"):
+        preview = " · " + ("Avant le lancement de campagne · ne constate pas sa réalisation"
+                            if language == "fr" else "Advance coverage; not a completed-event report")
+    support_links = ""
+    if item["supporting_sources"]:
+        links = "".join(
+            '<a class="changes-ledger-supporting-link" href="' + _escape(s["url"])
+            + '" target="_blank" rel="noopener noreferrer" title="' + _escape(s["published_at"] or "")
+            + '">' + _escape(s["name"]) + ' · ' + _escape(s["published_at"] or "") + '</a>'
+            for s in item["supporting_sources"]
+        )
+        support_links = '\n              <details class="changes-ledger-support"><summary>' + _escape(supporting.removeprefix(" · ")) + '</summary>' + links + '</details>'
     return f'''          <li class="changes-ledger-entry" data-category="{_escape(item["category"])}" data-fr27-change-id="{_escape(item["id"])}">
             <time class="changes-ledger-time" datetime="{_escape(trusted_at)}">{_escape(_format_date(trusted_at, language))}</time>
             <span class="changes-ledger-beacon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle class="changes-ledger-shape" cx="12" cy="12" r="8"></circle><circle class="changes-ledger-fill" cx="12" cy="12" r="2.5"></circle></svg></span>
@@ -283,9 +296,9 @@ def _render_change_item(item: dict[str, Any], language: str) -> str:
               <div class="changes-ledger-category">{_escape(category)}</div>
               <h3 class="changes-ledger-headline">{_escape(item["headline"])}</h3>
               <div class="changes-ledger-meta">
-                <span class="changes-ledger-meta-text">{_escape(trusted_label)} · {_escape(source["name"])}{_escape(supporting)}</span>
+                <span class="changes-ledger-meta-text">{_escape(trusted_label)} · {_escape(source["name"])}{_escape(preview)}{_escape(supporting)}</span>
                 <a class="changes-ledger-source" href="{_escape(source["url"])}" target="_blank" rel="noopener noreferrer">{_escape(COPY[language]["open_source"])}</a>
-              </div>
+              </div>{support_links}
             </div>
             <div class="changes-ledger-visual" aria-hidden="true"><span class="changes-ledger-wordmark">{_escape(source["name"])}</span></div>
           </li>'''
