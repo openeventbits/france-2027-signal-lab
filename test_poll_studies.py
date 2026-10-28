@@ -1,4 +1,4 @@
-"""Gate 1: authenticated study identity, immutable observations and legacy URLs."""
+"""Authenticated study identity, immutable observations, URLs and homepage eligibility parity."""
 import copy
 import json
 from pathlib import Path
@@ -11,6 +11,7 @@ import build_candidate_signals as signals
 import build_poll_explorer as explorer
 import build_poll_pages as pages
 import poll_studies as studies
+import poll_contract as contract
 
 ROOT = Path(__file__).resolve().parent
 
@@ -57,6 +58,106 @@ result={valid_ids:valid.map(e=>e.event_id),latest:deriveLatestFieldworkSummary(v
 `,context);
 process.stdout.write(JSON.stringify(context.result));
 '''
+
+
+VALIDATOR_SCRIPT = r'''
+const fs=require("fs"), vm=require("vm");
+const input=JSON.parse(fs.readFileSync(0,"utf8"));
+const source=fs.readFileSync(input.page,"utf8").replace(/\r\n/g,"\n");
+const start=source.indexOf("    function isValidFirstRoundPollEvent(");
+if(start<0)throw Error("Missing homepage validator");
+const end=source.indexOf("\n    }",start)+6;
+const context={events:input.events,result:null};
+vm.createContext(context);
+vm.runInContext(source.slice(start,end)+`
+if (${Boolean(input.nonfinite)}) {
+  const base=events[0];
+  const partial={...base,reported_total:98,completeness_status:"partial",partial_scenario:true,
+    unreported_share:2,candidates:[{...base.candidates[0],score:50},{...base.candidates[1],score:48}]};
+  events=[NaN,Infinity,-Infinity].flatMap(value=>[
+    {...base,reported_total:value},
+    {...base,candidates:[{...base.candidates[0],score:value},...base.candidates.slice(1)]},
+    {...partial,unreported_share:value}
+  ]);
+}
+result=events.map(isValidFirstRoundPollEvent);
+`,context);
+console.log(JSON.stringify(context.result));
+'''
+
+
+def python_accepts(event):
+    try:
+        contract.validate_poll_event(event)
+    except contract.PollContractError:
+        return False
+    return True
+
+
+class HomepageEligibilityTests(unittest.TestCase):
+    @staticmethod
+    def event(total=100, partial=False):
+        event = {
+            "round": "first_round", "pollster": "Test institute",
+            "fieldwork_start": "2026-09-01", "fieldwork_end": "2026-09-02",
+            "hypothesis": "Test scenario", "source_url": "https://example.test/poll",
+            "candidates": [{"name": "Candidate A", "score": 50},
+                           {"name": "Candidate B", "score": total - 50}],
+            "reported_total": total, "completeness_status": "partial" if partial else "complete",
+            "partial_scenario": partial, "unreported_share": 100 - total if partial else None,
+        }
+        event["scenario_key"] = contract.make_scenario_key(c["name"] for c in event["candidates"])
+        event["event_id"] = contract.make_event_id(event["pollster"], event["fieldwork_start"],
+                                                  event["fieldwork_end"], event["hypothesis"], event["source_url"])
+        return event
+
+    def assert_parity(self, cases, expected):
+        self.assertEqual([python_accepts(event) for event in cases], expected)
+        for page in ("index.html", "en/index.html"):
+            with self.subTest(page=page):
+                self.assertEqual(run_node(VALIDATOR_SCRIPT, {"page": page, "events": cases}), expected)
+
+    def test_complete_total_boundaries_match_python(self):
+        totals = [99, 100, 101, 102, 102.000001, 103, 98.999999, 98]
+        self.assert_parity([self.event(total) for total in totals], [True] * 4 + [False] * 4)
+
+    def test_partial_scenarios_and_completeness_flags_match_python(self):
+        complete, partial = self.event(), self.event(98, partial=True)
+        cases = [partial, self.event(50, partial=True),
+                 dict(complete, partial_scenario=True), dict(complete, partial_scenario=0),
+                 dict(complete, completeness_status="partial"), dict(complete, unreported_share=0),
+                 dict(partial, partial_scenario=False), dict(partial, partial_scenario=1),
+                 dict(partial, completeness_status="complete"), dict(partial, unreported_share=None),
+                 dict(partial, unreported_share=3), dict(partial, reported_total=97),
+                 self.event(99, partial=True), self.event(102, partial=True),
+                 dict(complete, completeness_status="unknown"), dict(complete, reported_total=101)]
+        self.assert_parity(cases, [True, True] + [False] * (len(cases) - 2))
+
+    def test_malformed_events_and_candidates_remain_rejected(self):
+        event = self.event()
+        cases = [None, {}, [], "invalid", dict(event, round="second_round"),
+                 dict(event, event_id=None), dict(event, scenario_key=None),
+                 dict(event, candidates=None), dict(event, candidates=[]),
+                 dict(event, candidates=event["candidates"][:1]), dict(event, reported_total="100")]
+        for candidate in [None, {}, {"name": "", "score": 50}, {"name": " ", "score": 50},
+                          {"name": 1, "score": 50}, {"name": "Candidate B", "score": 50},
+                          {"name": "Candidate A", "score": -1}, {"name": "Candidate A", "score": "50"},
+                          {"name": "Candidate A", "score": True}, {"name": "Candidate A", "score": None}]:
+            cases.append(dict(event, candidates=[candidate, event["candidates"][1]]))
+        self.assert_parity(cases, [False] * len(cases))
+
+    def test_non_finite_numbers_remain_rejected(self):
+        event = self.event()
+        for number in (float("nan"), float("inf"), float("-inf")):
+            self.assertFalse(python_accepts(dict(event, reported_total=number)))
+            changed = copy.deepcopy(event)
+            changed["candidates"][0]["score"] = number
+            self.assertFalse(python_accepts(changed))
+            self.assertFalse(python_accepts(dict(self.event(98, partial=True), unreported_share=number)))
+        for page in ("index.html", "en/index.html"):
+            with self.subTest(page=page):
+                self.assertEqual(run_node(VALIDATOR_SCRIPT, {"page": page, "events": [event], "nonfinite": True}),
+                                 [False] * 9)
 
 
 class ReviewedStudyTests(unittest.TestCase):
@@ -148,17 +249,37 @@ class ReviewedStudyTests(unittest.TestCase):
             self.assertEqual(tuple(rows[0][key] for key in ["hypothesis_count","range_min","range_max","selected_score"]), values)
             self.assertEqual(set(rows[0]["source_urls"]), set(self.wave["source_urls"]))
 
-    def test_both_homepages_match_python_and_gate2_remains_unchanged(self):
+    def test_both_homepages_match_python_for_every_published_event(self):
+        expected_ids = [event["event_id"] for event in self.polls if python_accepts(event)]
+        self.assertEqual(len(expected_ids), len(self.polls))
+        yougov_id = "fce9f5e59dc2dc1d26b53f7c8aa5551ab862c7ce78140cfe3ce0f5d36b5d46f1"
+        yougov = next(event for event in self.polls if event["event_id"] == yougov_id)
+        self.assertEqual((yougov["reported_total"], yougov["completeness_status"]), (102, "complete"))
+        results = []
         for page in ["index.html", "en/index.html"]:
             result = run_node(HOMEPAGE_SCRIPT, {"page":page,"polls":self.polls})
-            valid = set(result["valid_ids"])
-            # Gate 2 remains explicit: parity is over the homepage's existing valid input.
-            dropped = [e for e in self.polls if e["event_id"] not in valid]
-            self.assertEqual([(e["event_id"], e["reported_total"]) for e in dropped],
-                             [("fce9f5e59dc2dc1d26b53f7c8aa5551ab862c7ce78140cfe3ce0f5d36b5d46f1",102)])
-            python = signals.build_poll_packages([e for e in self.polls if e["event_id"] in valid])
+            results.append(result)
+            self.assertEqual(result["valid_ids"], expected_ids, page)
+            self.assertIn(yougov_id, result["valid_ids"])
+            self.assertEqual(result, run_node(HOMEPAGE_SCRIPT, {"page":page,"polls":self.polls}))
+            python = signals.build_poll_packages(self.polls)
             self.assertEqual({p["key"]:p["ids"] for p in result["packages"]},
                              {p["package_key"]:[e["event_id"] for e in p["events"]] for p in python})
+            python_by_key = {p["package_key"]: p for p in python}
+            for package in result["packages"]:
+                expected = python_by_key[package["key"]]
+                self.assertEqual(package["counts"],
+                                 [signals._comparable_candidate_count(event, self.polls) for event in expected["events"]])
+                self.assertEqual(package["selected"], expected["selected_event"]["event_id"])
+            ranked_python = sorted(python, key=lambda package: (
+                package["fieldwork_end"], package["selected_comparable_candidate_count"]), reverse=True)
+            self.assertEqual([p["key"] for p in result["packages"][:3]],
+                             [p["package_key"] for p in ranked_python[:3]])
+            # Restoring September's observation gives October's matching ballot 11 comparables.
+            yougov_october_id = "a8b5d1cac12f97bb852a3da38204cd52aca008eed9be5a4e17938411bff29166"
+            yougov_october = next(p for p in result["packages"] if yougov_october_id in p["ids"])
+            self.assertEqual(yougov_october["counts"], [10, 0, 11, 0, 0])
+            self.assertEqual(yougov_october["selected"], yougov_october_id)
             featured = next(p for p in result["packages"] if self.h2 in p["ids"])
             self.assertEqual(featured["ids"], self.ids)
             self.assertEqual(featured["counts"], [10,10,0])
@@ -171,6 +292,8 @@ class ReviewedStudyTests(unittest.TestCase):
             self.assertTrue(h1["formatted"]["meta"].endswith("Cluster17"))
             self.assertEqual(h1["previous"]["classification"], "POLLSTER_CHANGED")
             self.assertEqual(h1["previous"]["delta"], -2)
+        for key in ("valid_ids", "latest", "coverage", "packages"):
+            self.assertEqual(results[0][key], results[1][key], key)
 
     def test_browser_authentication_rechecks_mutated_objects_and_complete_membership(self):
         script = r'''
