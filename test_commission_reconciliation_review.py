@@ -13,9 +13,57 @@ from unittest.mock import patch
 
 import commission_notice_coverage as coverage
 from reviewed_commission_coverage import load_batch2_review, reconcile_batch2_notice_coverage
+from test_commission_notice_coverage import _authenticate_historical_polling_corpus
 
 
 ROOT = Path(__file__).parent
+
+
+# Authenticate the full original 173-record post-review registry at
+# 920e515ad73714a1b9a2d959e18fc1dc237ee7a6, not today's unrelated-notice digest.
+# 714278bac added 10339/10340; 18413e424 added the backdated 10306.
+_HISTORICAL_REGISTRY_SHA256 = "a2963a840d0d60adfd232c5af6d63dab970d5ffa2b90c35bf2f61175995243d9"
+_REVIEWED_REGISTRY_ADDITIONS = {
+    "commission:10306": "ff4b757c3b67165a92a1d9068c754af5e84f9d080bb22017b997c645320670cc",
+    "commission:10339": "e93b81651a458882500cf932191deabf96cd13ac9ee4eb09f1a228f6eced2d57",
+    "commission:10340": "e6e1e78e047d569b15de8d834e499d77e38df5160f90086be5decd0bbad5954d",
+}
+_HISTORICAL_COVERAGE_SUMMARY = {
+    "relevant": 42, "parsed": 3, "reconciled": 34, "unresolved": 5,
+    "unresolved_notice_ids": ["commission:10333", "commission:10327", "commission:10319",
+                              "commission:10264", "commission:10260"],
+}
+
+
+def _authenticate_registry_baseline(registry):
+    """Test-only finite review of historical records and three exact additions.
+
+    Full-object pins include classifications, source identities and coverage
+    decisions, including the two excluded additions. Unknown records are never
+    accepted merely because they leave the headline coverage counts unchanged.
+    """
+    records = registry["notices"]
+    ids = [n["notice_id"] for n in records]
+    if len(ids) != len(set(ids)):
+        raise ValueError("Duplicate Commission registry record")
+    added = {n["notice_id"]: n for n in records if n["notice_id"] in _REVIEWED_REGISTRY_ADDITIONS}
+    if set(added) != set(_REVIEWED_REGISTRY_ADDITIONS):
+        raise ValueError("Missing reviewed Commission registry addition")
+    for notice_id, expected in _REVIEWED_REGISTRY_ADDITIONS.items():
+        if coverage._canonical_sha256(added[notice_id]) != expected:
+            raise ValueError("Reviewed Commission registry addition changed: " + notice_id)
+    historical = dict(registry, notices=[n for n in records if n["notice_id"] not in added])
+    if len(historical["notices"]) != 173 or coverage._canonical_sha256(historical) != _HISTORICAL_REGISTRY_SHA256:
+        raise ValueError("Historical Commission records missing, changed or unexpectedly extended")
+    if coverage.coverage_summary(historical) != _HISTORICAL_COVERAGE_SUMMARY:
+        raise ValueError("Historical reconciliation decisions changed")
+    addition_summary = coverage.coverage_summary({"notices": list(added.values())})
+    if addition_summary != {"relevant": 1, "parsed": 0, "reconciled": 1, "unresolved": 0, "unresolved_notice_ids": []}:
+        raise ValueError("Reviewed Commission addition coverage changed")
+    expected_summary = copy.deepcopy(_HISTORICAL_COVERAGE_SUMMARY)
+    for key in ("relevant", "parsed", "reconciled", "unresolved"):
+        expected_summary[key] += addition_summary[key]
+    return historical, expected_summary
 
 
 def notice_from(identity):
@@ -221,6 +269,9 @@ class CurrentReconciliationIntegrationTests(unittest.TestCase):
         first = json.loads((ROOT / "polls.json").read_text(encoding="utf-8"))
         second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
         published = json.loads((ROOT / "commission_notice_registry.json").read_text(encoding="utf-8"))
+        _authenticate_historical_polling_corpus(first, second)
+        historical, expected_summary = _authenticate_registry_baseline(published)
+        historical_notice_ids = {n["notice_id"] for n in historical["notices"]}
         registry = copy.deepcopy(published)
         # Start from the three audited pre-correction states, including the false
         # stored match. Every unrelated notice stays exactly as published.
@@ -244,12 +295,14 @@ class CurrentReconciliationIntegrationTests(unittest.TestCase):
         self.assertEqual(first + second, before_events)
         unrelated = [{k: n.get(k) for k in ("notice_id", "classification", "coverage")}
                      for n in registry["notices"]
-                     if n["notice_id"] not in coverage.RECONCILIATION_NOTICE_IDS]
+                     if n["notice_id"] in historical_notice_ids
+                     and n["notice_id"] not in coverage.RECONCILIATION_NOTICE_IDS]
+        # Preserve the original digest over its authenticated historical scope.
+        # The three individually pinned additions remain covered by whole-registry
+        # equality above, rather than silently entering or weakening this scope.
         self.assertEqual(coverage._canonical_sha256(unrelated),
                          "faf3553ae7b381255f725957595cb5f30d32d24f31367c0447b9a84ee31d1b3b")
-        self.assertEqual(summary, {"relevant": 42, "parsed": 3, "reconciled": 34, "unresolved": 5,
-                                  "unresolved_notice_ids": ["commission:10333", "commission:10327",
-                                                            "commission:10319", "commission:10264", "commission:10260"]})
+        self.assertEqual(summary, expected_summary)
 
     def test_live_cli_replays_cached_sources_twice_with_all_454_objects_unchanged(self):
         import fetch_polls
@@ -258,6 +311,12 @@ class CurrentReconciliationIntegrationTests(unittest.TestCase):
         first = json.loads((ROOT / "polls.json").read_text(encoding="utf-8"))
         second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
         registry = json.loads((ROOT / "commission_notice_registry.json").read_text(encoding="utf-8"))
+        _authenticate_historical_polling_corpus(first, second)
+        _, expected_summary = _authenticate_registry_baseline(registry)
+        expected_coverage_log = (
+            f"{expected_summary['relevant']} relevant ({expected_summary['parsed']} parsed, "
+            f"{expected_summary['reconciled']} reconciled, {expected_summary['unresolved']} unresolved)"
+        )
         parsed = json.loads(gzip.decompress(
             (ROOT / "test_fixtures/fr27_polling/fr_mediawiki_240570516.json.gz").read_bytes()))
         official = [e for e in first if e.get("official_notice_id")]
@@ -289,8 +348,46 @@ class CurrentReconciliationIntegrationTests(unittest.TestCase):
                     self.assertEqual(json.loads((output / "first.json").read_text(encoding="utf-8")), first)
                     self.assertEqual(json.loads((output / "second.json").read_text(encoding="utf-8"))["events"], second)
                     self.assertEqual(json.loads((output / "registry.json").read_text(encoding="utf-8")), registry)
-                    self.assertIn("42 relevant (3 parsed, 34 reconciled, 5 unresolved)", stdout.getvalue())
+                    self.assertIn(expected_coverage_log, stdout.getvalue())
                 previous_first, previous_second = output / "first.json", output / "second.json"
+
+    def test_registry_baseline_rejects_missing_changed_duplicate_and_unexpected_records(self):
+        original = json.loads((ROOT / "commission_notice_registry.json").read_text(encoding="utf-8"))
+        operations = ("missing_historical", "missing_addition", "duplicate", "unexpected_excluded",
+                      "unexpected_relevant", "historical_identity", "addition_identity", "addition_coverage",
+                      "excluded_addition", "harris_decision", "yougov_decision", "cnews_decision")
+        for operation in operations:
+            registry = copy.deepcopy(original)
+            records = registry["notices"]
+            historical = next(n for n in records if n["notice_id"] not in _REVIEWED_REGISTRY_ADDITIONS)
+            by_id = {n["notice_id"]: n for n in records}
+            if operation == "missing_historical": records.remove(historical)
+            elif operation == "missing_addition": records.remove(by_id["commission:10306"])
+            elif operation == "duplicate": records.append(copy.deepcopy(historical))
+            elif operation in ("unexpected_excluded", "unexpected_relevant"):
+                template = by_id["commission:10306" if operation == "unexpected_excluded" else "commission:10339"]
+                records.append(dict(template, notice_id="commission:99999"))
+            elif operation == "historical_identity": historical["listed_url"] += "?unreviewed"
+            elif operation == "addition_identity": by_id["commission:10339"]["content_sha256"] = "0" * 64
+            elif operation == "addition_coverage": by_id["commission:10339"]["coverage"]["matched_event_ids"] = []
+            elif operation == "excluded_addition": by_id["commission:10340"]["classification"] = "unsupported"
+            else:
+                notice_id = {"harris_decision": "commission:10332", "yougov_decision": "commission:10323",
+                             "cnews_decision": "commission:10319"}[operation]
+                by_id[notice_id]["coverage"]["method"] = "unreviewed_decision"
+            with self.subTest(operation=operation), self.assertRaises(ValueError):
+                _authenticate_registry_baseline(registry)
+
+    def test_registry_baseline_authenticates_original_scope_and_exact_reviewed_delta_without_mutation(self):
+        registry = json.loads((ROOT / "commission_notice_registry.json").read_text(encoding="utf-8"))
+        before = copy.deepcopy(registry)
+        historical, summary = _authenticate_registry_baseline(registry)
+        self.assertEqual(len(historical["notices"]), 173)
+        self.assertEqual(coverage.coverage_summary(historical), _HISTORICAL_COVERAGE_SUMMARY)
+        self.assertEqual((summary["relevant"], summary["reconciled"]), (43, 35))
+        self.assertEqual(summary["unresolved_notice_ids"], _HISTORICAL_COVERAGE_SUMMARY["unresolved_notice_ids"])
+        self.assertEqual(coverage.coverage_summary(registry), summary)
+        self.assertEqual(registry, before)
 
 
 if __name__ == "__main__":
