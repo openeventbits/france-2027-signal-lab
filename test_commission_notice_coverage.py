@@ -14,6 +14,59 @@ from commission_notice_coverage import (
 )
 
 
+# Full-object evidence independently compared with 920e515ad73714a1b9a2d959e18fc1dc237ee7a6.
+# The 346/108 hashes are the unchanged original scenario-pin corpus attestations.
+# Only these three later Cluster17 objects may extend that historical corpus:
+# 56956406b added the Philippe tables; da603b211 added the Attal table.
+_REVIEWED_FIRST_ROUND_ADDITIONS = {
+    "26e5f0ab3df1861400351a6794f56ca2e3b51099bd12941866aaae7d23d56fa6":
+        "b722d5803413a1bd9b9df27350c402a8a3c13c7ec7f9f83e3b6e82d49d300118",
+    "2b452c95a3681f12d01f1d1524977e951d13da68ab124fb6d83db16ebfddcea6":
+        "addfb63e8a7662cc9311e4fcb0a3e7f3ad514e32b08cde7dd284ee48faf855b7",
+    "335645e494e1d3665674719bd7406dc07f7f8f6fe960bba8cd2f0a2b468e773d":
+        "a26ae17cff5553b9257dbf4008d50c361efa491c2c5bf192f6008b5c982b79f4",
+}
+
+
+def _historical_corpus_digest(value):
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False,
+    ).encode("utf-8")).hexdigest()
+
+
+def _authenticate_historical_polling_corpus(first, second):
+    """Test-only review: authenticate the old corpus and exactly three additions.
+
+    No Git, network, mutable count inference or pin refresh. Unexpected additions
+    remain failures until separately reviewed, including additions to runoffs.
+    """
+    ids = []
+    for rows, round_name in ((first, "first_round"), (second, "second_round")):
+        for item in rows:
+            event_id = item.get("event_id")
+            if (not isinstance(event_id, str) or len(event_id) != 64
+                    or any(c not in "0123456789abcdef" for c in event_id)
+                    or item.get("round") != round_name):
+                raise ValueError("Invalid corpus event identity or round")
+            ids.append(event_id)
+    if len(ids) != len(set(ids)):
+        raise ValueError("Duplicate corpus event ID")
+    additions = {e["event_id"]: e for e in first if e["event_id"] in _REVIEWED_FIRST_ROUND_ADDITIONS}
+    if set(additions) != set(_REVIEWED_FIRST_ROUND_ADDITIONS):
+        raise ValueError("Missing reviewed first-round addition")
+    for event_id, expected in _REVIEWED_FIRST_ROUND_ADDITIONS.items():
+        if _historical_corpus_digest(additions[event_id]) != expected:
+            raise ValueError("Reviewed first-round addition changed: " + event_id)
+    historical = [e for e in first if e["event_id"] not in additions]
+    for rows, count, expected in (
+        (historical, 346, "ca7e55432462366ca44d395a8a3d53d14312346af2e1138d3649de4408b9a730"),
+        (second, 108, "44993718ac263f57029767521739dc309289671e508f77dbbebc4a331419c811"),
+    ):
+        if len(rows) != count or _historical_corpus_digest(sorted(rows, key=lambda e: e["event_id"])) != expected:
+            raise ValueError("Historical polling objects missing, changed or unexpectedly extended")
+    return historical, second
+
+
 def event(
     label,
     *,
@@ -544,8 +597,47 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
         root = Path(__file__).resolve().parent
         first = json.loads((root / "polls.json").read_text(encoding="utf-8"))
         second = json.loads((root / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
-        self.assertEqual((len(first), len(second)), (346, 108))
-        self.assertEqual(len({e["event_id"] for e in first + second}), 454)
+        historical_first, historical_second = _authenticate_historical_polling_corpus(first, second)
+        self.assertEqual((len(historical_first), len(historical_second)), (346, 108))
+        self.assertEqual(len({e["event_id"] for e in historical_first + historical_second}), 454)
+        self.assertEqual(len(first) - len(historical_first), len(_REVIEWED_FIRST_ROUND_ADDITIONS))
+
+    def test_historical_corpus_authentication_rejects_loss_drift_duplicates_and_extras(self):
+        root = Path(__file__).resolve().parent
+        first = json.loads((root / "polls.json").read_text(encoding="utf-8"))
+        second = json.loads((root / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        historical_index = next(i for i, e in enumerate(first) if e["event_id"] not in _REVIEWED_FIRST_ROUND_ADDITIONS)
+        addition_index = next(i for i, e in enumerate(first) if e["event_id"] in _REVIEWED_FIRST_ROUND_ADDITIONS)
+        operations = ("score", "source", "metadata", "identity", "round", "missing_first", "missing_runoff",
+                      "duplicate_first", "duplicate_across_rounds", "extra_first", "extra_runoff",
+                      "changed_runoff", "changed_addition", "missing_addition")
+        for operation in operations:
+            a, b = copy.deepcopy(first), copy.deepcopy(second)
+            item = a[historical_index]
+            if operation == "score": item["candidates"][0]["score"] += .5
+            elif operation == "source": item["source_url"] += "?unreviewed"
+            elif operation == "metadata": item["commissioner"] = "Unreviewed"
+            elif operation == "identity": item["event_id"] = "f" * 64
+            elif operation == "round": item["round"] = "second_round"
+            elif operation == "missing_first": a.pop(historical_index)
+            elif operation == "missing_runoff": b.pop()
+            elif operation == "duplicate_first": a.append(copy.deepcopy(item))
+            elif operation == "duplicate_across_rounds": b[0]["event_id"] = item["event_id"]
+            elif operation == "extra_first": a.append(dict(item, event_id="f" * 64))
+            elif operation == "extra_runoff": b.append(dict(b[0], event_id="f" * 64))
+            elif operation == "changed_runoff": b[0]["sample_size"] += 1
+            elif operation == "changed_addition": a[addition_index]["candidates"][0]["score"] += .5
+            else: a.pop(addition_index)
+            with self.subTest(operation=operation), self.assertRaises(ValueError):
+                _authenticate_historical_polling_corpus(a, b)
+
+    def test_historical_corpus_authentication_is_order_independent_without_mutation(self):
+        root = Path(__file__).resolve().parent
+        first = json.loads((root / "polls.json").read_text(encoding="utf-8"))
+        second = json.loads((root / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        before = copy.deepcopy(first + second)
+        _authenticate_historical_polling_corpus(list(reversed(first)), list(reversed(second)))
+        self.assertEqual(first + second, before)
 
     def test_tracked_registry_supports_legacy_and_reconciled_deployment_states(
         self,
