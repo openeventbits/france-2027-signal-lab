@@ -34,6 +34,7 @@
     <script src="assets/fr27-ui.js"></script>
   <script src="assets/fr27-analytics.js"></script>
   <script src="assets/poll-study-bindings.js"></script>
+  <script src="assets/poll-scope.js"></script>
   <link rel="stylesheet" href="assets/hybrid-dashboard.css">
   <link rel="stylesheet" href="assets/dashboard-navigation.css">
   <style>
@@ -12869,7 +12870,8 @@
       return typeof score === "number" && Number.isFinite(score) ? score : null;
     }
 
-    function isValidFirstRoundPollEvent(event) {
+    function isValidFirstRoundPollEvent(event, options = {}) {
+      if (options.includeHistorical !== true && globalThis.FR27PollScope?.eligible(event) === false) return false;
       if (
         !event ||
         event.round !== "first_round" ||
@@ -12927,6 +12929,8 @@
     }
 
     function deriveComparableChange(events, candidateName, latestDate, selectedEvent = null) {
+      events = events.filter(event => globalThis.FR27PollScope?.eligible(event) !== false);
+      if (selectedEvent && globalThis.FR27PollScope?.eligible(selectedEvent) === false) selectedEvent = null;
       const dayMs = 86400000;
       const retained = [];
       const currentEvents = selectedEvent
@@ -13044,6 +13048,8 @@
       candidateName,
       current
     ) {
+      if (globalThis.FR27PollScope?.eligible(current) === false) return { classification: "NO_PRIOR" };
+      events = (Array.isArray(events) ? events : []).filter(event => globalThis.FR27PollScope?.eligible(event) !== false);
       const dayMs = 86400000;
       const currentScore = candidateScore(current, candidateName);
       const currentTime = Date.parse(
@@ -13545,6 +13551,11 @@
     }
 
     function rankRacePollPackages(pollPackages, events) {
+      events = events.filter(event => globalThis.FR27PollScope?.eligible(event) !== false);
+      pollPackages = pollPackages.map(pollPackage => ({
+        ...pollPackage,
+        events: pollPackage.events.filter(event => globalThis.FR27PollScope?.eligible(event) !== false)
+      })).filter(pollPackage => pollPackage.events.length > 0);
       const comparisonCountByPackage = new Map();
 
       pollPackages.forEach(pollPackage => {
@@ -14947,8 +14958,10 @@
         if (!globalThis.FR27PollStudies) {
           throw new Error("Reviewed poll study projection unavailable");
         }
+        if (!globalThis.FR27PollScope) throw new Error("Election scope projection unavailable");
+        globalThis.FR27PollScope.verifyCollection(events);
         globalThis.FR27PollStudies.verifyCollection(events);
-        const validEvents = events.filter(isValidFirstRoundPollEvent);
+        const validEvents = events.filter(event => isValidFirstRoundPollEvent(event, { includeHistorical: true }));
 
         if (!validEvents.length) {
           throw new Error("No valid first-round events found");
@@ -14959,12 +14972,14 @@
           a.pollster.localeCompare(b.pollster)
         );
 
+        const defaultEvents = validEvents.filter(event => globalThis.FR27PollScope.eligible(event));
+
         const allPollPackages =
           buildRacePollPackages(validEvents);
 
         const pollPackages = rankRacePollPackages(
           allPollPackages,
-          validEvents
+          defaultEvents
         ).slice(0, 3);
 
         if (!pollPackages.length) {
@@ -14984,7 +14999,7 @@
           hudPollsNode.removeAttribute("data-i18n-aria-label");
         }
 
-        raceGlanceState.events = validEvents;
+        raceGlanceState.events = defaultEvents;
         raceGlanceState.pollPackages = pollPackages;
         raceGlanceState.selectedPollKey = pollPackages[0].key;
         raceGlanceState.scaleMax =
@@ -15044,7 +15059,7 @@
         renderRacePollTabs();
         renderRaceSelection();
 
-        pollingEvidenceFeature.render(validEvents);
+        pollingEvidenceFeature.render(defaultEvents);
 
         document.documentElement.dataset.ready = "true";
         document.documentElement.dataset.raceScaleMax =
@@ -15056,7 +15071,7 @@
           "polls",
           "loaded",
           {
-            events: validEvents,
+            events: defaultEvents,
             latestPackage: pollPackages[0].events,
             latestPackages: pollPackages,
             raceScaleMaximum: raceGlanceState.scaleMax

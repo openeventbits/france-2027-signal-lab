@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from poll_ballot_labels import RN_CONDITIONAL_OPTION
 from poll_studies import compatibility_pages, load_binding
+from poll_scope import RETROSPECTIVE
 from poll_source_tables import (load_source_tables, published_source_pages,
                                 render_source_card, source_table_for_wave)
 from urllib.parse import urlparse
@@ -461,6 +462,18 @@ def render_scenario(
     open_by_default: bool = False,
 ) -> str:
     candidates = scenario.get("candidates", [])
+    historical = scenario.get("election_scope") == RETROSPECTIVE
+    scope_label = ("ARCHIVES RÉTROSPECTIVES 2022" if language == "fr" else "2022 RETROSPECTIVE ARCHIVE") if historical else ""
+    scope_badge = f'<span class="poll-detail-scope">{scope_label}</span>' if historical else ""
+    review = scenario.get("scope_review", {})
+    evidence = _safe_source_url(review.get("evidence_url"))
+    scope_evidence = (
+        f'<p class="poll-detail-note">{scope_label} · '
+        + ("Exclu de la vue 2027. Référence de classement" if language == "fr" else "Excluded from the 2027 view. Scope evidence")
+        + f': <a href="{_escape(evidence)}" target="_blank" rel="noopener noreferrer">'
+        + _escape(review.get("evidence_locator", {}).get(language, "")) + '</a></p>'
+        if historical and evidence else ""
+    )
 
     names = [
         candidate_label(candidate, language)
@@ -559,6 +572,7 @@ def render_scenario(
         f'<span class="poll-detail-scenario-status {status_class}">'
         f"{status_label}"
         "</span>"
+        f"{scope_badge}"
         "</div>"
         f"<h3>{round_label} — {_escape(', '.join(names))}</h3>"
         '<div class="poll-detail-scenario-meta">'
@@ -577,6 +591,7 @@ def render_scenario(
         "</span>"
         "</summary>"
         '<div class="poll-detail-scenario-body">'
+        f"{scope_evidence}"
         f"{reviewed_anchor}"
         '<div class="poll-detail-table-wrap">'
         '<table class="poll-detail-table">'
@@ -606,6 +621,8 @@ def candidate_variation_rows(
     order: list[str] = []
 
     for scenario in wave.get("scenarios", []):
+        if scenario.get("election_scope") == RETROSPECTIVE:
+            continue
         for candidate in scenario.get("candidates", []):
             # This review changes only the explicit 10205 conditional option;
             # retain existing summaries for unrelated generic ballot labels.
@@ -974,6 +991,16 @@ def render_page(
         for index, scenario in enumerate(wave["scenarios"], start=1)
     )
 
+    historical_count = sum(s.get("election_scope") == RETROSPECTIVE for s in wave["scenarios"])
+    scope_note = ""
+    if historical_count:
+        archive_href = ("/sondages/" if language == "fr" else "/en/sondages/") + "#historical-archive"
+        plural = "s" if historical_count > 1 else ""
+        text = (f"{historical_count} scénario{plural} rétrospectif{plural} 2022 conservé{plural} ; {scenarios - historical_count} dans la vue 2027."
+                if language == "fr" else f"{historical_count} retrospective 2022 scenario{plural} retained; {scenarios - historical_count} in the 2027 view.")
+        label = "Archives rétrospectives 2022" if language == "fr" else "2022 retrospective archive"
+        scope_note = f'<p class="poll-detail-note">{text} <a href="{archive_href}">{label} →</a></p>\n      '
+
     if source_table is not None:
         scenario_markup += "\n        " + render_source_card(source_table, language)
 
@@ -1206,7 +1233,7 @@ def render_page(
         </div>
       </section>
 
-      {variation_panel_markup}
+      {scope_note}{variation_panel_markup}
 
       <section
         class="poll-detail-panel poll-detail-results"

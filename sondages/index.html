@@ -34,6 +34,7 @@
   <link rel="stylesheet" href="../assets/polling-lab.css">
   <link rel="stylesheet" href="../assets/polling-page-shell.css">
   <script src="../assets/fr27-ui.js" defer></script>
+  <script src="/assets/poll-scope.js" defer></script>
   <script src="../assets/polling-lab.js" defer></script>
   <link rel="stylesheet" href="/assets/fr27-section-launcher.css">
   <script src="/assets/fr27-section-launcher.js" defer></script>
@@ -92,11 +93,11 @@
 
     <section class="polling-metrics" aria-label="Couverture des données">
       <div class="polling-metric">
-        <span class="polling-metric-label">VAGUES NUMÉRIQUES</span>
+        <span class="polling-metric-label">VAGUES · VUE 2027</span>
         <strong id="metric-waves">—</strong>
       </div>
       <div class="polling-metric">
-        <span class="polling-metric-label">SCÉNARIOS NUMÉRIQUES</span>
+        <span class="polling-metric-label">SCÉNARIOS · VUE 2027</span>
         <strong id="metric-scenarios">—</strong>
       </div>
       <div class="polling-metric">
@@ -112,6 +113,8 @@
         <strong id="metric-period">—</strong>
       </div>
     </section>
+
+    <p class="polling-inspector-empty">La vue 2027 exclut uniquement les scénarios rétrospectifs 2022 confirmés par leurs sources. Les autres scénarios ne sont pas tous vérifiés individuellement. <a href="#historical-archive">Archives rétrospectives 2022 →</a></p>
 
     <section class="polling-controls" aria-labelledby="compare-title">
       <div class="polling-controls-head">
@@ -990,7 +993,7 @@
           <tr>
             <td data-label="TERRAIN">18–20 octobre 2023</td>
             <td data-label="INSTITUT"><strong>Cluster17</strong></td>
-            <td data-label="SCÉNARIOS">1</td>
+            <td data-label="SCÉNARIOS">1 · 1 scénario rétrospectif 2022</td>
             <td data-label="ÉCHANTILLON">n=1 580</td>
             <td data-label="CANDIDATS TESTÉS">Anne Hidalgo, Emmanuel Macron, Fabien Roussel, Jean Lassalle, Jean-Luc Mélenchon, Marine Le Pen, Nathalie Arthaud, Nicolas Dupont-Aignan, Philippe Poutou, Valérie Pécresse, Yannick Jadot, Éric Zemmour</td>
             <td data-label="SONDAGE"><a class="polling-wave-open-link" href="/sondages/2023-10-20-cluster17-30bb60d3928744ea/" aria-label="Sondage présidentiel Cluster17, 18–20 octobre 2023">OUVRIR →</a></td>
@@ -1022,7 +1025,7 @@
           <tr>
             <td data-label="TERRAIN">5–6 avril 2023</td>
             <td data-label="INSTITUT"><strong>Odoxa</strong></td>
-            <td data-label="SCÉNARIOS">1</td>
+            <td data-label="SCÉNARIOS">1 · 1 scénario rétrospectif 2022</td>
             <td data-label="ÉCHANTILLON">n=1 005</td>
             <td data-label="CANDIDATS TESTÉS">Anne Hidalgo, Emmanuel Macron, Fabien Roussel, Jean Lassalle, Jean-Luc Mélenchon, Marine Le Pen, Nathalie Arthaud, Nicolas Dupont-Aignan, Philippe Poutou, Valérie Pécresse, Yannick Jadot, Éric Zemmour</td>
             <td data-label="SONDAGE"><a class="polling-wave-open-link" href="/sondages/2023-04-06-odoxa-19bffae821723630/" aria-label="Sondage présidentiel Odoxa, 5–6 avril 2023">OUVRIR →</a></td>
@@ -1030,7 +1033,7 @@
           <tr>
             <td data-label="TERRAIN">3–5 avril 2023</td>
             <td data-label="INSTITUT"><strong>Elabe</strong></td>
-            <td data-label="SCÉNARIOS">1</td>
+            <td data-label="SCÉNARIOS">1 · 1 scénario rétrospectif 2022</td>
             <td data-label="ÉCHANTILLON">n=1 808</td>
             <td data-label="CANDIDATS TESTÉS">Anne Hidalgo, Emmanuel Macron, Fabien Roussel, Jean Lassalle, Jean-Luc Mélenchon, Marine Le Pen, Nathalie Arthaud, Nicolas Dupont-Aignan, Philippe Poutou, Valérie Pécresse, Yannick Jadot, Éric Zemmour</td>
             <td data-label="SONDAGE"><a class="polling-wave-open-link" href="/sondages/2023-04-05-elabe-c5cda1822452a37f/" aria-label="Sondage présidentiel Elabe, 3–5 avril 2023">OUVRIR →</a></td>
@@ -1038,7 +1041,7 @@
           <tr>
             <td data-label="TERRAIN">30–31 mars 2023</td>
             <td data-label="INSTITUT"><strong>Ifop</strong></td>
-            <td data-label="SCÉNARIOS">6</td>
+            <td data-label="SCÉNARIOS">6 · 1 scénario rétrospectif 2022</td>
             <td data-label="ÉCHANTILLON">n=1 105</td>
             <td data-label="CANDIDATS TESTÉS">Anne Hidalgo, Bruno Le Maire, Emmanuel Macron, Fabien Roussel, François Bayrou, Gérald Darmanin, Jean Lassalle, Jean-Luc Mélenchon, Laurent Wauquiez, Marine Le Pen, Marine Tondelier, Nathalie Arthaud, Nicolas Dupont-Aignan, Olivier Faure, Philippe Poutou, Valérie Pécresse, Yannick Jadot, Édouard Philippe, Éric Zemmour</td>
             <td data-label="SONDAGE"><a class="polling-wave-open-link" href="/sondages/2023-03-31-ifop-23ec5fda2b758947/" aria-label="Sondage présidentiel Ifop, 30–31 mars 2023">OUVRIR →</a></td>
@@ -1046,7 +1049,7 @@
           <tr>
             <td data-label="TERRAIN">4–6 novembre 2022</td>
             <td data-label="INSTITUT"><strong>Cluster17</strong></td>
-            <td data-label="SCÉNARIOS">1</td>
+            <td data-label="SCÉNARIOS">1 · 1 scénario rétrospectif 2022</td>
             <td data-label="ÉCHANTILLON">n=2 151</td>
             <td data-label="CANDIDATS TESTÉS">Anne Hidalgo, Emmanuel Macron, Fabien Roussel, Jean Lassalle, Jean-Luc Mélenchon, Marine Le Pen, Nathalie Arthaud, Nicolas Dupont-Aignan, Philippe Poutou, Valérie Pécresse, Yannick Jadot, Éric Zemmour</td>
             <td data-label="SONDAGE"><a class="polling-wave-open-link" href="/sondages/2022-11-06-cluster17-f9d165450d63795a/" aria-label="Sondage présidentiel Cluster17, 4–6 novembre 2022">OUVRIR →</a></td>
@@ -1054,7 +1057,7 @@
           <tr>
             <td data-label="TERRAIN">25–26 octobre 2022</td>
             <td data-label="INSTITUT"><strong>Ifop</strong></td>
-            <td data-label="SCÉNARIOS">1</td>
+            <td data-label="SCÉNARIOS">1 · 1 scénario rétrospectif 2022</td>
             <td data-label="ÉCHANTILLON">n=1 125</td>
             <td data-label="CANDIDATS TESTÉS">Anne Hidalgo, Emmanuel Macron, Fabien Roussel, Jean Lassalle, Jean-Luc Mélenchon, Marine Le Pen, Nathalie Arthaud, Nicolas Dupont-Aignan, Philippe Poutou, Valérie Pécresse, Yannick Jadot, Éric Zemmour</td>
             <td data-label="SONDAGE"><a class="polling-wave-open-link" href="/sondages/2022-10-26-ifop-197782194f3a692c/" aria-label="Sondage présidentiel Ifop, 25–26 octobre 2022">OUVRIR →</a></td>
@@ -1068,6 +1071,7 @@
 
     <!-- FR27_SOURCE_EVIDENCE_START -->
 <section class="polling-panel" id="source-evidence" aria-labelledby="source-evidence-title"><div class="polling-panel-head"><div><div class="polling-eyebrow">DOCUMENTS SOURCES</div><h2 id="source-evidence-title">TABLEAUX PUBLIÉS · PREMIER TOUR</h2></div></div><div class="polling-inspector-empty"><p>Preuves documentaires avec valeurs littérales, dont &lt;1%. Ces tableaux ne sont pas des vagues numériques et ne participent pas aux tendances du Polling Lab.</p><ul><li><a href="/sondages/documents/opinionway-cnews-10319/">OpinionWay / CNEWS · 15 octobre 2026 · notice 10319 →</a></li><li><a href="/sondages/documents/opinionway-cnews-10333/">OpinionWay / CNEWS · 22 octobre 2026 · notice 10333 →</a></li></ul></div></section>
+<section class="polling-panel" id="historical-archive" aria-labelledby="historical-archive-title"><div class="polling-panel-head"><h2 id="historical-archive-title">ARCHIVES RÉTROSPECTIVES 2022</h2></div><div class="polling-inspector-empty"><p>6 scénarios rétrospectifs 2022 confirmés par leurs sources, exclus des comparaisons et historiques de candidats de la vue 2027. Le corpus conserve 349 scénarios ; la vue 2027 en affiche 343. Tous les autres scénarios ne sont pas vérifiés individuellement. Les résultats originaux et les références restent accessibles ci-dessous.</p><ul><li data-event-id="72a2da9cd1969479695b8f09c62f4ea836a77e07a60e07c9fe7dc02eccda5e75"><a href="/sondages/2023-10-20-cluster17-30bb60d3928744ea/#scenario-1">Cluster17 · 18–20 octobre 2023 · scénario 1 →</a></li><li data-event-id="242142574a93c2d9d30e1de0987aa0970932fed8e0e67144ba4157d2daed5410"><a href="/sondages/2023-04-06-odoxa-19bffae821723630/#scenario-1">Odoxa · 5–6 avril 2023 · scénario 1 →</a></li><li data-event-id="0212b6e7cfa97a874ef7d21dd616536693aaa8f43d07c15b736f7b48e97f6cfc"><a href="/sondages/2023-04-05-elabe-c5cda1822452a37f/#scenario-1">Elabe · 3–5 avril 2023 · scénario 1 →</a></li><li data-event-id="7620aec7d2dad43cf848da79b84195f0bd5625aa77ce3eb849dd2d8c36ce4780"><a href="/sondages/2023-03-31-ifop-23ec5fda2b758947/#scenario-4">Ifop · 30–31 mars 2023 · scénario 4 →</a></li><li data-event-id="3c0cd997f71cfae9083cef3505aaa2d8ee6b10fa7cc940a9c224b1cf02664310"><a href="/sondages/2022-11-06-cluster17-f9d165450d63795a/#scenario-1">Cluster17 · 4–6 novembre 2022 · scénario 1 →</a></li><li data-event-id="fc4749af8f8c351d28d9b067b93b99953c596a45075a2022805f022df731b15c"><a href="/sondages/2022-10-26-ifop-197782194f3a692c/#scenario-1">Ifop · 25–26 octobre 2022 · scénario 1 →</a></li></ul></div></section>
 <!-- FR27_SOURCE_EVIDENCE_END -->
 
     <footer id="candidate-app-hud" class="fr27-app-hud" data-expanded="true" aria-label="Dock système France 2027 Signal Lab">

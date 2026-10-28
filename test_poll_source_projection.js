@@ -17,6 +17,7 @@ const startup = script.indexOf('  if (document.readyState === "loading")');
 assert(startup > 0);
 for (const lang of ['fr', 'en']) {
   const context = vm.createContext({document: {documentElement: {lang}}, Intl, console});
+  vm.runInContext(fs.readFileSync(path.join(root, 'assets/poll-scope.js'), 'utf8'), context);
   vm.runInContext(script.slice(0, startup) + `
     globalThis.api = {validateData, directoryEntries, candidateBrowseWaves,
       candidateWaveScoreMeta, scoreObservationsForWave, rangeRowsForWave,

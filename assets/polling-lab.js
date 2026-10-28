@@ -258,6 +258,10 @@
     if (!isObject(data)) throw new Error(uiText("invalidDataObject"));
     if (data.schema_version !== "1.0") throw new Error(uiText("unsupportedDataVersion"));
     if (!isObject(data.metrics)) throw new Error(uiText("missingMetrics"));
+    if (!globalThis.FR27PollScope || !isObject(data.default_2027?.metrics)
+        || !Array.isArray(data.default_2027.candidates) || !Array.isArray(data.default_2027.institutes)) {
+      throw new Error("Election scope projection unavailable");
+    }
     if (!Array.isArray(data.candidates) || !Array.isArray(data.institutes) || !Array.isArray(data.waves) || !Array.isArray(data.source_scenarios)) {
       throw new Error(uiText("incompleteDirectories"));
     }
@@ -287,6 +291,10 @@
       for (const scenario of wave.scenarios) {
         if (!isObject(scenario) || typeof scenario.event_id !== "string" || !Array.isArray(scenario.candidates)) {
           throw new Error(uiText("malformedScenario"));
+        }
+        if (scenario.election_scope !== globalThis.FR27PollScope.projectedScope(scenario)
+            || scenario.scope_review?.scope !== scenario.election_scope) {
+          throw new Error("Invalid scenario election scope");
         }
         if (eventIds.has(scenario.event_id)) throw new Error(uiText("duplicateScenarioId"));
         eventIds.add(scenario.event_id);
@@ -344,7 +352,23 @@
   }
 
   function directoryPollster(entry) {
-    return isSourceScenario(entry) ? `${entry.pollster} / ${entry.commissioner}` : entry.pollster;
+    return isSourceScenario(entry) ? `${entry.pollster} / ${entry.commissioner}`
+      : [entry.pollster, waveScopeLabel(entry)].filter(Boolean).join(" · ");
+  }
+
+  function defaultScenarios(wave) {
+    return (wave.scenarios || []).filter(scenario => scenario.election_scope !== "retrospective_2022_revote");
+  }
+
+  function defaultWaves() {
+    return state.data.waves.filter(wave => defaultScenarios(wave).length > 0);
+  }
+
+  function waveScopeLabel(wave) {
+    const historical = (wave.scenarios || []).length - defaultScenarios(wave).length;
+    if (!historical) return "";
+    const label = PAGE_LANG === "fr" ? "ARCHIVE RÉTROSPECTIVE 2022" : "2022 RETROSPECTIVE ARCHIVE";
+    return `${label} (${historical})`;
   }
 
   function sourceStatus(entry) {
@@ -462,7 +486,7 @@
   function candidateLatestPollMeta(candidateId) {
     for (const wave of state.data.waves) {
       const scores = [];
-      for (const scenario of wave.scenarios) {
+      for (const scenario of defaultScenarios(wave)) {
         const candidate = scenario.candidates.find(
           (item) =>
             item.identity_type === "person" &&
@@ -489,7 +513,7 @@
 
   function buildPickerCandidates() {
     state.latestPollMetaByCandidate = new Map();
-    const candidates = state.data.candidates.filter((candidate) =>
+    const candidates = state.data.default_2027.candidates.filter((candidate) =>
       state.activeCandidateIds.has(candidate.candidate_id)
     );
 
@@ -526,17 +550,18 @@
 
   function renderMetrics() {
     const { metrics } = state.data;
-    nodes.metricWaves.textContent = formatInteger(metrics.wave_count);
+    const scopedMetrics = state.data.default_2027.metrics;
+    nodes.metricWaves.textContent = formatInteger(scopedMetrics.wave_count);
     nodes.hudPollsValue.textContent = formatInteger(metrics.wave_count);
-    nodes.metricScenarios.textContent = formatInteger(metrics.scenario_count);
-    nodes.metricCandidates.textContent = formatInteger(state.pickerCandidates.length);
-    nodes.metricInstitutes.textContent = formatInteger(metrics.institute_count);
-    nodes.metricPeriod.textContent = `${formatDate(metrics.period_start, { short: true })} → ${formatDate(metrics.period_end, { short: true })}`;
+    nodes.metricScenarios.textContent = formatInteger(scopedMetrics.scenario_count);
+    nodes.metricCandidates.textContent = formatInteger(scopedMetrics.candidate_count);
+    nodes.metricInstitutes.textContent = formatInteger(scopedMetrics.institute_count);
+    nodes.metricPeriod.textContent = `${formatDate(scopedMetrics.period_start, { short: true })} → ${formatDate(scopedMetrics.period_end, { short: true })}`;
   }
 
   function populateInstitutes() {
     const fragment = document.createDocumentFragment();
-    for (const institute of state.data.institutes) {
+    for (const institute of state.data.default_2027.institutes) {
       const option = document.createElement("option");
       option.value = institute.name;
       option.textContent = institute.name;
@@ -651,7 +676,7 @@
 
   function periodStartDate() {
     const end = new Date(`${state.data.data_as_of}T00:00:00Z`);
-    if (state.period === "all") return new Date(`${state.data.metrics.period_start}T00:00:00Z`);
+    if (state.period === "all") return new Date(`${state.data.default_2027.metrics.period_start}T00:00:00Z`);
     const start = new Date(end.getTime());
     if (state.period === "1y") start.setUTCFullYear(start.getUTCFullYear() - 1);
     if (state.period === "6m") start.setUTCMonth(start.getUTCMonth() - 6);
@@ -662,7 +687,7 @@
   function chartWaves() {
     const start = periodStartDate().getTime();
     const end = new Date(`${state.data.data_as_of}T00:00:00Z`).getTime();
-    return state.data.waves
+    return defaultWaves()
       .filter((wave) => !state.institute || wave.pollster === state.institute)
       .filter((wave) => {
         const date = new Date(`${wave.fieldwork_end}T00:00:00Z`).getTime();
@@ -690,7 +715,7 @@
   function scoreObservationsForWave(wave, candidateId) {
     if (isSourceScenario(wave)) return [];
     const observations = [];
-    for (const scenario of wave.scenarios) {
+    for (const scenario of defaultScenarios(wave)) {
       const candidate = scenario.candidates.find(
         (item) => item.identity_type === "person" && item.candidate_id === candidateId && typeof item.score === "number" && Number.isFinite(item.score)
       );
@@ -714,6 +739,7 @@
   }
 
   function selectedCandidatesForScenario(scenario) {
+    if (scenario.election_scope === "retrospective_2022_revote") return null;
     const candidates = new Map();
     for (const candidateId of state.selectedCandidateIds) {
       const candidate = scenario.candidates.find(
@@ -732,7 +758,7 @@
   function sharedComparableSeries(waves) {
     const groups = new Map();
     for (const wave of waves) {
-      for (const scenario of wave.scenarios) {
+      for (const scenario of defaultScenarios(wave)) {
         const candidates = selectedCandidatesForScenario(scenario);
         if (!candidates) continue;
         const key = sharedComparableSeriesKey(wave, scenario);
@@ -1287,7 +1313,7 @@
   function rangeRowsForWave(wave) {
     if (isSourceScenario(wave)) return [];
     const observed = new Map();
-    for (const scenario of wave.scenarios) {
+    for (const scenario of defaultScenarios(wave)) {
       for (const candidate of scenario.candidates) {
         if (candidate.identity_type !== "person") continue;
         if (typeof candidate.score !== "number" || !Number.isFinite(candidate.score)) continue;
@@ -1318,21 +1344,22 @@
 
   function populateWaveSelector() {
     nodes.waveSelect.replaceChildren();
-    for (const wave of state.data.waves) {
+    for (const wave of defaultWaves()) {
       const option = document.createElement("option");
       option.value = wave.wave_id;
-      option.textContent = `${wave.pollster} · ${formatDate(wave.fieldwork_end, { short: true })} · ${wave.scenario_count} ${uiPlural(wave.scenario_count, "scenarioLower", "scenariosLower")}`;
+      const count = defaultScenarios(wave).length;
+      option.textContent = `${wave.pollster} · ${formatDate(wave.fieldwork_end, { short: true })} · ${count} ${uiPlural(count, "scenarioLower", "scenariosLower")}`;
       nodes.waveSelect.append(option);
     }
 
-    const defaultWave = state.data.waves.find((wave) => wave.scenario_count >= 2) || state.data.waves[0] || null;
+    const defaultWave = defaultWaves().find((wave) => defaultScenarios(wave).length >= 2) || defaultWaves()[0] || null;
     state.rangeWaveId = defaultWave?.wave_id || null;
     if (state.rangeWaveId) nodes.waveSelect.value = state.rangeWaveId;
     renderRangeWave();
   }
 
   function renderRangeWave() {
-    const wave = state.data.waves.find((item) => item.wave_id === state.rangeWaveId);
+    const wave = defaultWaves().find((item) => item.wave_id === state.rangeWaveId);
     nodes.rangeList.replaceChildren();
     if (!wave) {
       nodes.rangeContext.textContent = uiText("noWaveAvailable");
@@ -1341,7 +1368,8 @@
 
     const rows = rangeRowsForWave(wave);
     const scaleMaximum = Math.max(5, Math.ceil(Math.max(...rows.map((row) => row.maximum), 0) / 5) * 5);
-    nodes.rangeContext.textContent = `${wave.pollster} · ${uiText("fieldworkLower")} ${formatDate(wave.fieldwork_start, { short: true })}–${formatDate(wave.fieldwork_end, { short: true })} · ${wave.scenario_count} ${uiPlural(wave.scenario_count, "scenarioLower", "scenariosLower")} · n=${wave.sample_size ?? "—"}`;
+    const count = defaultScenarios(wave).length;
+    nodes.rangeContext.textContent = `${wave.pollster} · ${uiText("fieldworkLower")} ${formatDate(wave.fieldwork_start, { short: true })}–${formatDate(wave.fieldwork_end, { short: true })} · ${count} ${uiPlural(count, "scenarioLower", "scenariosLower")} · n=${wave.sample_size ?? "—"}`;
 
     for (const row of rows) {
       const wrapper = document.createElement("div");
@@ -1520,7 +1548,7 @@
   function candidateBrowseWaves(candidateId) {
     return directoryEntries().filter((wave) => isSourceScenario(wave)
       ? wave.candidate_ids.includes(candidateId)
-      : wave.scenarios.some((scenario) =>
+      : defaultScenarios(wave).some((scenario) =>
         scenario.candidates.some(
           (candidate) => candidate.identity_type === "person" && candidate.candidate_id === candidateId
         )
@@ -1531,7 +1559,7 @@
   function candidateWaveScoreMeta(wave, candidateId) {
     if (isSourceScenario(wave)) return null;
     const scores = [];
-    for (const scenario of wave.scenarios) {
+    for (const scenario of defaultScenarios(wave)) {
       const candidate = scenario.candidates.find(
         (item) => item.identity_type === "person" && item.candidate_id === candidateId && typeof item.score === "number" && Number.isFinite(item.score)
       );
