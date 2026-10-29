@@ -41,6 +41,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           python -B -m unittest -v \
+            test_commission_10342_registry_review \
             test_fr27_section_launcher \
             test_publication_manifest \
             test_candidate_polymarket \

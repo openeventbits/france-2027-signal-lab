@@ -2,6 +2,7 @@
 
 import copy
 import gzip
+import hashlib
 import io
 import json
 import sys
@@ -28,6 +29,9 @@ _REVIEWED_REGISTRY_ADDITIONS = {
     "commission:10339": "e93b81651a458882500cf932191deabf96cd13ac9ee4eb09f1a228f6eced2d57",
     "commission:10340": "e6e1e78e047d569b15de8d834e499d77e38df5160f90086be5decd0bbad5954d",
 }
+_10342_RECORD_SHA256 = "6e636e49c9ecf15cfcd010d055b6adb876581aeb2580d37e71c40d5a407ac1a8"
+_10342_REVIEW = ROOT / "fr27_commission_10342_registry_review.json"
+_10342_REVIEW_SHA256 = "8ba42efc5005f51107f7f23e641ca60e9bff8be82dafd205ff1a2913bfe7e977"
 _HISTORICAL_COVERAGE_SUMMARY = {
     "relevant": 42, "parsed": 3, "reconciled": 34, "unresolved": 5,
     "unresolved_notice_ids": ["commission:10333", "commission:10327", "commission:10319",
@@ -35,11 +39,49 @@ _HISTORICAL_COVERAGE_SUMMARY = {
 }
 
 
+def _unique_json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate 10342 evidence JSON key: " + key)
+        result[key] = value
+    return result
+
+
+def _load_10342_registry_review(path=_10342_REVIEW, *, fixture_root=ROOT):
+    """Test-only review: authenticate the review and original PDF bytes offline."""
+    review = json.loads(Path(path).read_bytes(), object_pairs_hook=_unique_json_object)
+    if coverage._canonical_sha256(review) != _10342_REVIEW_SHA256:
+        raise ValueError("10342 registry review changed; explicit review required")
+    if coverage._canonical_sha256(review["original_record"]) != _10342_RECORD_SHA256:
+        raise ValueError("10342 reviewed original record changed")
+    source = review["source_document"]
+    if hashlib.sha256((fixture_root / source["fixture"]).read_bytes()).hexdigest() != source["sha256"]:
+        raise ValueError("10342 original PDF bytes changed")
+    return review
+
+
+def _archival_registry_with_10342():
+    """A passing archival control; never substitute old 10339 into production."""
+    review = _load_10342_registry_review()
+    fixture = review["archival_registry"]
+    raw = gzip.decompress((ROOT / fixture["fixture"]).read_bytes())
+    if hashlib.sha256(raw).hexdigest() != fixture["uncompressed_sha256"]:
+        raise ValueError("10342 archival registry fixture changed")
+    archive = json.loads(raw, object_pairs_hook=_unique_json_object)
+    if (len(archive["notices"]) != 176
+            or coverage._canonical_sha256(archive) != fixture["canonical_sha256"]):
+        raise ValueError("10342 archival registry scope changed")
+    registry = dict(archive, notices=[review["original_record"], *archive["notices"]])
+    _authenticate_registry_baseline(registry)
+    return registry
+
+
 def _authenticate_registry_baseline(registry):
-    """Test-only finite review of historical records and three exact additions.
+    """Test-only finite review of historical records and four exact additions.
 
     Full-object pins include classifications, source identities and coverage
-    decisions, including the two excluded additions. Unknown records are never
+    decisions, including the three excluded additions. Unknown records are never
     accepted merely because they leave the headline coverage counts unchanged.
     """
     records = registry["notices"]
@@ -52,6 +94,14 @@ def _authenticate_registry_baseline(registry):
     for notice_id, expected in _REVIEWED_REGISTRY_ADDITIONS.items():
         if coverage._canonical_sha256(added[notice_id]) != expected:
             raise ValueError("Reviewed Commission registry addition changed: " + notice_id)
+    # This separately authenticated extension leaves all three earlier pins intact.
+    _load_10342_registry_review()
+    extra = [n for n in records if n["notice_id"] == "commission:10342"]
+    if not extra:
+        raise ValueError("Missing reviewed Commission registry addition: commission:10342")
+    if coverage._canonical_sha256(extra[0]) != _10342_RECORD_SHA256:
+        raise ValueError("Reviewed Commission registry addition changed: commission:10342")
+    added["commission:10342"] = extra[0]
     historical = dict(registry, notices=[n for n in records if n["notice_id"] not in added])
     if len(historical["notices"]) != 173 or coverage._canonical_sha256(historical) != _HISTORICAL_REGISTRY_SHA256:
         raise ValueError("Historical Commission records missing, changed or unexpectedly extended")
@@ -298,7 +348,7 @@ class CurrentReconciliationIntegrationTests(unittest.TestCase):
                      if n["notice_id"] in historical_notice_ids
                      and n["notice_id"] not in coverage.RECONCILIATION_NOTICE_IDS]
         # Preserve the original digest over its authenticated historical scope.
-        # The three individually pinned additions remain covered by whole-registry
+        # The four individually pinned additions remain covered by whole-registry
         # equality above, rather than silently entering or weakening this scope.
         self.assertEqual(coverage._canonical_sha256(unrelated),
                          "faf3553ae7b381255f725957595cb5f30d32d24f31367c0447b9a84ee31d1b3b")
@@ -352,14 +402,15 @@ class CurrentReconciliationIntegrationTests(unittest.TestCase):
                 previous_first, previous_second = output / "first.json", output / "second.json"
 
     def test_registry_baseline_rejects_missing_changed_duplicate_and_unexpected_records(self):
-        original = json.loads((ROOT / "commission_notice_registry.json").read_text(encoding="utf-8"))
+        original = _archival_registry_with_10342()
         operations = ("missing_historical", "missing_addition", "duplicate", "unexpected_excluded",
                       "unexpected_relevant", "historical_identity", "addition_identity", "addition_coverage",
                       "excluded_addition", "harris_decision", "yougov_decision", "cnews_decision")
         for operation in operations:
             registry = copy.deepcopy(original)
             records = registry["notices"]
-            historical = next(n for n in records if n["notice_id"] not in _REVIEWED_REGISTRY_ADDITIONS)
+            historical = next(n for n in records if n["notice_id"] not in _REVIEWED_REGISTRY_ADDITIONS
+                              and n["notice_id"] != "commission:10342")
             by_id = {n["notice_id"]: n for n in records}
             if operation == "missing_historical": records.remove(historical)
             elif operation == "missing_addition": records.remove(by_id["commission:10306"])
