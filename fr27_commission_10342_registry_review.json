@@ -1,0 +1,129 @@
+{
+  "review_id": "FR27-COMMISSION-10342-HISTORICAL-REGISTRY-20261029",
+  "scope": "Authenticate exactly the unchanged excluded discovery record commission:10342; no numerical polling admission or other registry authorization.",
+  "source_document": {
+    "notice_id": "commission:10342",
+    "official_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10342-pres-revendications-mobilisations-sociales-elabe-28-octobre.pdf",
+    "listed_url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2362",
+    "resolved_url": "http://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10342-pres-revendications-mobilisations-sociales-elabe-28-octobre.pdf",
+    "fixture": "test_fixtures/fr27_polling/commission_10342_original.pdf",
+    "sha256": "08dd618195a23f1523099488a224440efd87c7f6dc96176e32a32c21f888bc3d",
+    "size_bytes": 259627,
+    "page_count": 7,
+    "institute": "Elabe",
+    "commissioner": "BFMTV",
+    "fieldwork_start": "2026-10-27",
+    "fieldwork_end": "2026-10-28",
+    "sample_size": 1002,
+    "population": "Metropolitan-France residents aged 18 and over",
+    "method": "Online interviews with quotas and weighting; this is an attitudes survey."
+  },
+  "original_record": {
+    "notice_id": "commission:10342",
+    "listed_date": "2026-10-28",
+    "category": "Pres",
+    "title": "10342 Pres revendications mobilisations sociales ELABE 28 octobre",
+    "institute": "Elabe",
+    "commissioner": null,
+    "listed_url": "https://www.commission-des-sondages.fr/notices/medias/fichiers/add/2362",
+    "resolved_url": "http://www.commission-des-sondages.fr/notices/files/notices/2026/octobre/10342-pres-revendications-mobilisations-sociales-elabe-28-octobre.pdf",
+    "classification": "excluded_non_voting",
+    "classification_reason": "document lacks 2027 presidential context and voting-intention language",
+    "first_discovered_at": "2026-10-28T23:00:16.814469Z",
+    "content_sha256": "08dd618195a23f1523099488a224440efd87c7f6dc96176e32a32c21f888bc3d",
+    "confirmed_rounds": [
+      "first_round",
+      "second_round"
+    ]
+  },
+  "record_canonical_sha256": "6e636e49c9ecf15cfcd010d055b6adb876581aeb2580d37e71c40d5a407ac1a8",
+  "introduction": {
+    "commit": "a0545f82f03cb0f84834eedaaa9c60a366c01881",
+    "author": "github-actions[bot]",
+    "message": "Update polls data",
+    "committed_at": "2026-10-28T23:05:06Z",
+    "first_discovered_at": "2026-10-28T23:00:16.814469Z",
+    "workflow_path": ".github/workflows/update-polls.yml",
+    "workflow_name": "Update polls",
+    "event": "schedule",
+    "run_number": 448,
+    "run_id": 40780698060,
+    "job_id": 123149545255,
+    "run_url": "https://github.com/openeventbits/france-2027-signal-lab/actions/runs/40780698060",
+    "workflow_head_sha": "f1babaa0e547c79699670e046265b8d758b8e08e",
+    "log_evidence": [
+      "[main a0545f8] Update polls data",
+      "f1babaa..a0545f8 HEAD -> main"
+    ]
+  },
+  "classification_review": {
+    "classification": "excluded_non_voting",
+    "conclusion": "All questions and published tables concern attitudes toward social demands and mobilizations. No 2027 presidential voting-intention question or candidate ballot is present.",
+    "pages": [
+      {
+        "page": 1,
+        "evidence": "Article 2: Elabe for BFMTV; 1002 adults; 27-28 October 2026; stated first publication 28 October at 16:50 on elabe.fr."
+      },
+      {
+        "page": 2,
+        "evidence": "Q1: education proposals; Q2: continuing or intensifying student mobilization; Q3: seven cost-of-living demands. References to 2027 concern school-year measures."
+      },
+      {
+        "page": 3,
+        "evidence": "Q4: government spending response to demands; Q5: attitude toward the 5 November mobilization. No electoral ballot."
+      },
+      {
+        "page": 4,
+        "evidence": "Internet interviews, quotas and 95% uncertainty table, approximately 1.4-3.1 percentage points; methodology, not voting intentions."
+      },
+      {
+        "page": 5,
+        "evidence": "Article 3: quotas and weighting, including housing tenure, recalled first-round legislative vote in 2024 and both presidential rounds in 2022; reward below EUR 1."
+      },
+      {
+        "page": 6,
+        "evidence": "Published Q1: 36/52/12, nonresponse 0; Q2: 54/29/17, nonresponse 0; Q3: 89/75/75/72/62/59/36 in table order. These are attitudes, not candidate scores."
+      },
+      {
+        "page": 7,
+        "evidence": "Published Q4: 28/57/14, nonresponse 1; Q5: 32/27/17/11/13, nonresponse 0. No voting-intention table."
+      }
+    ]
+  },
+  "metadata_limitations": {
+    "confirmed_rounds": {
+      "preserved": [
+        "first_round",
+        "second_round"
+      ],
+      "measured_2027_rounds": [],
+      "explanation": "Whole-document lexical round matches come from page 5 recalled 2022 presidential voting used for weighting, with first-round 2024 legislative recall also present. They are not measured 2027 rounds and do not confer eligibility. Preserve the original record; do not change the classifier or extraction here."
+    },
+    "commissioner": "The listing-derived registry commissioner is null; the PDF identifies BFMTV. Preserve the original null.",
+    "fuel_price_wording": {
+      "questionnaire_page": 2,
+      "questionnaire_literal": "La baisse du prix des carburants",
+      "published_table_page": 6,
+      "published_table_literal": "La hausse du prix des carburants",
+      "published_percent": 89,
+      "decision": "Preserve the discrepancy without normalization or numerical polling admission."
+    }
+  },
+  "archival_registry": {
+    "commit": "18413e42477cb9fde4a5bde3c2536419641335e8",
+    "repository_path": "commission_notice_registry.json",
+    "fixture": "test_fixtures/fr27_polling/commission_registry_18413e424.json.gz",
+    "uncompressed_sha256": "18c49045dac7d0a37f6a36a43323419156256a9e586637a68996de0939a1bf76",
+    "canonical_sha256": "88a9b4532e5d31eb1f39880fc4941dc675941300f9daba4f5e40158470ee3c49",
+    "record_count": 176,
+    "historical_record_count": 173,
+    "historical_canonical_sha256": "a2963a840d0d60adfd232c5af6d63dab970d5ffa2b90c35bf2f61175995243d9",
+    "purpose": "Passing archival positive control with the three already authenticated additions. This fixture does not restore or accept current production 10339."
+  },
+  "authorization_limits": [
+    "Preserve all original 173 records and all three existing 10306, 10339 and 10340 full-record pins.",
+    "Reject current 10339 provenance drift; its original reviewed PDF remains unresolved.",
+    "Reject unreviewed 10343 and every other unauthorized addition, including excluded records.",
+    "Preserve numerical observations, event and study identities, reconciliation decisions and all five coverage warnings."
+  ]
+}
