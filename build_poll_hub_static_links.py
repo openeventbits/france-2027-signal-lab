@@ -410,7 +410,9 @@ def render_source_links(language, waves=None):
     links = []
     for page in published_source_pages():
         table = record["tables"][page["notice_id"]]["table"]
-        label = f'OpinionWay / CNEWS · {format_date(table["publication_date"], language)} · notice {page["notice_id"]}'
+        date_label = (format_date(table["publication_date"], language) if table.get("publication_date")
+                      else ("Terrain : " if fr else "Fieldwork: ") + format_date_range(table["fieldwork_start"], table["fieldwork_end"], language))
+        label = f'{table["institute"]} / {table["commissioner"]} · {date_label} · notice {page["notice_id"]}'
         links.append(f'<li><a href="{escape(page[f"page_path_{language}"])}">{escape(label)} →</a></li>')
     return (SOURCE_START + '\n<section class="polling-panel" id="source-evidence" aria-labelledby="source-evidence-title">'
             '<div class="polling-panel-head"><div><div class="polling-eyebrow">'

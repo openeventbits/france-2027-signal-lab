@@ -2,7 +2,7 @@
 
 The builder is intentionally network-free. It derives the standalone polling
 numerical explorer contract from polls.json while reusing the exact first-round
-wave grouping semantics already used by Race at a Glance. Two authenticated
+wave grouping semantics already used by Race at a Glance. Authenticated documentary
 source scenarios are projected separately for browsing, never numerical analysis.
 """
 
@@ -282,14 +282,14 @@ def poll_wave_page_paths(
 
 
 def reviewed_source_scenarios() -> list[dict[str, Any]]:
-    """Finite browsing projection of the two already-reviewed CNEWS tables.
+    """Finite browsing projection of the explicitly published documentary tables.
 
     These objects deliberately have neither wave/event IDs nor scalar scores.
     Exact published values remain typed results too; none are analytics inputs.
     """
     record = load_source_tables()
     projected = []
-    for notice in ("10319", "10333"):
+    for notice in record["standalone_pages"]:
         entry = record["tables"][notice]
         table = entry["table"]
         page = record["standalone_pages"][notice]
@@ -313,7 +313,7 @@ def reviewed_source_scenarios() -> list[dict[str, Any]]:
             "evidence_status": "SOURCE_DOCUMENT_VERIFIED", "analysis_eligible": False,
             "record_sha256": entry["record_sha256"], "source": dict(table["source"]),
             "pollster": table["institute"], "commissioner": table["commissioner"],
-            "publication_date": table["publication_date"],
+            "publication_date": table.get("publication_date"),
             "fieldwork_start": table["fieldwork_start"], "fieldwork_end": table["fieldwork_end"],
             "respondent_bases": bases,
             "page_path_fr": page["page_path_fr"], "page_path_en": page["page_path_en"],

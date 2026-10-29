@@ -10,9 +10,9 @@ import json
 from pathlib import Path
 
 RECORD_PATH = Path(__file__).with_name("poll_source_tables.json")
-# Explicit Phase 3A collection extension pin; the three earlier record pins are
-# retained verbatim. No runtime repinning or source fetching is supported.
-RECORD_SHA256 = "2210c4943c4984099bf2c217433a8e4d4e0ed656052f5794c1c5c08c473c4737"
+# Explicit 10264 publication extension; all five individual table pins and
+# the prior collection are preserved. No runtime repinning or fetching.
+RECORD_SHA256 = "189049b0d313ee734e316a13e2353acd1853ba21616adbfffd3d4b0458604828"
 
 
 def digest(value):
@@ -37,7 +37,7 @@ def published_source_pages():
 
 
 def authenticate_source_documents(evidence_dir):
-    """Manually authenticate the two publication originals, without fetching.
+    """Manually authenticate the publication originals, without fetching.
 
     Builders consume the frozen reviewed transcriptions; deployment does not
     require a private PDF cache. This operator check authenticates that cache
@@ -132,7 +132,7 @@ def render_source_card(table, language, *, standalone=False):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Authenticate reviewed CNEWS originals from an external cache.")
+    parser = argparse.ArgumentParser(description="Authenticate reviewed documentary originals from an external cache.")
     parser.add_argument("--evidence-dir", type=Path, required=True)
     arguments = parser.parse_args()
     try:

@@ -29,12 +29,24 @@ for (const lang of ['fr', 'en']) {
   const clone = () => JSON.parse(JSON.stringify(payload));
   api.setData(clone());
   const entries = api.directoryEntries();
-  assert.equal(entries.length, payload.waves.length + 2);
+  assert.equal(entries.length, payload.waves.length + 3);
   assert.equal(new Set(entries.map(e => e.wave_id || e.source_scenario_id)).size, entries.length);
   const latest = entries.slice(0, 10).filter(e => e.kind === 'reviewed_source_scenario');
-  assert.equal(latest.length, 2);
+  assert.equal(latest.length, 3);
   assert.equal(latest[0].notice_id, '10333');
   assert.equal(latest[1].notice_id, '10319');
+  assert.equal(latest[2].notice_id, '10264');
+  const bonnal = latest[2];
+  assert.equal(bonnal.publication_date, null);
+  assert.equal(bonnal.fieldwork_start, '2026-09-02');
+  assert.equal(bonnal.fieldwork_end, '2026-09-04');
+  assert.equal(bonnal.commissioner, 'Sébastien Bonnal');
+  assert.equal(bonnal.candidates.find(c => c.candidate_id === 'sebastien-bonnal').result.literal, '<1%');
+  assert(!payload.candidates.some(c => c.candidate_id === 'sebastien-bonnal'));
+  assert.equal(api.candidateBrowseWaves('sebastien-bonnal').length, 1);
+  assert.equal(api.candidateLatestPollMeta('sebastien-bonnal'), null);
+  assert.equal(api.scoreObservationsForWave(bonnal, 'sebastien-bonnal').length, 0);
+  assert.equal(api.rangeRowsForWave(bonnal).length, 0);
   const numericInstitute = JSON.stringify(payload.institutes.find(i => i.name === 'OpinionWay'));
   const opinionway = entries.filter(e => e.pollster === 'OpinionWay');
   assert.equal(api.directoryPeriod(opinionway).end, '2026-10-22');
@@ -45,14 +57,14 @@ for (const lang of ['fr', 'en']) {
   const lisnard = api.candidateBrowseWaves('david-lisnard').filter(e => e.kind === 'reviewed_source_scenario');
   assert.deepEqual(Array.from(lisnard, e => e.candidates.find(c => c.candidate_id === 'david-lisnard').result.literal), ['6%', '4%']);
   for (const entry of latest) {
-    assert.equal(entry.commissioner, 'CNEWS');
-    assert.equal(entry.candidates.length, 13);
+    assert.equal(entry.commissioner, entry.notice_id === '10264' ? 'Sébastien Bonnal' : 'CNEWS');
+    assert.equal(entry.candidates.length, entry.notice_id === '10264' ? 11 : 13);
     assert.equal(api.wavePagePath(entry), entry[lang === 'fr' ? 'page_path_fr' : 'page_path_en']);
     assert.equal(api.candidateWaveScoreMeta(entry, 'david-lisnard'), null);
     assert.equal(api.scoreObservationsForWave(entry, 'david-lisnard').length, 0);
     assert.equal(api.rangeRowsForWave(entry).length, 0);
   }
-  assert.equal(latest.flatMap(e => e.candidates).filter(c => c.result.literal === '<1%').length, 3);
+  assert.equal(latest.flatMap(e => e.candidates).filter(c => c.result.literal === '<1%').length, 4);
   assert(api.directoryCounts(entries).includes(String(waves.length)));
   const numericChart = JSON.stringify(api.chartWaves());
   const numericHeadline = JSON.stringify(api.candidateLatestPollMeta('david-lisnard'));
@@ -65,6 +77,15 @@ for (const lang of ['fr', 'en']) {
   api.setInstitute('OpinionWay');
   assert(api.chartWaves().every(e => e.pollster === 'OpinionWay' && !e.source_scenario_id));
   for (const mutate of [
+    ...[0, 0.5, 1].map(value => p => {
+      const entry = p.source_scenarios.find(e => e.notice_id === '10264');
+      entry.candidates.find(c => c.candidate_id === 'sebastien-bonnal').result =
+        {kind: 'exact', percent: value, literal: String(value) + '%'};
+    }),
+    p => p.source_scenarios.find(e => e.notice_id === '10264').commissioner = 'Facebook',
+    p => p.source_scenarios.find(e => e.notice_id === '10264').publication_date = '2026-09-15',
+    p => p.source_scenarios.find(e => e.notice_id === '10264').record_sha256 = '0'.repeat(64),
+    p => p.source_scenarios.find(e => e.notice_id === '10264').page_path_fr = '/preview/evidence/10264/fr/',
     p => p.source_scenarios.push(p.source_scenarios[0]),
     p => p.source_scenarios[0].commissioner = 'Les Échos',
     p => p.source_scenarios[0].analysis_eligible = true,
