@@ -10,9 +10,9 @@ import json
 from pathlib import Path
 
 RECORD_PATH = Path(__file__).with_name("poll_source_tables.json")
-# Explicit 10264 publication extension; all five individual table pins and
+# Explicit 10260 H3 publication extension; all five individual table pins and
 # the prior collection are preserved. No runtime repinning or fetching.
-RECORD_SHA256 = "189049b0d313ee734e316a13e2353acd1853ba21616adbfffd3d4b0458604828"
+RECORD_SHA256 = "be4d8aa8c8059675d8d2e55246375885445bdcfe45cb8eb6be29ce689e3e9cf3"
 
 
 def digest(value):

@@ -306,6 +306,7 @@
     const sourceIds = new Set();
     const sourceSurveys = new Set();
     const sourcePublications = {
+      "10260": {commissioner: "CNews", slug: "opinionway-cnews-10260", count: 13},
       "10264": {commissioner: "Sébastien Bonnal", slug: "opinionway-bonnal-10264", count: 11},
       "10319": {commissioner: "CNEWS", slug: "opinionway-cnews-10319", count: 13},
       "10333": {commissioner: "CNEWS", slug: "opinionway-cnews-10333", count: 13}
@@ -331,6 +332,33 @@
           || entry.record_sha256 !== "90fd17b6433f8af12e7fa0cd4914b142e91148e8da8d5e4d5c97e9f1feaacc70"
           || entry.source.pdf_sha256 !== "3e427407804098116e859a47f1ba3b0d0428145714b35c593e900e800768cd27"
           || !entry.candidate_ids.includes("sebastien-bonnal"))) throw new Error("Invalid reviewed Bonnal source");
+      if (entry.notice_id === "10260") {
+        const expectedCandidates = [
+          ["nathalie-arthaud", "Nathalie Arthaud", "<1%"], ["jean-luc-melenchon", "Jean-Luc Mélenchon", "17%"],
+          ["fabien-roussel", "Fabien Roussel", "2%"], ["marine-tondelier", "Marine Tondelier", "3%"],
+          ["raphael-glucksmann", "Raphaël Glucksmann", "9%"], ["karim-bouamrane", "Karim Bouamrane", "<1%"],
+          ["gabriel-attal", "Gabriel Attal", "7%"], ["edouard-philippe", "Édouard Philippe", "15%"],
+          ["bruno-retailleau", "Bruno Retailleau", "7%"], ["david-lisnard", "David Lisnard", "2%"],
+          ["nicolas-dupont-aignan", "Nicolas Dupont-Aignan", "2%"], ["eric-zemmour", "Éric Zemmour", "2%"],
+          ["marine-le-pen", "Marine Le Pen", "34%"]
+        ];
+        if (entry.publication_date !== null || entry.fieldwork_start !== "2026-09-09" || entry.fieldwork_end !== "2026-09-10"
+            || entry.source_scenario_id !== "fr27-source-table-v1:13c78f8439b7a6183f043bf9c6cadd0f93e6d3cfb847a2734329240317557b24"
+            || entry.record_sha256 !== "535cb08075a8c3bb1eb9b8d9ddd0178b7296308872490e546e03c19250369788"
+            || entry.source.pdf_sha256 !== "bcc6f5e46048615f31188b9d98cd708339f276e8fe959d3c9c1b5833a1d58b0c"
+            || entry.source.pdf_url !== "https://www.commission-des-sondages.fr/notices/files/notices/2026/septembre/10260-pres-iv-opinionway-cnews-11-septembre.pdf"
+            || entry.source.pdf_page !== 14 || entry.source.table_locator !== "first_round_h3_glucksmann"
+            || entry.source.published_column !== "Publié"
+            || entry.respondent_bases?.adults !== 1001 || entry.respondent_bases?.registered_voters !== 935 || entry.respondent_bases?.certain_to_vote !== 690
+            || Object.hasOwn(entry.respondent_bases, "expressed_certain_voters")
+            || JSON.stringify(entry.candidate_ids) !== JSON.stringify(expectedCandidates.map(c => c[0]))
+            || entry.candidates.some((c, i) => c.candidate_id !== expectedCandidates[i][0]
+              || c.candidate_name !== expectedCandidates[i][1] || c.published_candidate_name !== expectedCandidates[i][1]
+              || c.result?.literal !== expectedCandidates[i][2]
+              || (expectedCandidates[i][2] === "<1%" && c.result?.kind !== "strict_upper_bound"))) {
+          throw new Error("Invalid reviewed 10260 H3 source");
+        }
+      }
       if (sourceIds.has(entry.source_scenario_id) || sourceSurveys.has(entry.survey_id)) throw new Error("Duplicate source scenario/survey");
       sourceIds.add(entry.source_scenario_id);
       sourceSurveys.add(entry.survey_id);
@@ -365,7 +393,7 @@
   }
 
   function directoryPollster(entry) {
-    return isSourceScenario(entry) ? `${entry.pollster} / ${entry.commissioner}`
+    return isSourceScenario(entry) ? `${entry.pollster} / ${entry.commissioner}${entry.notice_id === "10260" ? " · H3" : ""}`
       : [entry.pollster, waveScopeLabel(entry)].filter(Boolean).join(" · ");
   }
 
@@ -385,7 +413,7 @@
   }
 
   function sourceStatus(entry) {
-    return `${uiText("sourceScenario")} · Notice ${entry.notice_id}`;
+    return `${uiText("sourceScenario")}${entry.notice_id === "10260" ? " · H3" : ""} · Notice ${entry.notice_id}`;
   }
 
   function directoryCounts(entries) {

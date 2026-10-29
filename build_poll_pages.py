@@ -1334,7 +1334,7 @@ def render_published_source_page(notice, *, language, template_root=ROOT):
              else f"{table['institute']} poll for {table['commissioner']}")
     date_label = (format_date(table["publication_date"], language) if table.get("publication_date")
                   else format_date_range(table["fieldwork_start"], table["fieldwork_end"], language))
-    title += " · " + date_label
+    title += (" · H3" if notice == "10260" else "") + " · " + date_label
     row_count = len(table["rows"])
     description = (f"Tableau source vérifié du premier tour : {row_count} candidats, valeurs publiées et bornes <1%. Aucune observation numérique ajoutée."
                    if fr else f"Verified first-round source table: {row_count} candidates, published values and <1% bounds. No numerical observation added.")
@@ -1397,6 +1397,37 @@ def render_published_source_page(notice, *, language, template_root=ROOT):
             "Not expressing a voting intention: 13%, reported separately using sociodemographic weighting across all respondents. It is not added to the 11 candidate results. The questionnaire on p. 5 also offers blank or invalid ballots and abstention, without assigning them candidate scores here.",
             "Publishing this document does not create a numerical observation or resolve notice 10264’s numerical-coverage warning. No exact score is inferred from the <1% bound or the exact-value subtotal."
         ])
+    if notice == "10260":
+        attribution = ("Institut : OpinionWay · Commanditaire : CNews · Terrain :" if fr
+                       else "Pollster: OpinionWay · Commissioner: CNews · Fieldwork:") + " " + date_label
+        description = ("Troisième configuration du premier tour (H3) : 13 résultats publiés, dont deux bornes <1%. H1/H2 et les deux seconds tours numériques restent inchangés."
+                       if fr else "Third first-round configuration (H3): 13 published results, including two <1% bounds. Numerical H1/H2 and both runoffs remain unchanged.")
+        metrics[-1] = (metrics[-1][0], "Non documentée" if fr else "Not documented")
+        states[-1] = ("NUMERICAL_OBSERVATION_ABSENT", "H3 : observation numérique absente" if fr else "H3: numerical observation absent")
+        numeric_wave = next(w for w in _load_json(root / "poll_explorer.json")["waves"]
+                            if w["wave_id"] == record["existing_pages"]["10260"]["wave_id"])
+        numeric_path = numeric_wave[f"page_path_{language}"]
+        runoff_link = (f'<p><a href="{_escape(numeric_path)}">'
+                       + ("H1 et H2 : configurations numériques déjà disponibles" if fr else "H1 and H2: existing numerical configurations") + ' →</a></p>'
+                       + f'<p><a href="{_escape(table["source"]["pdf_url"])}#page=15" target="_blank" rel="noopener noreferrer">'
+                       + ("Les deux seconds tours dans le PDF original (p. 15–16)" if fr else "Both runoffs in the original PDF (pp. 15–16)") + ' ↗</a></p>')
+        paragraphs = ([
+            "Troisième configuration du premier tour (H3) : Raphaël Glucksmann candidat socialiste. Les 13 lignes de la colonne « Publié », page 14, sont reproduites dans l’ordre du document. Nathalie Arthaud et Karim Bouamrane sont chacun publiés à <1% : deux bornes supérieures strictes, sans score exact déduit. Aucun résultat n’est remplacé ni normalisé.",
+            "Les configurations H1 (François Hollande, p. 12) et H2 (Ségolène Royal, p. 13) sont déjà disponibles sous forme de deux observations numériques de la même étude. Le document contient aussi deux seconds tours déjà représentés numériquement : Mélenchon–Le Pen (p. 15) et Philippe–Le Pen (p. 16). Ils restent inchangés. H3 est un complément documentaire, pas une troisième enquête indépendante.",
+            "Institut : OpinionWay. Commanditaire et acheteur : CNews (p. 2). Terrain : 9–10 septembre 2026. Le 11 septembre est la date de la liste de la Commission ; la date de publication de l’étude n’est pas confirmée indépendamment et n’est pas déduite du nom du fichier.",
+            "Population : 1 001 adultes de 18 ans et plus, dont 935 inscrits sur les listes électorales. Les 690 certains d’aller voter (notes 9+10) constituent une base distincte, pas un nombre de suffrages exprimés. La base exprimée n’est pas séparément documentée. Les mentions de gabarit « 903 personnes » ne remplacent pas ces bases (pp. 3–4 et 14).",
+            "Questionnaire auto-administré en ligne (CAWI), méthode des quotas : sexe, âge, catégorie socioprofessionnelle, catégorie d’agglomération et région. Redressement sociodémographique + vote au premier tour de la présidentielle de 2022 + vote au premier tour des législatives de 2024 parmi les certains d’aller voter (notes 9+10), selon la méthodologie p. 3. La colonne « Publié » est conservée sans substitution par une colonne alternative.",
+            "N’expriment pas d’intention de vote : 15%, publié séparément sur le redressement sociodémographique de l’ensemble des répondants. Ce résultat ne s’ajoute pas aux 13 résultats candidats. Le questionnaire H3 (p. 6) propose aussi le vote blanc ou nul et l’abstention, sans résultat candidat distinct ici.",
+            "Le tableau H3 entier reste exclu des graphiques, comparaisons, moyennes, classements, indicateurs candidats et décomptes numériques. Cette publication documentaire ne résout pas l’avertissement de couverture numérique de la notice 10260."
+        ] if fr else [
+            "Third first-round configuration (H3): Raphaël Glucksmann as Socialist candidate. All 13 rows of the ‘Publié’ column on page 14 are reproduced in source order. Nathalie Arthaud and Karim Bouamrane are each published as <1%: two strict upper bounds, with no inferred exact score. No result is substituted or normalized.",
+            "H1 (François Hollande, p. 12) and H2 (Ségolène Royal, p. 13) already exist as two numerical observations from the same study. The document also contains two already represented numerical runoffs: Mélenchon–Le Pen (p. 15) and Philippe–Le Pen (p. 16). They remain unchanged. H3 adds documentary evidence, not a third independent survey.",
+            "Pollster: OpinionWay. Commissioner and purchaser: CNews (p. 2). Fieldwork: 9–10 September 2026. The Commission listing is dated 11 September; the study’s publication date is not independently confirmed and is not inferred from the filename.",
+            "Population: 1,001 adults aged 18+, including 935 registered voters. The 690 respondents certain to vote (ratings 9+10) are a separate base, not an expressed-vote count. The expressed base is not separately documented. The ‘903 people’ template labels do not override these bases (pp. 3–4 and 14).",
+            "Self-administered online questionnaire (CAWI), quota sampling by sex, age, occupation, size of urban area and region. Sociodemographic weighting + first-round vote in the 2022 presidential election + first-round vote in the 2024 legislative election among respondents certain to vote (ratings 9+10), as specified on p. 3. The ‘Publié’ column is preserved without substituting an alternative column.",
+            "Not expressing a voting intention: 15%, published separately using sociodemographic weighting across all respondents. It is not added to the 13 candidate results. The H3 questionnaire (p. 6) also offers blank or invalid ballots and abstention, without a separate candidate score here.",
+            "The entire H3 table remains outside numerical charts, comparisons, averages, rankings, candidate indicators and polling counts. This documentary publication does not resolve notice 10260’s numerical-coverage warning."
+        ])
     meta = ''.join(f'<div class="poll-detail-metric"><span>{_escape(label)}</span><strong>{_escape(value)}</strong></div>' for label, value in metrics)
     notes = ''.join(f'<p>{_escape(p)}</p>' for p in paragraphs)
     state_markup = ''.join(f'<span data-coverage-state="{key}">{_escape(label)}</span>' for key, label in states)
@@ -1409,7 +1440,7 @@ def render_published_source_page(notice, *, language, template_root=ROOT):
       </div></div><div class="poll-detail-metrics">{meta}</div>
       <div class="poll-detail-boundary">{state_markup}</div></section>
       <section class="poll-detail-panel poll-detail-results"><div class="poll-detail-panel-head"><div>
-        <div class="poll-detail-eyebrow">NOTICE {notice} · PDF p. 12 · PUBLIÉ</div>
+        <div class="poll-detail-eyebrow">NOTICE {notice} · PDF p. {table["source"]["pdf_page"]} · PUBLIÉ</div>
         <h2>{"RÉSULTATS PUBLIÉS" if fr else "PUBLISHED RESULTS"}</h2></div></div>
         <div class="poll-detail-scenario-list">{render_source_card(table, language, standalone=True)}</div>
       </section>
