@@ -231,7 +231,7 @@ def render_table(
         source = wave.get("kind") == "reviewed_source_scenario"
         pollster = str(wave.get("pollster") or "—")
         if source:
-            pollster += " / " + wave["commissioner"]
+            pollster += " / " + wave["commissioner"] + (" · H3" if wave["notice_id"] == "10260" else "")
         start = str(wave.get("fieldwork_start") or "")
         end = str(wave.get("fieldwork_end") or "")
         scenario_count = wave.get("scenario_count")
@@ -247,7 +247,7 @@ def render_table(
         if source:
             candidate_text = ", ".join(c["candidate_name"] + " " + c["result"]["literal"] for c in wave["candidates"])
         scenario_text = (("SCÉNARIO SOURCE VÉRIFIÉ" if language == "fr" else "VERIFIED SOURCE SCENARIO")
-                         + " · Notice " + wave["notice_id"] if source else format_number(scenario_count, language))
+                         + (" · H3" if wave["notice_id"] == "10260" else "") + " · Notice " + wave["notice_id"] if source else format_number(scenario_count, language))
         historical = sum(s.get("election_scope") == "retrospective_2022_revote" for s in wave.get("scenarios", []))
         if historical:
             plural = "s" if historical > 1 else ""
@@ -413,6 +413,8 @@ def render_source_links(language, waves=None):
         date_label = (format_date(table["publication_date"], language) if table.get("publication_date")
                       else ("Terrain : " if fr else "Fieldwork: ") + format_date_range(table["fieldwork_start"], table["fieldwork_end"], language))
         label = f'{table["institute"]} / {table["commissioner"]} · {date_label} · notice {page["notice_id"]}'
+        if page["notice_id"] == "10260":
+            label += " · H3"
         links.append(f'<li><a href="{escape(page[f"page_path_{language}"])}">{escape(label)} →</a></li>')
     return (SOURCE_START + '\n<section class="polling-panel" id="source-evidence" aria-labelledby="source-evidence-title">'
             '<div class="polling-panel-head"><div><div class="polling-eyebrow">'

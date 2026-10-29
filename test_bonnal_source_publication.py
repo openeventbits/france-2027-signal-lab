@@ -29,6 +29,9 @@ class BonnalDocumentaryPublicationTests(unittest.TestCase):
 
     def test_original_five_table_records_and_prior_publication_scope_are_preserved(self):
         previous = copy.deepcopy(self.record)
+        later = previous.pop("publication_review_10260")
+        previous["standalone_pages"].pop("10260")
+        self.assertEqual(source.digest(previous), later["prior_collection_sha256"])
         review = previous.pop("publication_review")
         previous["standalone_pages"].pop("10264")
         self.assertEqual(source.digest(previous), "2210c4943c4984099bf2c217433a8e4d4e0ed656052f5794c1c5c08c473c4737")
