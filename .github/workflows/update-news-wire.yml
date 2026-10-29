@@ -41,6 +41,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Python dependencies
+        run: python -m pip install --disable-pip-version-check lxml
+
       - name: Run news pipeline tests
         env:
           PYTHONDONTWRITEBYTECODE: "1"
