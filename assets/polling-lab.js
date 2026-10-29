@@ -305,20 +305,32 @@
     }
     const sourceIds = new Set();
     const sourceSurveys = new Set();
+    const sourcePublications = {
+      "10264": {commissioner: "Sébastien Bonnal", slug: "opinionway-bonnal-10264", count: 11},
+      "10319": {commissioner: "CNEWS", slug: "opinionway-cnews-10319", count: 13},
+      "10333": {commissioner: "CNEWS", slug: "opinionway-cnews-10333", count: 13}
+    };
     for (const entry of data.source_scenarios) {
-      if (!isSourceScenario(entry) || entry.round !== "first_round" || entry.analysis_eligible !== false
-          || !["10319", "10333"].includes(entry.notice_id) || entry.survey_id !== `commission:${entry.notice_id}`
+      const publication = sourcePublications[entry.notice_id];
+      if (!publication || !isSourceScenario(entry) || entry.round !== "first_round" || entry.analysis_eligible !== false
+          || entry.survey_id !== `commission:${entry.notice_id}`
           || !/^fr27-source-table-v1:[a-f0-9]{64}$/.test(entry.source_scenario_id)
           || entry.evidence_status !== "SOURCE_DOCUMENT_VERIFIED"
-          || entry.pollster !== "OpinionWay" || entry.commissioner !== "CNEWS"
+          || entry.pollster !== "OpinionWay" || entry.commissioner !== publication.commissioner
           || !/^[a-f0-9]{64}$/.test(entry.record_sha256) || !/^[a-f0-9]{64}$/.test(entry.source?.pdf_sha256)
-          || entry.page_path_fr !== `/sondages/documents/opinionway-cnews-${entry.notice_id}/`
-          || entry.page_path_en !== `/en/sondages/documents/opinionway-cnews-${entry.notice_id}/`
+          || entry.page_path_fr !== `/sondages/documents/${publication.slug}/`
+          || entry.page_path_en !== `/en/sondages/documents/${publication.slug}/`
           || !/^\d{4}-\d{2}-\d{2}$/.test(entry.fieldwork_start) || !/^\d{4}-\d{2}-\d{2}$/.test(entry.fieldwork_end)
           || ["event_id", "wave_id", "scenarios", "score"].some((key) => Object.hasOwn(entry, key))
-          || !Array.isArray(entry.candidates) || entry.candidates.length !== 13) {
+          || !Array.isArray(entry.candidates) || entry.candidates.length !== publication.count) {
         throw new Error("Invalid reviewed source scenario");
       }
+      if (entry.notice_id === "10264" && (entry.publication_date !== null
+          || entry.fieldwork_start !== "2026-09-02" || entry.fieldwork_end !== "2026-09-04"
+          || entry.source_scenario_id !== "fr27-source-table-v1:60d0cf598a99d657d3dec5e70fa2cc43a0376c0ddfe315a60f73db2b0577095f"
+          || entry.record_sha256 !== "90fd17b6433f8af12e7fa0cd4914b142e91148e8da8d5e4d5c97e9f1feaacc70"
+          || entry.source.pdf_sha256 !== "3e427407804098116e859a47f1ba3b0d0428145714b35c593e900e800768cd27"
+          || !entry.candidate_ids.includes("sebastien-bonnal"))) throw new Error("Invalid reviewed Bonnal source");
       if (sourceIds.has(entry.source_scenario_id) || sourceSurveys.has(entry.survey_id)) throw new Error("Duplicate source scenario/survey");
       sourceIds.add(entry.source_scenario_id);
       sourceSurveys.add(entry.survey_id);
@@ -329,6 +341,7 @@
           && result.percent >= 0 && result.percent <= 100 && /^\d+(?:[.,]\d+)?%$/.test(result.literal)
           && Number(result.literal.slice(0, -1).replace(",", ".")) === result.percent && !Object.hasOwn(result, "upper_percent");
         const bound = result?.kind === "strict_upper_bound" && result.upper_percent === 1 && result.literal === "<1%" && !Object.hasOwn(result, "percent");
+        if (entry.notice_id === "10264" && candidate.candidate_id === "sebastien-bonnal" && !bound) throw new Error("Bonnal result must remain a strict bound");
         if (typeof candidate.candidate_id !== "string" || typeof candidate.candidate_name !== "string"
             || candidate.identity_type !== "person" || ids.has(candidate.candidate_id)
             || Object.hasOwn(candidate, "score") || (!exact && !bound)) throw new Error("Invalid typed source result");

@@ -60,7 +60,7 @@ The existing page builder generates the four routes:
 - `/en/sondages/documents/opinionway-cnews-10333/`
 
 Only the explicit `standalone_pages` allowlist publishes documentary routes.
-Bonnal 10264 stays a local, noindex preview. `poll_pages_manifest.json` keeps
+A later [10264 publication review](bonnal_10264_source_evidence.md) adds the authenticated Bonnal table to the same documentary mechanism; its numerical warning remains unresolved. `poll_pages_manifest.json` keeps
 `pages`, `wave_count` and `page_count` numerical; `source_pages` and
 `source_page_count` separately describe documentary pages. The route registry
 uses kind `poll-source-evidence` in the polling family; the existing sitemap
@@ -100,7 +100,7 @@ deployment still requires separate review. The separate
 rejects the false Commission 10319 association to PrésiTrack. Its first-round
 numerical gap remains open; both documentary records and all runoffs are retained.
 
-## Phase 3B browsing projection
+## Historical Phase 3B browsing projection
 
 `build_poll_explorer.py` projects only the authenticated 10319 and 10333 records
 into the additive `source_scenarios` read-model array. Original numerical

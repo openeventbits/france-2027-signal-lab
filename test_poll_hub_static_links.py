@@ -149,10 +149,13 @@ class PollHubStaticLinksTests(unittest.TestCase):
                     self.assertEqual(row.xpath('.//a/@href'), [entry[f'page_path_{language}']])
                 sources = [row for row in rows if row.get('data-source-scenario-id')]
                 self.assertEqual(len(sources), sum('source_scenario_id' in e for e in entries))
+                expected_sources = {e['source_scenario_id']: e for e in entries if 'source_scenario_id' in e}
                 for row in sources:
-                    self.assertIn('CNEWS', row.text_content())
+                    entry = expected_sources[row.get('data-source-scenario-id')]
+                    self.assertIn(entry['commissioner'], row.text_content())
                     self.assertIn('SOURCE', row.text_content())
-                    self.assertIn('David Lisnard', row.text_content())
+                    for candidate in entry['candidates']:
+                        self.assertIn(candidate['candidate_name'], row.text_content())
                     self.assertIn('&lt;1%', html.tostring(row, encoding='unicode'))
 
     def test_og_cover_workflow_validates_static_links(self):

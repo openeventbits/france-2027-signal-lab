@@ -1330,10 +1330,14 @@ def render_published_source_page(notice, *, language, template_root=ROOT):
     shell = load_shell_templates(root)[language]
     hub = "/sondages/" if fr else "/en/sondages/"
     canonical = "https://france2027.app" + paths[f"page_path_{language}"]
-    title = ("Sondage OpinionWay pour CNEWS" if fr else "OpinionWay poll for CNEWS")
-    title += " · " + format_date(table["publication_date"], language)
-    description = ("Tableau source vérifié du premier tour : 13 candidats, valeurs publiées et bornes <1%. Aucune observation numérique ajoutée."
-                   if fr else "Verified first-round source table: 13 candidates, published values and <1% bounds. No numerical observation added.")
+    title = (f"Sondage {table['institute']} pour {table['commissioner']}" if fr
+             else f"{table['institute']} poll for {table['commissioner']}")
+    date_label = (format_date(table["publication_date"], language) if table.get("publication_date")
+                  else format_date_range(table["fieldwork_start"], table["fieldwork_end"], language))
+    title += " · " + date_label
+    row_count = len(table["rows"])
+    description = (f"Tableau source vérifié du premier tour : {row_count} candidats, valeurs publiées et bornes <1%. Aucune observation numérique ajoutée."
+                   if fr else f"Verified first-round source table: {row_count} candidates, published values and <1% bounds. No numerical observation added.")
     bases = {b["scope"]: b["count"] for b in table["respondent_bases"]}
     metrics = [("TERRAIN" if fr else "FIELDWORK", format_date_range(table["fieldwork_start"], table["fieldwork_end"], language)),
                ("ADULTES · 18 ANS ET PLUS" if fr else "ADULTS · AGED 18+", format_integer(bases["adults"], language)),
@@ -1369,6 +1373,30 @@ def render_published_source_page(notice, *, language, template_root=ROOT):
         states = [("SOURCE_DOCUMENT_VERIFIED", "Source document verified"),
                   ("DOCUMENTARY_COVERAGE_PUBLISHED", "Documentary table published"),
                   ("NUMERICAL_OBSERVATION_ABSENT", "First-round numerical observation absent")]
+    attribution = ("Institut : OpinionWay · Commanditaire : CNEWS · Publication :" if fr
+                   else "Pollster: OpinionWay · Commissioner: CNEWS · Published:") + " " + date_label
+    runoff_link = (f'<p><a href="{_escape(table["source"]["pdf_url"])}#page=13" target="_blank" rel="noopener noreferrer">'
+                   + ("Second tour dans le document original (p. 13–15)" if fr else "Second round in the original document (pp. 13–15)") + ' ↗</a></p>')
+    if notice == "10264":
+        attribution = ("Institut : OpinionWay · Commanditaire : Sébastien Bonnal · Terrain :" if fr
+                       else "Pollster: OpinionWay · Commissioner: Sébastien Bonnal · Fieldwork:") + " " + date_label
+        metrics[-1] = (metrics[-1][0], "Non publiée" if fr else "Not reported")
+        runoff_link = ""
+        paragraphs = ([
+            "Une configuration documentaire du premier tour. Les 11 résultats publiés sont conservés ; <1% est une borne supérieure stricte, pas un score exact. Le tableau entier reste exclu des graphiques, comparaisons, classements et décomptes numériques.",
+            "Le document désigne Sébastien Bonnal comme commanditaire et acheteur (p. 2). « Facebook » est le libellé de la liste de la Commission, pas le commanditaire attesté par le PDF. La notice est répertoriée le 15 septembre 2026 ; la date de publication de l’étude n’est pas confirmée. Le terrain vérifié est du 2 au 4 septembre 2026.",
+            "Population : 1 034 adultes de 18 ans et plus, dont 951 inscrits sur les listes électorales. Les 700 certains d’aller voter (notes 9+10) constituent une base distincte ; ce nombre n’est pas présenté comme une base de suffrages exprimés. La base exprimée n’est pas publiée. Les mentions de gabarit « 903 personnes » ne remplacent pas ces bases vérifiées (pp. 3–4 et 12).",
+            "Questionnaire auto-administré en ligne (CAWI), méthode des quotas : sexe, âge, catégorie socioprofessionnelle, catégorie d’agglomération et région. Colonne conservée : « Publié », p. 12. Redressement sociodémographique + vote au premier tour de la présidentielle de 2022 parmi les certains d’aller voter (notes 9+10), selon la méthodologie p. 3. Aucune colonne alternative n’est substituée.",
+            "N’expriment pas d’intention de vote : 13%, publié séparément sur le redressement sociodémographique de l’ensemble des répondants. Ce résultat ne s’ajoute pas aux 11 résultats candidats. Le questionnaire p. 5 propose aussi le vote blanc ou nul et l’abstention, sans leur attribuer ici de score candidat.",
+            "La publication de ce document ne constitue pas une observation numérique et ne résout pas l’avertissement de couverture numérique de la notice 10264. Aucun score exact n’est déduit de la borne <1% ni du sous-total des valeurs exactes."
+        ] if fr else [
+            "One documentary first-round configuration. All 11 published results are preserved; <1% is a strict upper bound, not an exact score. The entire table stays outside numerical charts, comparisons, rankings and polling counts.",
+            "The document identifies Sébastien Bonnal as commissioner and purchaser (p. 2). ‘Facebook’ is the Commission listing label, not the commissioner authenticated by the PDF. The notice is listed on 15 September 2026; the study’s publication date is unconfirmed. Verified fieldwork ran from 2 to 4 September 2026.",
+            "Population: 1,034 adults aged 18+, including 951 registered voters. The 700 respondents certain to vote (ratings 9+10) are a separate base; this is not presented as an expressed-vote count. The expressed base is not reported. The ‘903 people’ template labels do not override these verified bases (pp. 3–4 and 12).",
+            "Self-administered online questionnaire (CAWI), quota sampling by sex, age, occupation, size of urban area and region. Preserved column: ‘Publié’, p. 12. Sociodemographic weighting + first-round vote in the 2022 presidential election among respondents certain to vote (ratings 9+10), as specified on p. 3. No alternative column is substituted.",
+            "Not expressing a voting intention: 13%, reported separately using sociodemographic weighting across all respondents. It is not added to the 11 candidate results. The questionnaire on p. 5 also offers blank or invalid ballots and abstention, without assigning them candidate scores here.",
+            "Publishing this document does not create a numerical observation or resolve notice 10264’s numerical-coverage warning. No exact score is inferred from the <1% bound or the exact-value subtotal."
+        ])
     meta = ''.join(f'<div class="poll-detail-metric"><span>{_escape(label)}</span><strong>{_escape(value)}</strong></div>' for label, value in metrics)
     notes = ''.join(f'<p>{_escape(p)}</p>' for p in paragraphs)
     state_markup = ''.join(f'<span data-coverage-state="{key}">{_escape(label)}</span>' for key, label in states)
@@ -1377,7 +1405,7 @@ def render_published_source_page(notice, *, language, template_root=ROOT):
       <section class="poll-detail-hero"><div class="poll-detail-hero-main"><div>
         <div class="poll-detail-eyebrow">{"DOCUMENT SOURCE · PREMIER TOUR" if fr else "SOURCE DOCUMENT · FIRST ROUND"}</div>
         <h1 class="poll-detail-title">{_escape(title)}</h1>
-        <p>{"Institut : OpinionWay · Commanditaire : CNEWS · Publication :" if fr else "Pollster: OpinionWay · Commissioner: CNEWS · Published:"} {format_date(table["publication_date"], language)}</p>
+        <p>{_escape(attribution)}</p>
       </div></div><div class="poll-detail-metrics">{meta}</div>
       <div class="poll-detail-boundary">{state_markup}</div></section>
       <section class="poll-detail-panel poll-detail-results"><div class="poll-detail-panel-head"><div>
@@ -1386,7 +1414,7 @@ def render_published_source_page(notice, *, language, template_root=ROOT):
         <div class="poll-detail-scenario-list">{render_source_card(table, language, standalone=True)}</div>
       </section>
       <section class="poll-detail-panel poll-source-notes"><h2>{"LECTURE ET MÉTHODE" if fr else "READING THE TABLE AND METHODOLOGY"}</h2>{notes}
-        <p><a href="{_escape(table["source"]["pdf_url"])}#page=13" target="_blank" rel="noopener noreferrer">{"Second tour dans le document original (p. 13–15)" if fr else "Second round in the original document (pp. 13–15)"} ↗</a></p>
+        {runoff_link}
         <details><summary>{"Authentification du document" if fr else "Document authentication"}</summary><p>SHA-256: <code>{table["source"]["pdf_sha256"]}</code></p><p>{_escape(table["source_table_id"])}</p></details>
         <p><a class="poll-detail-back-cta" href="{hub}#source-evidence">{"DOCUMENTS DU POLLING LAB" if fr else "POLLING LAB DOCUMENTS"} →</a></p>
       </section></div>'''

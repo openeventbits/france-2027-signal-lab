@@ -885,17 +885,17 @@ class ReviewedSourceProjectionTests(unittest.TestCase):
         cls.payload = explorer.build_poll_explorer(explorer.load_polls(ROOT / 'polls.json'))
         cls.sources = cls.payload['source_scenarios']
 
-    def test_only_two_authenticated_published_configurations_are_projected(self):
+    def test_only_three_authenticated_published_configurations_are_projected(self):
         from poll_source_tables import load_source_tables
         record = load_source_tables()
-        self.assertEqual({s['notice_id'] for s in self.sources}, {'10319', '10333'})
+        self.assertEqual({s['notice_id'] for s in self.sources}, {'10264', '10319', '10333'})
         for source in self.sources:
             entry = record['tables'][source['notice_id']]
             self.assertEqual(source['source_scenario_id'], entry['table']['source_table_id'])
             self.assertEqual(source['record_sha256'], entry['record_sha256'])
             self.assertEqual([c['result'] for c in source['candidates']], [r['result'] for r in entry['table']['rows']])
             self.assertEqual([c['candidate_id'] for c in source['candidates']], [r['identity_id'] for r in entry['table']['rows']])
-            self.assertEqual(len(source['candidates']), 13)
+            self.assertEqual(len(source['candidates']), len(entry['table']['rows']))
             self.assertFalse(source['analysis_eligible'])
             self.assertFalse({'wave_id', 'event_id', 'scenarios'} & source.keys())
             self.assertTrue(all('score' not in c for c in source['candidates']))
@@ -904,17 +904,17 @@ class ReviewedSourceProjectionTests(unittest.TestCase):
         sources = {s['notice_id']: s for s in self.sources}
         self.assertEqual([next(c['result']['literal'] for c in sources[n]['candidates'] if c['candidate_id']=='david-lisnard') for n in ['10319','10333']], ['4%','6%'])
         bounds = [c['result'] for s in self.sources for c in s['candidates'] if c['result']['kind']=='strict_upper_bound']
-        self.assertEqual(len(bounds), 3)
+        self.assertEqual(len(bounds), 4)
         self.assertTrue(all(b=={'kind':'strict_upper_bound','upper_percent':1.0,'literal':'<1%'} for b in bounds))
         self.assertNotIn('expressed_certain_voters', sources['10319']['respondent_bases'])
         self.assertEqual(sources['10333']['respondent_bases']['expressed_certain_voters'], 680)
 
     def test_browsing_is_chronological_and_does_not_merge_presitrack(self):
         entries = explorer.directory_entries(self.payload['waves'], self.sources)
-        self.assertEqual(len(entries), len(self.payload['waves'])+2)
+        self.assertEqual(len(entries), len(self.payload['waves'])+3)
         self.assertEqual([e['fieldwork_end'] for e in entries], sorted([e['fieldwork_end'] for e in entries],reverse=True))
         reference = explorer.directory_entries(self.payload['waves'][:2], self.sources)
-        self.assertEqual({e['notice_id'] for e in reference[:10] if 'source_scenario_id' in e}, {'10319','10333'})
+        self.assertEqual({e['notice_id'] for e in reference[:10] if 'source_scenario_id' in e}, {'10264','10319','10333'})
         same_dates = [e for e in entries if e['pollster']=='OpinionWay' and e['fieldwork_end']=='2026-10-14']
         self.assertEqual(len(same_dates), 2)
         self.assertEqual(sum('wave_id' in e for e in same_dates), 1)
