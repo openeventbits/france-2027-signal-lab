@@ -34,6 +34,7 @@ on:
       - "test_route_registry.py"
       - "test_search_foundation.py"
       - "test_agenda_family_automation.py"
+      - "test_agenda_push_race.py"
       - "test_production_publication_queue.py"
       - ".github/workflows/publish-agenda-family.yml"
 
@@ -514,8 +515,137 @@ jobs:
           PY
           }
 
+          # Every recovery traverses the same complete validation body below.
+          validated_base="$(git merge-base HEAD origin/main)"
+          for publication_attempt in 0 1 2; do
           git fetch origin main
-          git rebase origin/main
+          next_base="$(git rev-parse origin/main)"
+          if ! git merge-base --is-ancestor "$validated_base" "$next_base"; then
+            echo "Remote main history changed unexpectedly; stopping." >&2
+            exit 1
+          fi
+          if [[ "$publication_attempt" -gt 0 && "$validated_base" == "$next_base" ]]; then
+            echo "Rejected push without a forward main advance; stopping." >&2
+            exit 1
+          fi
+          git diff --name-status "$validated_base" "$next_base"
+          changed_paths="$(git diff --name-only "$validated_base" "$next_base")"
+          if grep -Eq '\.(py|yml|yaml|js|css|sh|toml|lock)$|(^|/)requirements[^/]*\.txt$|(^|/)package[^/]*\.json$' <<< "$changed_paths"; then
+            echo "Publication contract changed on main; start a fresh workflow." >&2
+            exit 1
+          fi
+          if ! git rebase origin/main; then
+            git rebase --abort
+            echo "Agenda reconciliation conflict; no push or Pages request." >&2
+            exit 1
+          fi
+          validated_base="$next_base"
+
+          # BEGIN reconciliation readiness
+          python -B - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          from build_route_registry import (
+              _canonical_url,
+              _route_content_hash,
+              _route_pair,
+              _source_file,
+          )
+          from candidate_candidacy_status import load_candidate_candidacy_status
+          from candidate_page_contract import project_candidate_route_index
+
+          root = Path.cwd()
+          ready = True
+          reasons = []
+          try:
+              candidacy = load_candidate_candidacy_status(
+                  root / "candidate_candidacy_status.json"
+              )
+              projection = project_candidate_route_index(candidacy, root)
+              registry = json.loads(
+                  (root / "route_registry.json").read_text(encoding="utf-8")
+              )
+              if not isinstance(registry, dict) or registry.get("schema_version") != "1.0":
+                  raise ValueError("route registry schema version mismatch")
+              routes = registry.get("routes")
+              if not isinstance(routes, list) or any(
+                  not isinstance(route, dict) for route in routes
+              ):
+                  raise ValueError("route registry routes must be objects")
+              published = [route for route in routes if route.get("family") == "candidates"]
+              expected = _route_pair(
+                  route_key="candidates", family="candidates", kind="hub",
+                  entity_id="candidates",
+                  path_fr=projection["hubs"]["fr"], path_en=projection["hubs"]["en"],
+              )
+              for candidate in projection["candidates"]:
+                  expected.extend(_route_pair(
+                      route_key=f"candidate:{candidate['candidate_id']}",
+                      family="candidates",
+                      kind=("candidate-detail" if candidate["lifecycle"] == "active"
+                            else "candidate-archive"),
+                      entity_id=candidate["candidate_id"],
+                      path_fr=candidate["routes"]["fr"], path_en=candidate["routes"]["en"],
+                  ))
+              if (
+                  len(published) != len(expected)
+                  or {route.get("route_id") for route in published}
+                  != {route["route_id"] for route in expected}
+              ):
+                  raise ValueError("candidate routes do not match the published projection")
+              by_id = {route["route_id"]: route for route in published}
+              for route in expected:
+                  stored = by_id[route["route_id"]]
+                  if any(stored.get(key) != value for key, value in route.items()):
+                      raise ValueError(f"candidate route identity is stale: {route['route_id']}")
+                  for field, path_field in (
+                      ("canonical_url", "path"), ("alternate_url_fr", "alternate_fr"),
+                      ("alternate_url_en", "alternate_en"), ("x_default_url", "x_default"),
+                  ):
+                      if stored.get(field) != _canonical_url(route[path_field]):
+                          raise ValueError(f"candidate route URL is stale: {route['route_id']}")
+                  source = _source_file(route["path"])
+                  if stored.get("source_file") != source.as_posix() or not (root / source).is_file():
+                      raise ValueError(f"candidate route source is stale: {route['route_id']}")
+                  digest = _route_content_hash(route=route, root=root, source_path=root / source)
+                  if stored.get("content_sha256") != digest:
+                      raise ValueError(f"candidate route hash is stale: {route['route_id']}")
+          except (OSError, ValueError, KeyError, TypeError) as error:
+              ready = False
+              reasons.append(str(error))
+
+          if ready:
+              # Both CLI checks are read-only; never generate in this barrier.
+              for arguments in (
+                  ["build_candidate_reference.py", "--all-active", "--check"],
+                  ["build_search_entrypoints.py", "--check"],
+              ):
+                  result = subprocess.run(
+                      [sys.executable, "-B", *arguments],
+                      text=True, capture_output=True, check=False,
+                  )
+                  if result.returncode:
+                      ready = False
+                      reasons.append(" ".join(arguments) + ": " + (result.stderr or result.stdout).strip())
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"ready={str(ready).lower()}\n")
+          if ready:
+              print("Candidate publication is ready for downstream publication.")
+          else:
+              message = "Publication deferred: candidate publication is not ready.\n" + "\n".join(reasons)
+              print(message)
+              if os.environ.get("GITHUB_STEP_SUMMARY"):
+                  with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
+                      summary.write(message + "\n")
+          if not ready:
+              raise SystemExit("Candidate readiness failed after reconciliation")
+          PY
+          # END reconciliation readiness
 
           read -r published_at route_effective_date < <(
             python -B - <<'PY'
@@ -650,7 +780,13 @@ jobs:
           git diff --cached --check
 
           if ! git diff --cached --quiet; then
-            git commit --amend --no-edit
+            # Rebase may drop an already-applied publication. Never amend main's
+            # commit if fresh inputs still require a new generated publication.
+            if [[ "$(git rev-parse HEAD)" == "$validated_base" ]]; then
+              git commit -m "Refresh Agenda family"
+            else
+              git commit --amend --no-edit
+            fi
           fi
 
           if ! git diff --quiet origin/main -- \
@@ -671,21 +807,24 @@ jobs:
             exit 1
           fi
 
-          for attempt in 1 2 3; do
-            if push_output="$(git push origin HEAD:main 2>&1)"; then
-              printf '%s\n' "$push_output"
-              break
-            fi
-
-            printf '%s\n' "$push_output" >&2
-            if [[ "$push_output" != *"fatal error in commit_refs"* || "$attempt" -eq 3 ]]; then
-              exit 1
-            fi
-            echo "GitHub reported transient commit_refs failure; retrying push." >&2
-            sleep $((attempt * 5))
+          # Porcelain identifies the rejected ref, not an arbitrary stderr phrase.
+          if push_output="$(git push origin HEAD:main --porcelain 2>&1)"; then
+            printf '%s\n' "$push_output"
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s\n' "$push_output" >&2
+          if [[ "$push_output" != *$'!\tHEAD:refs/heads/main\t[rejected] (fetch first)'* &&
+                "$push_output" != *$'!\tHEAD:refs/heads/main\t[rejected] (non-fast-forward)'* ]]; then
+            echo "Push failed for a reason other than a non-fast-forward race; stopping." >&2
+            exit 1
+          fi
+          if [[ "$publication_attempt" -eq 2 ]]; then
+            echo "Agenda recovery retry budget exhausted (two recovery retries)." >&2
+            exit 1
+          fi
+          echo "Main advanced during validation; recovery $((publication_attempt + 1))/2." >&2
           done
-
-          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
       # GITHUB_TOKEN pushes do not reliably start Pages. Request the build only
       # after a changed, fully reconciled publication was successfully pushed.

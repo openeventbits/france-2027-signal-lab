@@ -1,4 +1,5 @@
 import re
+from test_agenda_push_race import AgendaPushRaceTests
 import ast
 import json
 import os
@@ -171,7 +172,7 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
             self.assertNotIn("publication_manifest.json", block)
 
     def test_search_entrypoints_are_not_rebuilt(self):
-        self.assertEqual(self.text.count("build_search_entrypoints.py"), 1)
+        self.assertEqual(self.text.count("build_search_entrypoints.py"), 2)
         self.assertIn('["build_search_entrypoints.py", "--check"]', self.text)
         self.assertNotIn("python -B build_search_entrypoints.py", self.text)
 
@@ -233,7 +234,7 @@ class AgendaFamilyAutomationContractTests(unittest.TestCase):
             self.assertNotIn('cron: "53 11 * * *"', (WORKFLOW.parent / sibling).read_text())
 
     def test_complete_suite_runs_before_commit_and_after_rebase(self):
-        before, after = self.text.split("          git rebase origin/main", 1)
+        before, after = self.text.split("          if ! git rebase origin/main; then", 1)
         before = before[:before.index("- name: Commit generated Agenda publication")]
         after = after[:after.index("git push origin HEAD:main")]
         for phase in (before, after):
