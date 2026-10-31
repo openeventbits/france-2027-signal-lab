@@ -268,7 +268,7 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         )
         allowed_pattern = (
             "^((candidate_candidacy_status|candidate_signals|"
-            "candidate_agenda_history|candidate_visibility_history|campaign_events|"
+            "candidate_agenda_history|candidate_visibility_history|candidate_bluesky|candidate_bluesky_history|candidate_youtube|candidate_youtube_history|candidate_polymarket|candidate_polymarket_history|campaign_events|"
             "publication_manifest)\\.json|index\\.html|en/index\\.html)$"
         )
         self.assertIn(allowed_pattern, scope)
@@ -288,6 +288,12 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
             "candidate_signals.json",
             "candidate_agenda_history.json",
             "candidate_visibility_history.json",
+            "candidate_bluesky.json",
+            "candidate_bluesky_history.json",
+            "candidate_youtube.json",
+            "candidate_youtube_history.json",
+            "candidate_polymarket.json",
+            "candidate_polymarket_history.json",
             "index.html",
             "en/index.html",
             "publication_manifest.json",
