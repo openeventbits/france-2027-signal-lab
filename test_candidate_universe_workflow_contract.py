@@ -45,7 +45,38 @@ class CandidateUniverseWorkflowContractTests(unittest.TestCase):
         self.assertIn("actions/setup-python@v6", self.workflow)
         self.assertIn('python-version: "3.12"', self.workflow)
         self.assertIn('PYTHONDONTWRITEBYTECODE: "1"', self.workflow)
-        self.assertNotIn("pip install", self.workflow)
+
+    def test_dependencies_match_existing_runners_and_precede_tests_and_publication(self):
+        steps = re.findall(r"^      - name: (.+)$", self.workflow, re.MULTILINE)
+        setup = steps.index("Set up Python")
+        self.assertEqual(steps[setup + 1:setup + 3], [
+            "Install Python dependencies",
+            "Run candidate-universe publication tests",
+        ])
+        install = self.workflow.index("      - name: Install Python dependencies")
+        for name in (
+            "Run candidate-universe publication tests",
+            "Fetch and reconcile exact Wikipedia revision",
+            "Validate candidate and promote semantic change atomically",
+            "Reconcile stored provider rosters on registry change",
+            "Rebuild publication manifest on registry change",
+            "Commit, rebase, validate, and push candidate universe",
+        ):
+            self.assertLess(install, self.workflow.index(f"      - name: {name}"))
+
+        workflows = (
+            (self.workflow, "Install Python dependencies"),
+            ((ROOT / ".github/workflows/validate-dashboard.yml").read_text(encoding="utf-8"),
+             "Install Python dependencies"),
+            ((ROOT / ".github/workflows/update-polls.yml").read_text(encoding="utf-8"),
+             "Install dependencies"),
+        )
+        for workflow, name in workflows:
+            with self.subTest(step=name, workflow=workflow.splitlines()[0]):
+                block = step_block(workflow, name)
+                command = " ".join(block.split("run:", 1)[1].replace(">-", "").split())
+                self.assertEqual(command,
+                    "python -m pip install --disable-pip-version-check pandas lxml pypdf")
 
     def test_generation_uses_previous_and_temporary_output(self):
         generation = step_block(
