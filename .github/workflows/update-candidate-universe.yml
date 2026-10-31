@@ -44,6 +44,11 @@ jobs:
             test_candidate_agenda_history_contract \
             test_build_candidate_agenda_history \
             test_candidate_universe_phase2 \
+            test_candidate_provider_rosters \
+            test_candidate_bluesky \
+            test_candidate_bluesky_history \
+            test_candidate_youtube_history \
+            test_candidate_polymarket_history \
             test_build_candidate_signals \
             test_publication_manifest \
             test_publication_manifest_registry_v2 \
@@ -106,6 +111,7 @@ jobs:
           previous_path = Path("candidate_candidacy_status.json")
           candidate_path = Path("/tmp/candidate_candidacy_status.json")
           previous_bytes = previous_path.read_bytes()
+          Path("/tmp/candidate-registry-before.json").write_bytes(previous_bytes)
           previous = load_candidate_candidacy_status(previous_path)
           candidate = load_candidate_candidacy_status(candidate_path)
           fetch_report = json.loads(
@@ -503,6 +509,16 @@ jobs:
           python -B build_search_entrypoints.py
           python -B build_search_entrypoints.py --check
 
+      - name: Reconcile stored provider rosters on registry change
+        if: steps.registry.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec 2> >(tee /tmp/candidate-universe-error.txt >&2)
+          python -B reconcile_candidate_provider_rosters.py \
+            --previous-registry /tmp/candidate-registry-before.json \
+            --expected-registry /tmp/candidate_candidacy_status.json
+
       - name: Rebuild publication manifest on registry change
         id: manifest
         if: steps.registry.outputs.changed == 'true'
@@ -551,7 +567,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^((candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|campaign_events|publication_manifest)\.json|index\.html|en/index\.html)$' \
+              | grep -Ev '^((candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|candidate_bluesky|candidate_bluesky_history|candidate_youtube|candidate_youtube_history|candidate_polymarket|candidate_polymarket_history|campaign_events|publication_manifest)\.json|index\.html|en/index\.html)$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -584,6 +600,12 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            candidate_bluesky.json \
+            candidate_bluesky_history.json \
+            candidate_youtube.json \
+            candidate_youtube_history.json \
+            candidate_polymarket.json \
+            candidate_polymarket_history.json \
             index.html \
             en/index.html \
             publication_manifest.json
@@ -594,12 +616,34 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            candidate_bluesky.json \
+            candidate_bluesky_history.json \
+            candidate_youtube.json \
+            candidate_youtube_history.json \
+            candidate_polymarket.json \
+            candidate_polymarket_history.json \
             index.html \
             en/index.html \
             publication_manifest.json
 
           git fetch origin main
           git rebase origin/main
+
+          # Reconcile from the newest main evidence, never a stale rebased copy.
+          mkdir -p /tmp/candidate-provider-upstream
+          for file in candidate_candidacy_status.json publication_manifest.json \
+            bluesky_candidate_accounts.json youtube_candidate_channels.json \
+            polymarket_candidate_markets.json \
+            candidate_bluesky.json candidate_bluesky_history.json \
+            candidate_youtube.json candidate_youtube_history.json \
+            candidate_polymarket.json candidate_polymarket_history.json
+          do
+            git show "origin/main:$file" > "/tmp/candidate-provider-upstream/$file"
+          done
+          python -B reconcile_candidate_provider_rosters.py \
+            --previous-registry /tmp/candidate-provider-upstream/candidate_candidacy_status.json \
+            --expected-registry /tmp/candidate_candidacy_status.json \
+            --evidence-root /tmp/candidate-provider-upstream
 
           git show origin/main:candidate_agenda_history.json \
             > /tmp/candidate_agenda_history-upstream.json
@@ -735,6 +779,12 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            candidate_bluesky.json \
+            candidate_bluesky_history.json \
+            candidate_youtube.json \
+            candidate_youtube_history.json \
+            candidate_polymarket.json \
+            candidate_polymarket_history.json \
             index.html \
             en/index.html \
             publication_manifest.json
@@ -744,6 +794,12 @@ jobs:
               candidate_signals.json \
               candidate_agenda_history.json \
               candidate_visibility_history.json \
+              candidate_bluesky.json \
+              candidate_bluesky_history.json \
+              candidate_youtube.json \
+              candidate_youtube_history.json \
+              candidate_polymarket.json \
+              candidate_polymarket_history.json \
               index.html \
               en/index.html \
               publication_manifest.json
@@ -754,7 +810,7 @@ jobs:
           unexpected="$(
             git status --porcelain=v1 --untracked-files=all \
               | sed -E 's/^...//' \
-              | grep -Ev '^((candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|campaign_events|publication_manifest)\.json|index\.html|en/index\.html)$' \
+              | grep -Ev '^((candidate_candidacy_status|candidate_signals|candidate_agenda_history|candidate_visibility_history|candidate_bluesky|candidate_bluesky_history|candidate_youtube|candidate_youtube_history|candidate_polymarket|candidate_polymarket_history|campaign_events|publication_manifest)\.json|index\.html|en/index\.html)$' \
               || true
           )"
           if [[ -n "$unexpected" ]]; then
@@ -762,6 +818,10 @@ jobs:
             echo "$unexpected"
             exit 1
           fi
+          python -B reconcile_candidate_provider_rosters.py \
+            --previous-registry /tmp/candidate-provider-upstream/candidate_candidacy_status.json \
+            --expected-registry /tmp/candidate_candidacy_status.json \
+            --evidence-root /tmp/candidate-provider-upstream
           final_published_at="$(python -c 'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"
           python -B build_candidate_agenda_history.py \
             --news news_wire.json \
@@ -787,6 +847,12 @@ jobs:
             candidate_signals.json \
             candidate_agenda_history.json \
             candidate_visibility_history.json \
+            candidate_bluesky.json \
+            candidate_bluesky_history.json \
+            candidate_youtube.json \
+            candidate_youtube_history.json \
+            candidate_polymarket.json \
+            candidate_polymarket_history.json \
             index.html \
             en/index.html \
             publication_manifest.json
