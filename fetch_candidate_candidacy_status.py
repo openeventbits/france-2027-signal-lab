@@ -728,6 +728,51 @@ def _scan_document(
         )
 
 
+def _has_completed_socialist_primary(root: _HtmlNode) -> bool:
+    """Recognize the replacement results layout without extracting its rows.
+
+    Results, turnout and totals are not current candidacy evidence. The exact
+    section/subsection, caption and two-row header distinguish this reviewed
+    layout from a missing or renamed contender section.
+    """
+    section_count = subsection_count = results_count = 0
+    in_section = in_subsection = False
+
+    def visit(node: _HtmlNode) -> None:
+        nonlocal section_count, subsection_count, results_count
+        nonlocal in_section, in_subsection
+        for child in node.children:
+            if not isinstance(child, _HtmlNode):
+                continue
+            if child.tag in _HEADING_TAGS:
+                level, title = int(child.tag[1]), _text_content(child)
+                if level <= 2:
+                    in_section = level == 2 and title == "Élection primaire"
+                    in_subsection = False
+                    section_count += int(in_section)
+                elif in_section and level == 3:
+                    in_subsection = title == "Primaire socialiste"
+                    subsection_count += int(in_subsection)
+                continue
+            if child.tag == "table":
+                if in_section and in_subsection:
+                    captions = _direct_elements(child, {"caption"})
+                    rows = _table_rows(child)
+                    headers = [
+                        [_text_content(cell) for cell in _direct_elements(row, {"th", "td"})]
+                        for row in rows[:2]
+                    ]
+                    if (len(captions) == 1
+                            and _text_content(captions[0]) == "Résultats définitifs validés par la Haute Autorité"
+                            and headers == [["Candidat", "Parti", "Premier tour"], ["Voix", "%"]]):
+                        results_count += 1
+                continue
+            visit(child)
+
+    visit(root)
+    return (section_count, subsection_count, results_count) == (1, 1, 1)
+
+
 def extract_candidates(
     parsed_html: str,
     *,
@@ -755,6 +800,11 @@ def extract_candidates(
         source_page_title,
     )
     missing_sections = sorted(set(section_rules) - state.found_sections)
+    primary_section = "Candidats déclarés dans le cadre d'une primaire"
+    if (source_page_title == PAGE_TITLE and section_rules is SECTION_RULES
+            and primary_section in missing_sections
+            and _has_completed_socialist_primary(parser.root)):
+        missing_sections.remove(primary_section)
     if missing_sections:
         _fail(f"required semantic sections are missing: {missing_sections}")
     if not state.candidates:

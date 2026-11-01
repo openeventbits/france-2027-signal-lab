@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import gzip
+import hashlib
 import io
 import json
 import os
@@ -1336,6 +1338,140 @@ class PinnedCandidateUniverseRegressionTests(unittest.TestCase):
         self.assertIsNone(details[-1][0]['replacement_candidate_id'])
         self.assertEqual(sum(row['upstream_presence'] == 'temporarily_missing'
                              for row in current.values()), 3)
+
+
+class CompletedPrimaryLayoutRegressionTests(unittest.TestCase):
+    """Exact API evidence from the 1 November live-collection incident."""
+    BASELINE = "c35ba9886943f6e143c89f20450442e58c36332b"
+    AS_OF = "2026-11-01T16:33:01Z"
+    FIXTURE_SHA256 = "c26b4afb2d746fc256523335dc060046be3d48dbad0bed38c52ce317ad74470e"
+
+    @classmethod
+    def setUpClass(cls):
+        raw = (TEST_ROOT / "test_fixtures/candidate_universe/wikipedia_240912833.json.gz").read_bytes()
+        if hashlib.sha256(raw).hexdigest() != cls.FIXTURE_SHA256:
+            raise ValueError("completed-primary API evidence changed")
+        evidence = json.loads(gzip.decompress(raw))
+        if evidence["baseline_commit"] != cls.BASELINE:
+            raise ValueError("completed-primary baseline commit changed")
+        cls.baseline_files = evidence["baseline_files"]
+        for name, content in cls.baseline_files.items():
+            encoded = content.encode("utf-8")
+            blob = b"blob " + str(len(encoded)).encode() + b"\0" + encoded
+            if hashlib.sha1(blob).hexdigest() != evidence["baseline_git_blobs"][name]:
+                raise ValueError("completed-primary baseline Git evidence changed: " + name)
+        published = json.loads(cls.baseline_files["publication_manifest.json"])
+        if hashlib.sha256(cls.baseline_source("candidate_candidacy_status.json")).hexdigest() != published["lanes"]["candidacy_status"]["sha256"]:
+            raise ValueError("completed-primary baseline differs from publication manifest")
+        cls.responses = evidence["requests"]
+        cls.html = collector.fetch_parsed_revision(240912833, cls.replay)
+        cls.previous_bytes = cls.baseline_source("candidate_candidacy_status.json")
+        cls.previous = json.loads(cls.previous_bytes)
+
+    @classmethod
+    def baseline_source(cls, name):
+        return cls.baseline_files[name].encode("utf-8")
+
+    @classmethod
+    def replay(cls, params):
+        matches = [row for row in cls.responses if row["params"] == params]
+        if len(matches) != 1:
+            raise AssertionError("unexpected MediaWiki request: " + repr(params))
+        return copy.deepcopy(matches[0]["response"])
+
+    def assert_missing(self, html):
+        with self.assertRaisesRegex(collector.CandidateCandidacyFetchError,
+                                   "required semantic sections are missing"):
+            collector.extract_candidates(html)
+
+    def test_exact_failed_revision_excludes_primary_results_and_totals(self):
+        rows = collector.extract_candidates(self.html)
+        self.assertEqual(len(rows), 71)
+        self.assertEqual({section: sum(r.section_title == section for r in rows)
+                          for section in collector.SECTION_RULES if any(r.section_title == section for r in rows)},
+                         {"Candidats déclarés": 30, "Candidats pressentis": 12,
+                          "Candidatures retirées": 3, "Candidats pressentis ayant décliné": 26})
+        self.assertTrue({r.candidate_name for r in rows} <= {r["candidate_name"] for r in self.previous["candidates"]})
+        self.assertNotIn("Olivier Faure", {r.candidate_name for r in rows})
+
+    def test_complete_pinned_replay_preserves_identity_and_lifecycle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sources = Path(directory) / "sources.json"
+            sources.write_bytes(self.baseline_source("candidate_candidacy_sources.json"))
+            result = collector.fetch_candidate_candidacy_status(
+                self.replay, previous_registry=self.previous,
+                curated_sources=collector.load_curated_candidacy_sources(sources), as_of=self.AS_OF)
+        validate_candidate_candidacy_status(result.payload)
+        self.assertEqual(result.revision.revision_id, 240912833)
+        self.assertEqual(result.revision.revision_timestamp, "2026-11-01T12:13:58Z")
+        self.assertEqual(result.raw_candidate_count, 75)
+        self.assertEqual(len(result.payload["candidates"]), 77)
+        self.assertEqual(result.new_candidate_ids, ())
+        old = {row["candidate_id"]: row for row in self.previous["candidates"]}
+        new = {row["candidate_id"]: row for row in result.payload["candidates"]}
+        self.assertEqual(old.keys(), new.keys())
+        for identifier in ("raphael-glucksmann", "olivier-faure", "segolene-royal", "emmanuel-maurel", "jerome-guedj"):
+            for key in ("status", "status_as_of", "source_date", "source_url"):
+                self.assertEqual(new[identifier][key], old[identifier][key], (identifier, key))
+        self.assertEqual({new[i]["status"] for i in ("gabriel-attal", "bruno-retailleau")}, {"declared"})
+
+    def test_other_required_categories_remain_required(self):
+        primary = "Candidats déclarés dans le cadre d'une primaire"
+        for title in collector.SECTION_RULES.keys() - {primary}:
+            with self.subTest(title=title):
+                changed = self.html.replace(title + "</h2>", "Unrecognized category</h2>")
+                self.assertNotEqual(changed, self.html)
+                self.assert_missing(changed)
+
+    def test_unknown_or_absent_primary_replacement_fails_closed(self):
+        for title in ("Other results", "Élections primaires", ""):
+            with self.subTest(title=title):
+                changed = self.html.replace("Élection primaire</h2>", title + "</h2>")
+                self.assertNotEqual(changed, self.html)
+                self.assert_missing(changed)
+
+    def test_results_require_exact_caption_headers_and_subsection(self):
+        replacements = (("Résultats définitifs validés par la Haute Autorité", "Results"),
+                        ("Primaire socialiste</h3>", "Other primary</h3>"),
+                        ("Voix\n</th>", "Count\n</th>"))
+        for old, new in replacements:
+            with self.subTest(old=old):
+                changed = self.html.replace(old, new)
+                self.assertNotEqual(changed, self.html)
+                self.assert_missing(changed)
+
+    def test_unrelated_and_duplicate_results_do_not_satisfy_category(self):
+        caption = self.html.index("<caption>Résultats définitifs")
+        start = self.html.rfind("<table", 0, caption)
+        end = self.html.index("</table>", caption) + len("</table>")
+        table = self.html[start:end]
+        for changed in (self.html[:start] + "<h2>Unrelated</h2>" + self.html[start:],
+                        self.html.replace(table, table + table),
+                        self.html + "<h2>Élection primaire</h2>"):
+            self.assert_missing(changed)
+
+    def test_unknown_layout_cannot_replace_last_good_output(self):
+        fetch = collector.fetch_candidate_candidacy_status
+        def changed(params):
+            response = self.replay(params)
+            if params.get("oldid") == "240912833":
+                response["parse"]["text"] = response["parse"]["text"].replace(
+                    "Élection primaire</h2>", "Unrecognized</h2>")
+            return response
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            previous, sources, output = (root / name for name in ("previous.json", "sources.json", "output.json"))
+            previous.write_bytes(self.previous_bytes)
+            sources.write_bytes(self.baseline_source("candidate_candidacy_sources.json"))
+            output.write_bytes(self.previous_bytes)
+            before = {p.name: p.read_bytes() for p in root.iterdir()}
+            with mock.patch.object(collector, "fetch_candidate_candidacy_status",
+                                   side_effect=lambda **kwargs: fetch(changed, **kwargs)):
+                with self.assertRaisesRegex(collector.CandidateCandidacyFetchError,
+                                           "required semantic sections are missing"):
+                    collector.main(["--previous", str(previous), "--sources", str(sources),
+                                    "--output", str(output), "--as-of", self.AS_OF])
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, before)
 
 
 class SerializationAndWriteTests(unittest.TestCase):

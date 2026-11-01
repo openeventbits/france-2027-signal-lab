@@ -427,8 +427,11 @@ class ProviderRosterTests(unittest.TestCase):
     def test_missing_historical_evidence_fails_closed(self):
         fixtures = self.root / "fixtures"
         shutil.copytree(FIXTURES, fixtures)
-        for path in fixtures.iterdir():
-            with self.subTest(name=path.name):
+        index_name = "historical_publication_68ad12f.json"
+        required = (index_name, *json.loads((fixtures / index_name).read_bytes())["archives"])
+        for name in required:
+            path = fixtures / name
+            with self.subTest(name=name):
                 original = path.read_bytes()
                 path.unlink()
                 with self.assertRaises(FileNotFoundError):
