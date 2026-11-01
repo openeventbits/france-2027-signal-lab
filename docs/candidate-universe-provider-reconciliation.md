@@ -171,3 +171,49 @@ bytes, and missing containers or Attention members. The production-refresh
 regression forbids any current JSON copy during a complete direct replay and
 checks retained Attention, news, claims, recent changes and polling configuration
 bytes after successful reconciliation.
+
+
+## Completed-primary source layout (1 November, run 41326120055)
+
+[Run 41326120055](https://github.com/openeventbits/france-2027-signal-lab/actions/runs/41326120055)
+ran on `c35ba9886943f6e143c89f20450442e58c36332b` and passed all 618 production
+preflight tests. Live collection then failed on Wikipedia revision **240912833**,
+dated **2026-11-01T12:13:58Z**, because the required primary-contender heading was
+absent. The publication stopped before registry promotion, commit or push.
+
+The source replaced the contender section with an **Élection primaire** section, a **Primaire socialiste**
+subsection and a table captioned **Résultats définitifs validés par la Haute
+Autorité**. This is a completed-primary results
+table, with candidate/party/first-round headers followed by votes/percentage
+headers, and includes turnout and totals. Treating it as another candidate table
+would parse historical results or summary rows as current candidacy evidence.
+
+The collector now recognizes only that exact section/subsection/caption/header
+layout as a replacement for the absent primary-contender category. It does not
+extract any results-table row, infer a candidate status from votes, or make
+other candidate categories optional. Missing, renamed, unscoped, incomplete or
+duplicate replacement layouts remain rejected. Supplemental-source extraction,
+identity reconciliation and curated first-party lifecycle evidence are unchanged.
+
+`wikipedia_240912833.json.gz` retains six actual MediaWiki responses: metadata
+and exact-oldid HTML for both configured pages, plus linked-article resolution.
+Metadata requests were bounded to the failed collection cutoff,
+**2026-11-01T16:33:01Z**; each record retains both collector parameters and actual
+bounded request parameters. The archive has sorted JSON keys and gzip `mtime=0`,
+and SHA-256
+`c26b4afb2d746fc256523335dc060046be3d48dbad0bed38c52ce317ad74470e`.
+The archive also retains the registry, curated sources and original publication
+manifest from the immutable run commit above, with their Git blob IDs. The test
+verifies these IDs and registry-to-manifest hash parity. Its baseline requires no
+Git history or subsequently refreshed production inputs, so the exact-source
+regression also runs in the PR workflow's shallow checkout.
+
+The main page yields 71 candidacy records; supplemental reconciliation yields
+75 extracted records and preserves all 77 registry identities, with no additions.
+Existing party-selected and primary-eliminated lifecycle statuses remain intact.
+Attal and Retailleau are now in the declared section of this exact upstream
+revision; their source-derived status follows that section. Tests cover the
+full pinned replay, results exclusion, every other required category, unknown
+headings, malformed results markers, misplaced or duplicate results, and unchanged
+last-good output when collection fails. Production datasets and workflows are
+not changed by this repair.
