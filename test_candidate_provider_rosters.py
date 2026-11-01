@@ -1,6 +1,7 @@
 """Offline roster transitions using retained Wikipedia and published evidence."""
 import copy
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -23,23 +24,82 @@ ROOT = Path(__file__).resolve().parent
 FIXTURES = ROOT / "test_fixtures/candidate_universe"
 
 
-def load(name):
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+BASELINE_COMMIT = "68ad12fa4afb9411bf44f25cd560d9cb8fc58549"
+EVIDENCE_INDEX_SHA256 = "d69729c0780b4ade8277e62349d645093b15ff7ba10256001579ca87b47e093b"
 
 
-def source_transition():
+def historical_publication(fixtures=FIXTURES):
+    """Authenticate retained Git bytes before any historical replay can use them."""
+    index_bytes = (fixtures / "historical_publication_68ad12f.json").read_bytes()
+    if hashlib.sha256(index_bytes.replace(b"\r\n", b"\n")).hexdigest() != EVIDENCE_INDEX_SHA256:
+        raise ValueError("historical evidence inventory changed")
+    index = json.loads(index_bytes)
+    if index["commit"] != BASELINE_COMMIT:
+        raise ValueError("historical baseline commit changed")
+    archives = {}
+    for name, digest in index["archives"].items():
+        content = (fixtures / name).read_bytes()
+        if name.endswith(".json"):
+            content = content.replace(b"\r\n", b"\n")
+        if hashlib.sha256(content).hexdigest() != digest:
+            raise ValueError("historical evidence changed: " + name)
+        archives[name] = content
+    bundle = {}
+    for name in ("provider_evidence_68ad12f.json.gz", "publication_inputs_68ad12f.json.gz"):
+        entries = json.loads(gzip.decompress(archives[name]))
+        if bundle.keys() & entries.keys():
+            raise ValueError("duplicate historical publication input")
+        bundle.update(entries)
+    if bundle.keys() != index["files"].keys():
+        raise ValueError("historical publication inputs missing or unexpected")
+    for name, record in index["files"].items():
+        content = bundle[name].encode("utf-8")
+        blob = b"blob " + str(len(content)).encode() + b"\0" + content
+        if (hashlib.sha256(content).hexdigest() != record["sha256"]
+                or len(content) != record["byte_size"]
+                or hashlib.sha1(blob).hexdigest() != record["git_blob"]):
+            raise ValueError("historical Git evidence changed: " + name)
+    import build_publication_manifest as manifest
+    published = json.loads(bundle["publication_manifest.json"])
+    manifest.validate_manifest(published)
+    required = {name for values in manifest.LANE_FILES.values() for name in values}
+    if not required <= bundle.keys():
+        raise ValueError("required historical manifest input missing")
+    for lane in published["lanes"].values():
+        for record in (lane, *lane.get("related_files", [])):
+            if (not record["available"] or not lane["valid"]
+                    or hashlib.sha256(bundle[record["file"]].encode()).hexdigest() != record["sha256"]):
+                raise ValueError("historical manifest evidence differs: " + record["file"])
+    if archives["previous_registry_240468913.json"] != bundle["candidate_candidacy_status.json"].encode():
+        raise ValueError("historical previous registry differs")
+    return bundle
+
+
+def install_historical_publication(root, bundle):
+    for name, content in bundle.items():
+        (root / name).write_text(content, encoding="utf-8", newline="\n")
+
+
+def copy_current_python(root):
+    # Run current validators/builders beside historical data, including the
+    # module-relative polling scope and study-binding dependencies.
+    for source in ROOT.glob("*.py"):
+        shutil.copyfile(source, root / source.name)
+
+
+def source_transition(bundle=None):
+    bundle = historical_publication() if bundle is None else bundle
     responses = json.loads(gzip.decompress((FIXTURES / "wikipedia_240829045.json.gz").read_bytes()))
 
     def replay(params):
         match = next(row for row in responses if row["params"] == params)
         return copy.deepcopy(match["response"])
 
-    bundle = json.loads(gzip.decompress((FIXTURES / "provider_evidence_68ad12f.json.gz").read_bytes()))
     with tempfile.TemporaryDirectory() as directory:
         sources = Path(directory) / "candidate_candidacy_sources.json"
         sources.write_text(bundle["candidate_candidacy_sources.json"], encoding="utf-8")
         return fetch.fetch_candidate_candidacy_status(
-            replay, previous_registry=load("previous_registry_240468913.json"),
+            replay, previous_registry=json.loads(bundle["candidate_candidacy_status.json"]),
             curated_sources=load_curated_candidacy_sources(sources), as_of="2026-10-30T10:49:08Z",
         ).payload
 
@@ -47,17 +107,15 @@ def source_transition():
 class ProviderRosterTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.registry = source_transition()
-        cls.previous = load("previous_registry_240468913.json")
-        cls.bundle = json.loads(gzip.decompress(
-            (FIXTURES / "provider_evidence_68ad12f.json.gz").read_bytes()))
+        cls.bundle = historical_publication()
+        cls.registry = source_transition(cls.bundle)
+        cls.previous = json.loads(cls.bundle["candidate_candidacy_status.json"])
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        for name, content in self.bundle.items():
-            (self.root / name).write_text(content, encoding="utf-8", newline="\n")
+        install_historical_publication(self.root, self.bundle)
         self.previous_path = self.root / "previous.json"
         self.expected_path = self.root / "expected.json"
         self.previous_path.write_text(self.bundle["candidate_candidacy_status.json"], encoding="utf-8", newline="\n")
@@ -276,18 +334,24 @@ class ProviderRosterTests(unittest.TestCase):
         self.assertEqual(outputs[0], outputs[1])
         self.assertEqual(outputs[1], outputs[2])
 
+    def build_manifest(self):
+        import build_publication_manifest as manifest
+        result = subprocess.run([sys.executable, "-B", "-c",
+            "import json; from pathlib import Path; "
+            "from build_publication_manifest import build_manifest; "
+            "print(json.dumps(build_manifest(Path.cwd(), published_at='2026-10-31T12:00:00Z')))"],
+            cwd=self.root, capture_output=True, text=True)
+        if result.returncode:
+            raise manifest.ManifestError(result.stderr)
+        return json.loads(result.stdout)
+
     def test_manifest_reproduces_failure_then_complete_update_passes(self):
         import build_publication_manifest as manifest
-        # Only the input files of the existing manifest and derived builders.
-        names = {name for values in manifest.LANE_FILES.values() for name in values}
-        names.update(("campaign_event_institutional_seeds.json", "campaign_event_sources.json",
-                      "campaign_events_manual.json", "campaign_event_updates_manual.json"))
-        for name in names:
-            if not (self.root / name).exists():
-                shutil.copyfile(ROOT / name, self.root / name)
+        names = set(self.bundle)
+        copy_current_python(self.root)
         for script in ("build_campaign_events.py", "build_candidate_signals.py",
                        "build_candidate_visibility_history.py", "build_candidate_agenda_history.py"):
-            args = [sys.executable, "-B", str(ROOT / script)]
+            args = [sys.executable, "-B", str(self.root / script)]
             if script == "build_campaign_events.py":
                 args += ["--generated-at", "2026-10-31T12:00:00Z", "--preserve-generated-at-from", "campaign_events.json",
                          "--seeds", str(self.root / "campaign_event_institutional_seeds.json"),
@@ -296,16 +360,18 @@ class ProviderRosterTests(unittest.TestCase):
                          "--manual-events", str(self.root / "campaign_events_manual.json"),
                          "--event-updates", str(self.root / "campaign_event_updates_manual.json"),
                          "--output", str(self.root / "campaign_events.json")]
+            elif script == "build_candidate_agenda_history.py":
+                args += ["--previous", "candidate_agenda_history.json"]
             result = subprocess.run(args, cwd=self.root, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
         with self.assertRaisesRegex(manifest.ManifestError,
                                     "candidate_bluesky invalid publication: candidate universe differs"):
-            manifest.build_manifest(self.root)
+            self.build_manifest()
         preserved = {name: (self.root / name).read_bytes() for name in names
                      if name not in repair.OUTPUTS}
         files_before = set(self.root.iterdir())
         self.run_repair()
-        result = manifest.build_manifest(self.root, published_at="2026-10-31T12:00:00Z")
+        result = self.build_manifest()
         manifest.validate_manifest(result)
         baseline_manifest = json.loads(self.bundle["publication_manifest.json"])
         self.assertEqual(result["lanes"]["polls"], baseline_manifest["lanes"]["polls"])
@@ -316,6 +382,75 @@ class ProviderRosterTests(unittest.TestCase):
         for name, content in preserved.items():
             self.assertEqual((self.root / name).read_bytes(), content, name)
         self.assertEqual({len(self.read(name)["candidates"]) for name in repair.OUTPUTS}, {77})
+
+    def test_historical_replay_ignores_refreshed_production_artifacts(self):
+        # A production refresh may change every publication lane independently.
+        # Only current executable code may cross into the historical replay.
+        original_copy = shutil.copyfile
+
+        def code_only(source, target, *args, **kwargs):
+            self.assertEqual(Path(source).suffix, ".py", str(source))
+            return original_copy(source, target, *args, **kwargs)
+
+        with patch.object(shutil, "copyfile", side_effect=code_only):
+            self.test_manifest_reproduces_failure_then_complete_update_passes()
+        for name in ("candidate_attention.json", "news_wire.json", "claims_under_scrutiny.json",
+                     "recent_changes.json", "poll_election_scope.json", "poll_study_bindings.json"):
+            self.assertEqual((self.root / name).read_bytes(), self.bundle[name].encode(), name)
+
+    def test_inconsistent_historical_attention_still_rejected(self):
+        import build_publication_manifest as manifest
+        copy_current_python(self.root)
+        self.write("candidate_candidacy_status.json", self.previous)
+        manifest.validate_manifest(self.build_manifest())
+        attention = self.read("candidate_attention.json")
+        attention["candidate_universe"]["status_as_of"] = "2026-10-31"
+        self.write("candidate_attention.json", attention)
+        with self.assertRaisesRegex(manifest.ManifestError,
+                "candidate_attention candidacy parity failed: candidate universe is newer"):
+            self.build_manifest()
+
+    def test_tampered_historical_evidence_fails_authentication(self):
+        fixtures = self.root / "fixtures"
+        shutil.copytree(FIXTURES, fixtures)
+        for name in ("historical_publication_68ad12f.json",
+                     "provider_evidence_68ad12f.json.gz", "publication_inputs_68ad12f.json.gz",
+                     "wikipedia_240829045.json.gz", "previous_registry_240468913.json"):
+            with self.subTest(name=name):
+                path = fixtures / name
+                original = path.read_bytes()
+                path.write_bytes(original + b" ")
+                with self.assertRaisesRegex(ValueError, "historical evidence.*changed"):
+                    historical_publication(fixtures)
+                path.write_bytes(original)
+
+    def test_missing_historical_evidence_fails_closed(self):
+        fixtures = self.root / "fixtures"
+        shutil.copytree(FIXTURES, fixtures)
+        for path in fixtures.iterdir():
+            with self.subTest(name=path.name):
+                original = path.read_bytes()
+                path.unlink()
+                with self.assertRaises(FileNotFoundError):
+                    historical_publication(fixtures)
+                path.write_bytes(original)
+
+    def test_missing_or_changed_retained_member_fails_closed(self):
+        decompress = gzip.decompress
+        for missing in (False, True):
+            with self.subTest(missing=missing):
+                def changed(content):
+                    entries = json.loads(decompress(content))
+                    if "candidate_attention.json" in entries:
+                        if missing:
+                            del entries["candidate_attention.json"]
+                        else:
+                            entries["candidate_attention.json"] += " "
+                    return json.dumps(entries).encode()
+                with patch.object(gzip, "decompress", side_effect=changed):
+                    with self.assertRaisesRegex(ValueError,
+                            "historical publication inputs missing|historical Git evidence changed"):
+                        historical_publication()
 
     def test_workflow_reconciles_and_validates_before_commit_and_push(self):
         workflow = (ROOT / ".github/workflows/update-candidate-universe.yml").read_text(encoding="utf-8")
@@ -340,13 +475,14 @@ class ProviderRosterTests(unittest.TestCase):
         names = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
         for name in filter(None, names):
             source, target = ROOT / name, checkout / name
-            if source.is_file():
+            # Current code/templates are exercised, but root publication data
+            # must come exclusively from the authenticated retained baseline.
+            if source.is_file() and not (source.parent == ROOT and source.suffix == ".json"):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, target)
         shutil.copyfile(ROOT / "reconcile_candidate_provider_rosters.py",
                         checkout / "reconcile_candidate_provider_rosters.py")
-        for name, content in self.bundle.items():
-            (checkout / name).write_text(content, encoding="utf-8", newline="\n")
+        install_historical_publication(checkout, self.bundle)
         if fail:
             history = json.loads(self.bundle["candidate_polymarket_history.json"])
             history["candidates"].pop()
