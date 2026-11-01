@@ -95,3 +95,79 @@ also run against local bare Git remotes: an independent main advance must rebase
 regenerate and push a coherent bundle; invalid retained evidence must produce no
 commit or push. Both PR validation and the Candidate Universe preflight run these
 regressions. No test contacts Wikipedia, Bluesky, YouTube, Polymarket or GitHub.
+
+## Historical replay isolation repair (1 November 2026)
+
+[Run 41300496226](https://github.com/openeventbits/france-2027-signal-lab/actions/runs/41300496226)
+failed two of 613 preflight tests before collection. Both failures reproduce on
+`54404202ecf799e5b8fc73e4e4d3f1e34fc6efc3`. The test setup combined a partial
+historical provider bundle with current publication data:
+
+| Boundary | Previously retained | Previously read from the current checkout |
+| --- | --- | --- |
+| Source transition | Previous registry, curated sources, exact Wikipedia responses | None |
+| Direct manifest replay | Registry, original manifest, three provider snapshots, three histories, three mappings | Missing manifest lane files and Campaign Events inputs; module-relative polling and news configuration |
+| Disposable Git workflow | The same partial bundle overlaid onto a current checkout | All other tracked publication data, including Candidate Attention |
+
+The original manifest records Attention SHA-256
+`f3ecf8b2759377f44021aba7953deeb848d49aac81979ca39dc69392ef8b4414`.
+Its candidate universe references revision **240468913**, timestamp
+**2026-10-17T21:42:44Z**, and `status_as_of=2026-10-17`. At audited main, current
+Attention instead hashes to
+`1643010e69f9321e02a7cc36f0f5ef842757ad11eb83a8dfff8f0d6e7424fe23`, references
+revision **240866042**, timestamp **2026-10-30T19:57:12Z**, and has
+`status_as_of=2026-10-30`. The historical target is **240829045**; the production
+Attention input is newer than that registry. Manifest parity correctly rejects
+this mixture before reaching the intended Bluesky roster error.
+
+The audit also found changed candidate agenda/visibility histories, signals,
+news, claims, recent changes, source health, runoff and Commission registry
+artifacts. Keeping only Attention historical would leave these moving inputs in
+the replay. Poll scope and study bindings also load relative to Python modules,
+and the news validator imports three configuration files relative to its module.
+
+`publication_inputs_68ad12f.json.gz` now supplements the unchanged original bundle
+with these exact Git blobs from **68ad12fa4afb9411bf44f25cd560d9cb8fc58549**:
+
+- All remaining manifest inputs: Attention, Campaign Events, Candidate Signals,
+  Candidate Agenda History, Candidate Visibility History, news, claims, polls,
+  Commission registry, second-round polls, closest tested runoff, recent changes
+  and source health.
+- Campaign Events dependencies: institutional seeds, source registry, manual
+  events and manual updates; campaign occurrences used by the Recent Changes validator.
+- Module-relative dependencies: election scope, study bindings, news sources,
+  discovery queries and publisher policy.
+- Semantic navigation dependencies: route registry, issue/agenda/poll page
+  manifests and poll explorer.
+
+That is the existing baseline commit (committed 31 October), retaining the
+original Attention publication generated on **30 October**. No source was
+replaced with a newer publication or a synthetic observation. The archive uses
+sorted JSON keys and gzip `mtime=0`; each value preserves its original UTF-8 Git
+blob bytes exactly.
+
+`historical_publication_68ad12f.json` records the baseline commit and every
+retained file's Git blob ID, SHA-256 and byte length, plus digests for both
+archives and the original Wikipedia/previous-registry fixtures. The test pins the
+inventory digest, authenticates all containers and members, validates the original
+manifest, then compares every published lane and related-file digest with the
+retained source. Auxiliary configuration without a manifest record is bound to
+its Git blob and SHA-256. Tracked JSON fixture CRLF is normalized; archive bytes
+and decoded Git source bytes remain exact. Missing, changed or inconsistent
+required evidence fails before replay, without falling back to production.
+
+Both replay paths install the same authenticated complete publication. Direct
+builders and manifest validation execute current Python copied beside historical
+data, so their module-relative reads cannot escape into current production.
+The disposable checkout copies current code/templates and excludes root JSON
+publication data before installing the baseline. Future missing dependencies
+therefore fail closed. The current workflow itself is unchanged.
+
+Regression coverage retains the exact 76-to-77 transition, original Bluesky
+failure, successful six-artifact reconciliation, unchanged observations/clocks,
+invalid-provider no-commit/no-push behavior and real post-rebase ancestry. Added
+cases reject inconsistent historical Attention, altered archives/inventory/member
+bytes, and missing containers or Attention members. The production-refresh
+regression forbids any current JSON copy during a complete direct replay and
+checks retained Attention, news, claims, recent changes and polling configuration
+bytes after successful reconciliation.
