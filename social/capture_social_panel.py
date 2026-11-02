@@ -262,7 +262,7 @@ def _capture_when_stable(page, selector: str, output: Path, timeout_ms: int) -> 
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Capture an FR27 panel for X")
+    parser = argparse.ArgumentParser(description="Capture an FR27 dashboard panel for manual research")
     parser.add_argument("--kind", choices=tuple(CAPTURES), required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--metrics-output", default="")
