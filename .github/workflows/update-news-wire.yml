@@ -42,7 +42,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install Python dependencies
-        run: python -m pip install --disable-pip-version-check lxml
+        run: python -m pip install --disable-pip-version-check pandas lxml pypdf
 
       - name: Run news pipeline tests
         env:
