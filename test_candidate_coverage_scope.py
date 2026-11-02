@@ -190,7 +190,7 @@ class CandidateVisibilityMetricTests(unittest.TestCase):
     generated_at = datetime(
         2026,
         7,
-        26,
+        27,
         20,
         35,
         tzinfo=timezone.utc,

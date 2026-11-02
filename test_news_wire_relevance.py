@@ -3888,7 +3888,8 @@ class NewsWireRelevanceTests(unittest.TestCase):
         self.assertEqual(len(payload["relevant_news"]), 1)
 
 class CandidateVisibilityComparisonTests(unittest.TestCase):
-    generated_at = datetime(2026, 7, 26, 20, 35, tzinfo=timezone.utc)
+    # July 26 is now complete at the following UTC refresh.
+    generated_at = datetime(2026, 7, 27, 20, 35, tzinfo=timezone.utc)
 
     @staticmethod
     def records(

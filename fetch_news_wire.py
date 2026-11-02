@@ -6177,7 +6177,9 @@ def build_candidate_visibility(
 ) -> dict[str, Any]:
     """Build race visibility and general political visibility separately."""
 
-    anchor = generated_at.astimezone(timezone.utc).date()
+    # The UTC generation day is incomplete even at a late refresh. Keep
+    # empty complete days: absence of records is not a reason to shift time.
+    anchor = generated_at.astimezone(timezone.utc).date() - timedelta(days=1)
     current_start = anchor - timedelta(days=6)
     prior_end = current_start - timedelta(days=1)
     prior_start = prior_end - timedelta(days=6)
@@ -6855,8 +6857,16 @@ def validate_candidate_visibility(
         parsed_periods["general_prior_period"]
     )
 
-    expected_current_end = (
-        generated_at.astimezone(timezone.utc).date()
+    generation_day = generated_at.astimezone(timezone.utc).date()
+    # Authenticated retained publications predate the November 2 contract
+    # change. Read their original periods without rewriting their evidence;
+    # new publications must exclude the incomplete generation day.
+    legacy_partial_periods = (
+        generation_day < datetime(2026, 11, 2).date()
+        and current_end == generation_day
+    )
+    expected_current_end = generation_day - timedelta(
+        days=0 if legacy_partial_periods else 1
     )
 
     if (
@@ -7014,7 +7024,7 @@ def validate_candidate_visibility(
 
     expected_visibility = build_candidate_visibility(
         candidate_watch,
-        generated_at,
+        generated_at + timedelta(days=1) if legacy_partial_periods else generated_at,
     )
 
     for period_name in period_names:
@@ -9892,9 +9902,14 @@ def build_wire(
         window_days,
     )
 
+    # Correct verified discovery-date errors before any public lane, metric,
+    # or policy projection. Preserve raw inventory observations verbatim.
+    from news_publication_corrections import reviewed_publication_entry
+    public_entries = [reviewed_publication_entry(entry) for entry in inventory_entries]
     deduplicated = {
         inventory_identity(entry): entry
-        for entry in inventory_entries
+        for entry in public_entries
+        if entry["published_at"] >= window_start
     }
 
     election_news: list[dict[str, Any]] = []

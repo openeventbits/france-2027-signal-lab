@@ -676,7 +676,7 @@ class FrontendPublicationFactsTests(unittest.TestCase):
         self.assertIn("LATEST FIELDWORK", self.index)
         self.assertIn("VS PREV. POLL", self.index)
         self.assertIn(
-            "Difference from the candidate's nearest earlier first-round poll observation. Context changes are flagged in the comparison tooltip.",
+            "Difference from the candidate's nearest earlier first-round poll observation. Comparison context is shown beside each difference; source details are available in the tooltip.",
             self.index,
         )
         self.assertNotIn("VS PRIOR MATCH", self.index)

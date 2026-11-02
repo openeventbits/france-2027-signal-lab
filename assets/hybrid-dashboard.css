@@ -1,3 +1,54 @@
+/* Audit evidence context stays adjacent to the reported observations. */
+.race-glance .race-change .race-comparison-context {
+  display: block;
+  margin-top: 3px;
+  color: #aac2d2;
+  font: 10px/1.25 var(--fr27-type-sans, sans-serif);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.race-glance .race-change {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 2px !important;
+  min-width: 0;
+}
+.race-glance .race-change strong {
+  width: auto !important;
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+.race-glance .race-change.is-contextual strong {
+  color: #bfd3df;
+}
+.runoff-window-context {
+  display: block;
+  margin: 6px 0 9px;
+  color: #bed5e3;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.media-bases-disclosure { flex: 0 0 auto; margin: 4px 0; }
+.media-bases-toggle { padding: 2px 0; border: 0; background: transparent; color: #aacbde; cursor: pointer; font-size: 10px; line-height: 1.4; text-align: left; }
+.media-bases-toggle::before { content: "▸ "; }
+.media-bases-content {
+  box-sizing: border-box; padding: 12px; width: 480px;
+  max-width: calc(100vw - 32px); max-height: 70vh; overflow-y: auto;
+  min-height: 0;
+  border: 1px solid #27617d; background: #061725; color: #c8dce8;
+  font-size: 11px; line-height: 1.4;
+}
+.media-bases-content p { margin: 0 0 6px; }
+.media-bases-content table { width: 100%; border-collapse: collapse; }
+.media-bases-content th, .media-bases-content td { padding: 3px; text-align: left; }
+.media-bases-content td { white-space: nowrap; }
+.media-topic-unit { display: block; margin-top: 2px; color: #a8c2d4; font-size: 9px; line-height: 1.2; }
+
 .hybrid-root {
   --hybrid-violet: #9d8cff;
   --hybrid-amber: #ffbf4b;
@@ -14856,4 +14907,23 @@ overflow-x: hidden !important;
     line-height: 12px !important;
     letter-spacing: 0 !important;
   }
+}
+
+/* Keep the qualification in the existing comparison footer without clipping scores. */
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout {
+  flex: 0 0 auto !important;
+  flex-direction: column;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  gap: 0 !important;
+  padding: 2px 6px !important;
+}
+.hybrid-panel#signal-runoff-panel .hybrid-runoff-closest-callout .runoff-window-context {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
 }
