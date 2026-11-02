@@ -1372,7 +1372,8 @@ class FinalDashboardShellTests(unittest.TestCase):
                     }
                 )
         return {
-            "generated_at": "2026-07-26T20:35:00Z",
+            # July 26 is complete at the following UTC refresh.
+            "generated_at": "2026-07-27T20:35:00Z",
             "window_days": 30,
             "counts": {"election_news": 0},
             "election_news": [],

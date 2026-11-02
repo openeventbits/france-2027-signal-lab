@@ -6,6 +6,15 @@
     (global.FR27_LOCALES = Object.create(null));
 
   const messages = Object.freeze({
+    "media_pulse.complete_utc_bases": "Périodes complètes de sept jours UTC · articles et bases",
+    "race_glance.no_prior_short": "Sans précédent",
+    "race_glance.ambiguous_prior_short": "Précédent ambigu",
+    "race_glance.visible_direct": "Même institut et offre",
+    "race_glance.visible_field_changed": "Brut · offre modifiée",
+    "race_glance.visible_pollster_changed": "Brut · autre institut : {pollster}",
+    "race_glance.visible_pollster_and_field_changed": "Brut · institut et offre modifiés : {pollster}",
+    "runoff_workspace.qualifying_window": "Dernière comparaison admissible sur une même fenêtre de terrain ; ce n’est pas le dernier sondage de second tour.",
+    "media_pulse.complete_utc_periods": "Deux périodes complètes de sept jours UTC. Effectifs : actuels / précédents ; chaque base comprend les articles de campagne liés au champ actif. Les mentions peuvent se recouper.",
     "navigation.poll_detail": "Voir le sondage →",
     "navigation.families": "Dossiers FR27",
     "navigation.hub_candidates": "Candidats →",
@@ -753,7 +762,7 @@
     "dashboard.choose_a_reported_first_round_poll_scenario": "Choisir un scénario publié de premier tour",
     "dashboard.vs_prior_match": "ÉCART PRÉC.",
     "dashboard.vs_previous_poll": "ÉCART PRÉC.",
-    "dashboard.vs_previous_poll_explanation": "Écart avec l’observation de premier tour immédiatement antérieure pour ce candidat. Les changements de contexte sont signalés dans l’infobulle.",
+    "dashboard.vs_previous_poll_explanation": "Écart avec l’observation de premier tour immédiatement antérieure pour ce candidat. Le contexte figure à côté de chaque écart ; les détails des sources restent accessibles dans l’infobulle.",
     "dashboard.vs_prior_match_explanation": "Sondage antérieur le plus proche du même institut portant sur le même ensemble de candidats.",
     "dashboard.polling_unavailable": "Sondages indisponibles",
     "dashboard.latest_first_round_events_could_not_be_loaded": "Les derniers sondages de premier tour n’ont pas pu être chargés.",

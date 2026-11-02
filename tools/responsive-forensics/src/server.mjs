@@ -20,7 +20,8 @@ export async function startStaticServer(root = repoRoot) {
   const absoluteRoot = path.resolve(root);
   const server = http.createServer((request, response) => {
     const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-    const requested = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+    // Match the published site's directory entrypoints, including /en/.
+    const requested = (pathname.endsWith("/") ? pathname + "index.html" : pathname).replace(/^\/+/, "");
     const filePath = path.resolve(absoluteRoot, requested);
     if (filePath !== absoluteRoot && !filePath.startsWith(absoluteRoot + path.sep)) {
       response.writeHead(403).end("Forbidden");

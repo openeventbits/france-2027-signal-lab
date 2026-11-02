@@ -927,10 +927,10 @@
       candidateKeys[candidateKeys.length - 1] ||
       "1970-01-01";
     const anchor = new Date(`${anchorKey}T00:00:00Z`);
-    const currentStartKey = dateKeyWithOffset(anchor, -6);
-    const currentEndKey = utcDateKey(anchor);
-    const priorStartKey = dateKeyWithOffset(anchor, -13);
-    const priorEndKey = dateKeyWithOffset(anchor, -7);
+    const currentStartKey = dateKeyWithOffset(anchor, -7);
+    const currentEndKey = dateKeyWithOffset(anchor, -1);
+    const priorStartKey = dateKeyWithOffset(anchor, -14);
+    const priorEndKey = dateKeyWithOffset(anchor, -8);
 
     const buildPeriod = (startDate, endDate) => {
       const records = candidateWatch.filter(item => {
@@ -3579,6 +3579,7 @@
     const leftScore = model.featuredObservation.candidates.find(item => item.name === leftName)?.score;
     const rightScore = model.featuredObservation.candidates.find(item => item.name === rightName)?.score;
     return cardShell("runoff", `${model.featuredObservation.pollster} · ${model.fieldworkLabel}`, `
+      <span class="runoff-window-context">${escapeHtml(model.fieldworkLabel)} · ${escapeHtml(translate("runoff_workspace.qualifying_window", "Latest qualifying shared-window comparison; not the latest runoff poll."))}</span>
       <span class="hybrid-runoff-summary">
         <span class="hybrid-runoff-person">
           ${portraitMarkup(leftName, true)}
@@ -3961,12 +3962,11 @@
   function renderRunoffClosest(model) {
     if (model.status === "agree" && model.selectedMatchup) {
       const matchup = model.selectedMatchup;
-      const narrowest = Math.min(...matchup.observations.map(item => Number(item.margin)));
       return `<section class="hybrid-runoff-module hybrid-runoff-closest" aria-labelledby="hybrid-runoff-closest-title">
         <div class="hybrid-runoff-module-head"><div><span class="hybrid-runoff-step" aria-hidden="true">1</span><h3 id="hybrid-runoff-closest-title">${escapeHtml(translate("runoff_workspace.closest_tested_runoff", "CLOSEST TESTED RUNOFF"))}</h3></div><span>${escapeHtml(translate("runoff_workspace.closest_subtitle", "Same closest matchup · different reported distance"))}</span></div>
         <h4>${escapeHtml(matchup.candidates.join(" vs "))}</h4>
         <div class="hybrid-runoff-observations">${matchup.observations.map(item => observationMarkup(item, matchup.candidates)).join("")}</div>
-        <div class="hybrid-runoff-closest-callout">${runoffIconMarkup("target", "hybrid-runoff-callout-icon")}<strong>${escapeHtml(translate("runoff_workspace.narrowest_observed_margin", "NARROWEST OBSERVED MARGIN"))} · ${runoffDisplayNumber(narrowest)} PTS</strong></div>
+        <div class="hybrid-runoff-closest-callout"><p class="runoff-window-context">${escapeHtml(model.fieldworkLabel)} · ${escapeHtml(translate("runoff_workspace.qualifying_window", "Latest qualifying shared-window comparison; not the latest runoff poll."))}</p></div>
       </section>`;
     }
 
@@ -8601,7 +8601,7 @@
                 ? item.latestShare - item.previousShare
                 : null;
             const directionClass =
-              displayedDelta === null
+              !deltaAvailable
                 ? "is-limited"
                 : displayedDelta > 0.05
                   ? "is-up"
@@ -8609,7 +8609,7 @@
                     ? "is-down"
                     : "is-flat";
             const direction =
-              displayedDelta === null
+              !deltaAvailable
                 ? ""
                 : displayedDelta > 0.05
                   ? "▲"
@@ -8726,7 +8726,7 @@
         const sourceDays =
           Number.isFinite(topic.sourceDays)
             ? topic.sourceDays
-            : 0;
+            : null;
 
         const topicWidth = Math.min(
           100,
@@ -8768,7 +8768,7 @@
               ></b>
             </i>
 
-            <strong>${sourceDays || "—"}</strong>
+            <strong>${sourceDays === null ? "—" : sourceDays}</strong>
           </button>
         `;
       })
@@ -8955,12 +8955,20 @@
             <div class="top-media-shift-list">
               ${shiftRows}
             </div>
+            <div class="media-bases-disclosure">
+              <button type="button" id="media-bases-toggle" class="media-bases-toggle" popovertarget="media-comparison-bases">${escapeHtml(translate("media_pulse.complete_utc_bases", "Complete seven-day UTC periods · article counts & bases"))}</button>
+              <div id="media-comparison-bases" popover class="media-bases-content" tabindex="0" role="region" aria-label="${escapeAttribute(translate("media_pulse.complete_utc_bases", "Complete seven-day UTC periods · article counts & bases"))}">
+                <p>${escapeHtml(translate("media_pulse.complete_utc_periods", "Two complete seven-day UTC periods. Counts: current / prior; each base is active-field-linked race records. Candidate mentions may overlap."))}</p>
+                <table><thead><tr><th>${escapeHtml(translate("race_glance.column_candidate", "CANDIDATE"))}</th><th>${escapeHtml(translate("media_pulse.current", "CURRENT"))}</th><th>${escapeHtml(translate("media_pulse.prior", "PRIOR"))}</th></tr></thead>
+                <tbody>${model.candidateCoverageLeaders.map(item => `<tr><th scope="row">${escapeHtml(item.name)}</th><td>${item.latestCount}/${model.latestCandidateArticleCount ?? "—"}</td><td>${item.previousCount}/${model.previousCandidateArticleCount ?? "—"}</td></tr>`).join("")}</tbody></table>
+              </div>
+            </div>
           </section>
 
           <div class="top-media-support-grid">
             <section>
               <div class="top-media-section-heading">
-                <h3>${escapeHtml(translate("media_pulse.topic_coverage", "Topic coverage"))}</h3>
+                <h3>${escapeHtml(translate("media_pulse.topic_coverage", "Topic coverage"))} <small class="media-topic-unit">${escapeHtml(translate("agenda_workspace.source_days", "SOURCE-DAYS"))}</small></h3>
               </div>
 
               <div class="top-media-topic-list">
@@ -9257,6 +9265,7 @@
     }
     if (renderedMediaLocale === globalThis.FR27I18N?.locale && renderedMediaNews === dashboardState.news && renderedMediaSignals === state.candidateSignals) return;
     const focusedTab = topMediaMount.contains(document.activeElement) ? document.activeElement.id : "";
+    const basesOpen = topMediaMount.querySelector(".media-bases-content")?.matches(":popover-open");
     const panelHTML = renderTopMediaPulsePanel(model);
     topMediaMount.removeAttribute("data-fr27-semantic-snapshot");
 
@@ -9264,6 +9273,7 @@
       topMediaComparisonPresentation(model);
 
     topMediaMount.innerHTML = panelHTML;
+    if (basesOpen) topMediaMount.querySelector(".media-bases-content")?.showPopover();
     syncTopMediaShiftQualityLabel(candidateComparison.label);
 
     if (topMediaMetrics) {

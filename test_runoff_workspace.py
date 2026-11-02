@@ -814,7 +814,7 @@ class RunoffFrontendContractTests(unittest.TestCase):
 
         self.assertIn(expected["candidates"][0] + " vs " + expected["candidates"][1], html)
         self.assertIn(
-            f'NARROWEST OBSERVED MARGIN · {min(float(item["margin"]) for item in expected["results"]):g} PTS',
+            'Latest qualifying shared-window comparison; not the latest runoff poll.',
             html,
         )
         self.assertEqual(

@@ -6,6 +6,15 @@
     (global.FR27_LOCALES = Object.create(null));
 
   const messages = Object.freeze({
+    "media_pulse.complete_utc_bases": "Complete seven-day UTC periods · article counts & bases",
+    "race_glance.no_prior_short": "No prior",
+    "race_glance.ambiguous_prior_short": "Ambiguous prior",
+    "race_glance.visible_direct": "Same institute & field",
+    "race_glance.visible_field_changed": "Raw · field changed",
+    "race_glance.visible_pollster_changed": "Raw · other institute: {pollster}",
+    "race_glance.visible_pollster_and_field_changed": "Raw · institute & field changed: {pollster}",
+    "runoff_workspace.qualifying_window": "Latest qualifying shared-window comparison; not the latest runoff poll.",
+    "media_pulse.complete_utc_periods": "Two complete seven-day UTC periods. Counts: current / prior; each base is active-field-linked race records. Candidate mentions may overlap.",
     "navigation.poll_detail": "View poll →",
     "navigation.families": "FR27 dossiers",
     "navigation.hub_candidates": "Candidates →",
@@ -866,7 +875,7 @@
     "dashboard.change": "CHANGE",
     "dashboard.vs_prior_match": "VS PRIOR MATCH",
     "dashboard.vs_previous_poll": "VS PREV. POLL",
-    "dashboard.vs_previous_poll_explanation": "Difference from the candidate's nearest earlier first-round poll observation. Context changes are flagged in the comparison tooltip.",
+    "dashboard.vs_previous_poll_explanation": "Difference from the candidate's nearest earlier first-round poll observation. Comparison context is shown beside each difference; source details are available in the tooltip.",
     "dashboard.vs_prior_match_explanation": "Nearest earlier poll from the same pollster testing the same candidate field.",
     "dashboard.changes_checked": "Changes checked",
     "dashboard.check_volume_12_months": "CHECK VOLUME — 12 MONTHS",

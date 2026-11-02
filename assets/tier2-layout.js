@@ -184,11 +184,14 @@ const fr27Tier2T = (key, fallback) =>
     }
 
     if (tier3Query.matches) {
-      contextStrip.insertAdjacentElement(
-        "afterend",
-        mediaPanel
-      );
-    } else if (mediaHome.parentNode) {
+      // Reparenting an already placed panel closes its native popover.
+      if (contextStrip.nextElementSibling !== mediaPanel) {
+        contextStrip.insertAdjacentElement(
+          "afterend",
+          mediaPanel
+        );
+      }
+    } else if (mediaHome.parentNode && mediaHome.nextSibling !== mediaPanel) {
       mediaHome.parentNode.insertBefore(
         mediaPanel,
         mediaHome.nextSibling
