@@ -36,6 +36,23 @@ class NewsWorkflowContractTests(unittest.TestCase):
             checkout,
         )
 
+    def test_preflight_dependencies_are_installed_before_news_tests(self):
+        setup = self.text.index("      - name: Set up Python")
+        install = self.text.index("      - name: Install Python dependencies")
+        preflight = self.text.index("      - name: Run news pipeline tests")
+        self.assertLess(setup, install)
+        self.assertLess(install, preflight)
+
+        # Audit evidence imports test_runoff_workspace, which imports fetch_polls.
+        # Its module-level imports need the polling dependencies even in News Wire.
+        command = " ".join(
+            self.text[install:preflight].split("run:", 1)[1].split()
+        )
+        self.assertEqual(
+            command,
+            "python -m pip install --disable-pip-version-check pandas lxml pypdf",
+        )
+
     def test_hourly_schedule_and_explicit_registry(self):
         self.assertIn('cron: "23 * * * *"', self.text)
         self.assertIn("workflow_dispatch:", self.text)
