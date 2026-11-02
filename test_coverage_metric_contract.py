@@ -127,7 +127,7 @@ class CoverageMetricContractTests(unittest.TestCase):
             snapshot.rows[0].previous_denominator,
         )
 
-    def test_agenda_social_ranking_excludes_polls(self):
+    def test_agenda_optional_ranking_filter_preserves_denominator(self):
         payload = json.loads(
             (ROOT / "agenda_coverage_history.json").read_text(
                 encoding="utf-8"

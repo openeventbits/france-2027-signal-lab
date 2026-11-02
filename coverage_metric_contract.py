@@ -1,6 +1,6 @@
-"""Shared analytical metric contract for FR27 public pages and social publishing.
+"""Shared analytical metric contract for FR27 public pages and manual research.
 
-No HTML, Buffer, network or publication-state logic belongs here.
+No HTML, network or publication-state logic belongs here.
 The module turns published history artifacts into explicit, auditable
 metric snapshots with deterministic display arithmetic.
 """
