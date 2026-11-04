@@ -1,10 +1,13 @@
 """Authenticated study identity, immutable observations, URLs and homepage eligibility parity."""
+import calendar
 import copy
+from datetime import date
 import json
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import unicodedata
 from unittest.mock import patch
 
 import build_candidate_signals as signals
@@ -255,6 +258,45 @@ class ReviewedStudyTests(unittest.TestCase):
         yougov_id = "fce9f5e59dc2dc1d26b53f7c8aa5551ab862c7ce78140cfe3ce0f5d36b5d46f1"
         yougov = next(event for event in self.polls if event["event_id"] == yougov_id)
         self.assertEqual((yougov["reported_total"], yougov["completeness_status"]), (102, "complete"))
+        # Live summaries follow the admitted evidence, not a fixed release roster.
+        labels = {e["event_id"]: studies.projected_pollster(e) for e in self.polls}
+        latest_end = max(e["fieldwork_end"] for e in self.polls)
+        latest_pollsters = sorted({labels[e["event_id"]].strip() for e in self.polls
+                                  if e["fieldwork_end"] == latest_end},
+                                 key=signals.french_compatible_sort_key)
+        coverage_end = max(e.get("publication_date") or e["fieldwork_end"] for e in self.polls)
+        end = date.fromisoformat(coverage_end)
+        month = end.year * 12 + end.month - 1 - 6
+        year, month = month // 12, month % 12 + 1
+        coverage_start = date(year, month, min(end.day, calendar.monthrange(year, month)[1])).isoformat()
+        coverage_labels = {labels[e["event_id"]] for e in self.polls
+                           if coverage_start <= (e.get("publication_date") or e["fieldwork_end"]) <= coverage_end}
+
+        # Independent comparison oracle: neither implementation's comparison or
+        # selection helper supplies the expected counts or winning scenario.
+        normalize = lambda value: " ".join(unicodedata.normalize("NFKC", value).split()).lower()
+        series = {}
+        for event in self.polls:
+            key = (normalize(labels[event["event_id"]]), event["round"], event["scenario_key"])
+            candidates = series.setdefault(key, {})
+            for candidate in event["candidates"]:
+                name = candidate["name"]
+                candidates[name] = min(candidates.get(name, event["fieldwork_end"]), event["fieldwork_end"])
+        counts = {}
+        for event in self.polls:
+            prior = series[(normalize(labels[event["event_id"]]), event["round"], event["scenario_key"])]
+            counts[event["event_id"]] = sum(prior[c["name"]] < event["fieldwork_end"] for c in event["candidates"])
+        python = signals.build_poll_packages(self.polls)
+        python_by_key = {p["package_key"]: p for p in python}
+        for package in python:
+            selected = max(package["events"], key=lambda e: counts[e["event_id"]])
+            self.assertEqual(package["selected_event"]["event_id"], selected["event_id"])
+            self.assertEqual(package["selected_comparable_candidate_count"], counts[selected["event_id"]])
+        # Newest fieldwork, most comparables, French institute order, stable tie.
+        ranked_python = sorted(python, key=lambda p: (
+            -date.fromisoformat(p["fieldwork_end"]).toordinal(),
+            -max(counts[e["event_id"]] for e in p["events"]),
+            signals.french_compatible_sort_key(p["pollster"]), p["original_package_index"]))
         results = []
         for page in ["index.html", "en/index.html"]:
             result = run_node(HOMEPAGE_SCRIPT, {"page":page,"polls":self.polls})
@@ -262,19 +304,17 @@ class ReviewedStudyTests(unittest.TestCase):
             self.assertEqual(result["valid_ids"], expected_ids, page)
             self.assertIn(yougov_id, result["valid_ids"])
             self.assertEqual(result, run_node(HOMEPAGE_SCRIPT, {"page":page,"polls":self.polls}))
-            python = signals.build_poll_packages(self.polls)
             self.assertEqual({p["key"]:p["ids"] for p in result["packages"]},
                              {p["package_key"]:[e["event_id"] for e in p["events"]] for p in python})
-            python_by_key = {p["package_key"]: p for p in python}
             for package in result["packages"]:
                 expected = python_by_key[package["key"]]
                 self.assertEqual(package["counts"],
-                                 [signals._comparable_candidate_count(event, self.polls) for event in expected["events"]])
+                                 [counts[event["event_id"]] for event in expected["events"]])
                 self.assertEqual(package["selected"], expected["selected_event"]["event_id"])
-            ranked_python = sorted(python, key=lambda package: (
-                package["fieldwork_end"], package["selected_comparable_candidate_count"]), reverse=True)
-            self.assertEqual([p["key"] for p in result["packages"][:3]],
-                             [p["package_key"] for p in ranked_python[:3]])
+            self.assertEqual([p["key"] for p in result["packages"]],
+                             [p["package_key"] for p in ranked_python])
+            # Historical restoration/merge controls, identified by immutable IDs.
+            # Later releases cannot be earlier comparators for these ballots.
             # Restoring September's observation gives October's matching ballot 11 comparables.
             yougov_october_id = "a8b5d1cac12f97bb852a3da38204cd52aca008eed9be5a4e17938411bff29166"
             yougov_october = next(p for p in result["packages"] if yougov_october_id in p["ids"])
@@ -284,9 +324,9 @@ class ReviewedStudyTests(unittest.TestCase):
             self.assertEqual(featured["ids"], self.ids)
             self.assertEqual(featured["counts"], [10,10,0])
             self.assertEqual(featured["selected"], self.h2)
-            self.assertEqual(result["latest"]["pollsters"], ["Cluster17","Ipsos"])
-            self.assertEqual(result["coverage"]["count"], 10)
-            self.assertEqual([p["pollster"] for p in result["packages"][:3]], ["Ipsos","Cluster17","Harris"])
+            self.assertEqual(result["latest"], {"fieldworkEnd": latest_end, "pollsters": latest_pollsters})
+            self.assertEqual(result["coverage"], {"count": len(coverage_labels),
+                                                "startDate": coverage_start, "latestDate": coverage_end})
             h1 = next(c for c in result["comparisons"] if c["id"] == self.h1)
             self.assertEqual(h1["strict"]["deltas"], [2])
             self.assertTrue(h1["formatted"]["meta"].endswith("Cluster17"))
@@ -294,6 +334,9 @@ class ReviewedStudyTests(unittest.TestCase):
             self.assertEqual(h1["previous"]["delta"], -2)
         for key in ("valid_ids", "latest", "coverage", "packages"):
             self.assertEqual(results[0][key], results[1][key], key)
+        for key in ("strict", "previous"):
+            self.assertEqual([c[key] for c in results[0]["comparisons"]],
+                             [c[key] for c in results[1]["comparisons"]], key)
 
     def test_browser_authentication_rechecks_mutated_objects_and_complete_membership(self):
         script = r'''
