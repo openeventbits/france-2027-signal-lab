@@ -222,14 +222,48 @@ class IssueSharedMetricTests(unittest.TestCase):
                 metrics.build_issue_metric_snapshot(history, window_mode=metrics.WINDOW_COMPLETE_WEEK)
 
     def test_invalid_counts_duplicate_taxonomy_and_impossible_incidence_fail_closed(self):
-        for change in (lambda e: e["topics"].append(e["topics"][0]),
-                       lambda e: e["topics"][0]["daily_activity"][-2].__setitem__("source_day_count", -1),
-                       lambda e: e["topics"][0]["daily_activity"][-2].__setitem__("source_day_count", True),
-                       lambda e: e["topics"][0]["daily_activity"][-2].__setitem__("source_day_count", 99999)):
+        for mutation, value in (("duplicate taxonomy", None), ("negative count", -1),
+                                ("boolean count", True), ("impossible incidence", 99999)):
             evolution = copy.deepcopy(self.evolution)
-            change(evolution)
-            with self.assertRaises(authority.IssuePageContractError):
+            if mutation == "duplicate taxonomy":
+                evolution["topics"].append(copy.deepcopy(evolution["topics"][0]))
+            else:
+                # News can extend beyond the retained Issue history. Select a
+                # requested date explicitly; [-2] can fall outside this period.
+                point = next(p for p in evolution["topics"][0]["daily_activity"]
+                             if p["date"] == self.current_day)
+                point["source_day_count"] = value
+            with self.subTest(mutation=mutation), self.assertRaises(authority.IssuePageContractError):
                 self.page_period(self.previous_day, self.current_day, evolution)
+
+    def test_selected_dates_reject_invalid_counts_despite_trailing_observations(self):
+        days = ("2026-01-01", "2026-01-02", "2026-01-03")
+        accepted = [{"date": day, "source_day_count": 10} for day in days]
+        topics = [{"id": issue_id, "daily_activity": [
+            {"date": day, "source_day_count": 1} for day in reversed(days)]}
+            for issue_id in authority.CANONICAL_ISSUE_IDS]
+        def calculate(value):
+            return authority.build_issue_period_metric(value, start_date=days[0],
+                end_date=days[1], daily_denominators=accepted)
+        self.assertTrue(all(row.numerator == 2 for row in calculate(topics).rows))
+        for day in days[:2]:
+            for value in (-1, True, 11):
+                changed = copy.deepcopy(topics)
+                next(p for p in changed[0]["daily_activity"] if p["date"] == day)["source_day_count"] = value
+                with self.subTest(day=day, value=value), self.assertRaises(authority.IssuePageContractError):
+                    calculate(changed)
+
+    def test_impossible_daily_incidence_fails_even_when_period_total_fits(self):
+        days = ("2026-01-01", "2026-01-02")
+        topics = [{"id": issue_id, "daily_activity": [
+            {"date": days[0], "source_day_count": 3},
+            {"date": days[1], "source_day_count": 0}]}
+            for issue_id in authority.CANONICAL_ISSUE_IDS]
+        # Aggregate 3/12 is plausible, but the first day's 3/2 is impossible.
+        with self.assertRaisesRegex(authority.IssuePageContractError, "exceed accepted source-days"):
+            authority.build_issue_period_metric(topics, start_date=days[0], end_date=days[1],
+                daily_denominators=[{"date": days[0], "source_day_count": 2},
+                                    {"date": days[1], "source_day_count": 10}])
 
     def test_deterministic_ranking_and_ties(self):
         snapshot = metrics.build_issue_metric_snapshot(self.history, window_mode=metrics.WINDOW_COMPLETE_WEEK)
