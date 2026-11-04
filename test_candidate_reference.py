@@ -2171,7 +2171,15 @@ class CandidateReferenceTests(unittest.TestCase):
         self.assertLessEqual(len(payload["media"]["top_story_clusters"]), bounds["story_clusters"])
         self.assertLessEqual(len(payload["media"]["latest_coverage"]), bounds["latest_coverage"])
         self.assertLessEqual(len(payload["accountability"]["reviews"]), bounds["scrutiny_reviews"])
-        self.assertLess(DATA_PATH.stat().st_size, 150_000)
+        # Full polling and cumulative agenda histories retain source evidence.
+        # On 2026-11-04 the valid projection reached 151,303 bytes; 200 kB
+        # leaves ~32% growth headroom while keeping a fixed payload ceiling.
+        max_projection_bytes = 200_000
+        self.assertLess(DATA_PATH.stat().st_size, max_projection_bytes)
+        # Also cover fresh source growth when the published file is stale.
+        self.assertLess(
+            len(reference.serialize_projection(self.projection)), max_projection_bytes
+        )
 
     def test_browser_has_no_runtime_news_wire_dependency(self):
         browser_sources = self.html + self.javascript + self.css + self.shell_css
