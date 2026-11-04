@@ -1,4 +1,5 @@
 import copy
+import gzip
 import hashlib
 import json
 import unittest
@@ -16,7 +17,7 @@ from commission_notice_coverage import (
 
 # Full-object evidence independently compared with 920e515ad73714a1b9a2d959e18fc1dc237ee7a6.
 # The 346/108 hashes are the unchanged original scenario-pin corpus attestations.
-# Only these three later Cluster17 objects may extend that historical corpus:
+# These three later Cluster17 objects extend that historical corpus:
 # 56956406b added the Philippe tables; da603b211 added the Attal table.
 _REVIEWED_FIRST_ROUND_ADDITIONS = {
     "26e5f0ab3df1861400351a6794f56ca2e3b51099bd12941866aaae7d23d56fa6":
@@ -25,6 +26,17 @@ _REVIEWED_FIRST_ROUND_ADDITIONS = {
         "addfb63e8a7662cc9311e4fcb0a3e7f3ad514e32b08cde7dd284ee48faf855b7",
     "335645e494e1d3665674719bd7406dc07f7f8f6fe960bba8cd2f0a2b468e773d":
         "a26ae17cff5553b9257dbf4008d50c361efa491c2c5bf192f6008b5c982b79f4",
+    # Individually authenticated Ifop 27-29 October 2026 scenarios, admitted
+    # by c7206e441494bcef0f6579376a9adbb3d7d63863 from revision 240992329.
+    # Frozen source replay and the unchanged prior 349-object digest are below.
+    "bba0d6838e2738399cc81b9a96c645c8f296a16622e4cb6fa71080d02927a950":
+        "a2ce8da28cdae868e6fe4db764e28e83624fcf81686d854b03b3f1bee72c7556",
+    "0fd1eb2379e5ba0140bff6102399f7b7ba9741c5cf89150d6a56509e854b6f1a":
+        "3bfc81483df1194a0e60223b8c9c7b78fe17624d9a214da4b06a8484e389ae3b",
+    "9169ec2c8bb59068751e1cc3b06f5a3a08d1c8b499accea3652fd4017aab16e6":
+        "e1ffc10fc1f044c6e76f6e0729e58a28c8a3f3d693b2a826b749ad22b632eaf4",
+    "9083dcdd0d76d8e10b83a477778e745367d201a931743f369ae306615920dc06":
+        "766ae53318a8151034946288d67594ba292483275cbc27bb7c08d682fb1a2351",
 }
 
 
@@ -35,7 +47,7 @@ def _historical_corpus_digest(value):
 
 
 def _authenticate_historical_polling_corpus(first, second):
-    """Test-only review: authenticate the old corpus and exactly three additions.
+    """Test-only review: authenticate the old corpus and exactly seven additions.
 
     No Git, network, mutable count inference or pin refresh. Unexpected additions
     remain failures until separately reviewed, including additions to runoffs.
@@ -601,6 +613,64 @@ class CurrentCommissionCoverageRegressionTests(unittest.TestCase):
         self.assertEqual((len(historical_first), len(historical_second)), (346, 108))
         self.assertEqual(len({e["event_id"] for e in historical_first + historical_second}), 454)
         self.assertEqual(len(first) - len(historical_first), len(_REVIEWED_FIRST_ROUND_ADDITIONS))
+
+    def test_four_ifop_additions_replay_source_and_preserve_previous_349(self):
+        from poll_migration import parse_french_frozen_fixture
+        from rehearse_fr_poll_migration import _make_normal_first_event
+
+        root = Path(__file__).resolve().parent
+        raw = gzip.decompress((root / "test_fixtures/fr27_polling/"
+                               "fr_mediawiki_240992329.json.gz").read_bytes())
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),
+                         "e91ee2a93dea0a2bc3b41e0fd525c714c01c96552744d04bff573083b2e2de4c")
+        parsed = json.loads(raw)["parse"]
+        self.assertEqual(parsed["revid"], 240992329)
+        # Preserve the API's original formatversion=1 response in the fixture.
+        parsed["text"] = parsed["text"]["*"]
+        source = parse_french_frozen_fixture(parsed, allow_reviewed_polony=True)
+        added = [_make_normal_first_event(row) for row in source["first_round"]
+                 if row["source_url"].endswith("-2473663.html")]
+        self.assertEqual(len(added), 4)
+        self.assertEqual([e["migration_source_locator"] for e in added],
+                         ["FR-T0R1", "FR-T0R2", "FR-T0R3", "FR-T0R4"])
+        first = json.loads((root / "polls.json").read_bytes())
+        published = {e["event_id"]: e for e in first}
+        for event in added:
+            with self.subTest(event_id=event["event_id"]):
+                self.assertEqual(event, published[event["event_id"]])
+                self.assertEqual(_historical_corpus_digest(event),
+                                 _REVIEWED_FIRST_ROUND_ADDITIONS[event["event_id"]])
+                self.assertEqual((event["pollster"], event["fieldwork_start"],
+                                  event["fieldwork_end"], event["sample_size"]),
+                                 ("Ifop", "2026-10-27", "2026-10-29", 1501))
+                self.assertEqual(event["reported_total"], 100.0)
+                self.assertEqual(event["completeness_status"], "complete")
+        added_ids = {e["event_id"] for e in added}
+        self.assertEqual(len(added_ids), 4)
+        previous = [e for e in first if e["event_id"] not in added_ids]
+        self.assertEqual(len(previous), 349)
+        self.assertEqual(_historical_corpus_digest(sorted(previous, key=lambda e: e["event_id"])),
+                         "e1f2919e043deb72956188ee730177751dfe64012de1ff2f506fac977564d149")
+
+    def test_each_reviewed_addition_rejects_loss_duplicate_and_content_drift(self):
+        root = Path(__file__).resolve().parent
+        first = json.loads((root / "polls.json").read_bytes())
+        second = json.loads((root / "second_round_polls.json").read_bytes())["events"]
+        _authenticate_historical_polling_corpus(first, second)
+        for event_id in _REVIEWED_FIRST_ROUND_ADDITIONS:
+            index = next(i for i, e in enumerate(first) if e["event_id"] == event_id)
+            for mutation in ("missing", "duplicate", "score", "source_url", "sample_size",
+                             "migration_source_locator", "scenario_key", "extra_field"):
+                changed = copy.deepcopy(first)
+                item = changed[index]
+                if mutation == "missing": changed.pop(index)
+                elif mutation == "duplicate": changed.append(copy.deepcopy(item))
+                elif mutation == "score": item["candidates"][0]["score"] += .5
+                elif mutation == "sample_size": item["sample_size"] += 1
+                elif mutation == "extra_field": item["unexpected"] = None
+                else: item[mutation] += "unreviewed"
+                with self.subTest(event_id=event_id, mutation=mutation), self.assertRaises(ValueError):
+                    _authenticate_historical_polling_corpus(changed, second)
 
     def test_historical_corpus_authentication_rejects_loss_drift_duplicates_and_extras(self):
         root = Path(__file__).resolve().parent

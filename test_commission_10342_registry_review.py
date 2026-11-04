@@ -271,7 +271,8 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
         second = json.loads((ROOT / "second_round_polls.json").read_bytes())["events"]
         before = copy.deepcopy(first + second)
         _authenticate_historical_polling_corpus(first, second)
-        self.assertEqual((len(first), len(second)), (349, 108))
+        # Prior 349 plus four individually authenticated Ifop additions.
+        self.assertEqual((len(first), len(second)), (353, 108))
         self.assertEqual(first + second, before)
 
 
