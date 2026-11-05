@@ -104,17 +104,31 @@
       "source_urls": []
     },
     "media_pulse": {
-      "evidence_state": "not_observed",
-      "record_count": null,
-      "share": null,
-      "publisher_count": null,
-      "active_day_count": null,
-      "headline_match_count": null,
-      "summary_only_match_count": null,
-      "scope_counts": null,
-      "scope_shares": null,
-      "story_cluster_count": null,
-      "concentration": null
+      "evidence_state": "reported",
+      "record_count": 1,
+      "share": 0.002,
+      "publisher_count": 1,
+      "active_day_count": 1,
+      "headline_match_count": 1,
+      "summary_only_match_count": 0,
+      "scope_counts": {
+        "election": 1,
+        "campaign": 0,
+        "general": 0
+      },
+      "scope_shares": {
+        "election": 1.0,
+        "campaign": 0.0,
+        "general": 0.0
+      },
+      "story_cluster_count": 1,
+      "concentration": {
+        "leading_publisher": "Le Parisien",
+        "leading_publisher_record_count": 1,
+        "leading_publisher_share": 1.0,
+        "leading_story_record_count": 1,
+        "leading_story_share": 1.0
+      }
     }
   },
   "now": {
@@ -197,29 +211,37 @@
   },
   "media": {
     "summary": {
-      "evidence_state": "not_observed",
-      "record_count": null,
-      "share": null,
-      "publisher_count": null,
-      "active_day_count": null,
-      "headline_match_count": null,
-      "summary_only_match_count": null,
-      "scope_counts": null,
-      "scope_shares": null,
-      "story_cluster_count": null,
-      "concentration": null
+      "evidence_state": "reported",
+      "record_count": 1,
+      "share": 0.002,
+      "publisher_count": 1,
+      "active_day_count": 1,
+      "headline_match_count": 1,
+      "summary_only_match_count": 0,
+      "scope_counts": {
+        "election": 1,
+        "campaign": 0,
+        "general": 0
+      },
+      "scope_shares": {
+        "election": 1.0,
+        "campaign": 0.0,
+        "general": 0.0
+      },
+      "story_cluster_count": 1,
+      "concentration": {
+        "leading_publisher": "Le Parisien",
+        "leading_publisher_record_count": 1,
+        "leading_publisher_share": 1.0,
+        "leading_story_record_count": 1,
+        "leading_story_share": 1.0
+      }
     },
     "period": {
-      "start_date": "2026-10-28",
-      "end_date": "2026-11-03"
+      "start_date": "2026-10-29",
+      "end_date": "2026-11-04"
     },
     "recent_history": [
-      {
-        "date": "2026-10-06",
-        "record_count": 0,
-        "share": 0.0,
-        "publisher_count": 0
-      },
       {
         "date": "2026-10-07",
         "record_count": 0,
@@ -387,18 +409,48 @@
         "record_count": 0,
         "share": 0.0,
         "publisher_count": 0
+      },
+      {
+        "date": "2026-11-04",
+        "record_count": 1,
+        "share": 0.015,
+        "publisher_count": 1
       }
     ],
-    "top_publishers": [],
-    "top_story_clusters": [],
-    "latest_coverage": [],
-    "available_record_count": 0
+    "top_publishers": [
+      {
+        "publisher": "Le Parisien",
+        "record_count": 1,
+        "share": 1.0
+      }
+    ],
+    "top_story_clusters": [
+      {
+        "cluster_id": "c96ec542329e",
+        "label": "Présidentielle 2027 : Olivier Becht, et si ce n’était pas lui ?",
+        "record_count": 1,
+        "share": 1.0,
+        "publisher_count": 1,
+        "active_day_count": 1
+      }
+    ],
+    "latest_coverage": [
+      {
+        "id": "e0978bfb7c1d67c1f487",
+        "publisher": "Le Parisien",
+        "published_at": "2026-11-04T09:15:00Z",
+        "headline": "Présidentielle 2027 : Olivier Becht, et si ce n’était pas lui ?",
+        "url": "https://news.google.com/rss/articles/CBMi5AFBVV95cUxQdUlDY1BfMFpRdW50NnV6enlKXzhOLW1wRFFvZjhFRXpOaWVZMEw0NU5fNHRuczR0VWo2YU1xYWlVeTRzeDhGVnlpVDl3b3JvMExyeVZJdGNQTVVjZmVWMG5VOFBqWHp1SjF5UlRNc21YUzhzWHBYT2YwTXpqODVTa0hPVHJSMWpQbDl3VkhjUldjeERrRVpRZ0RuRTg5eDlsNC1ldFhYQVNYM1l1TVUyU2xSX2NBQkFLMHJmbzYxdC05S2J2dTJFNkg4WWdLOUppelAzcW1aMm9oYkp5V3JHOHVWcGs?oc=5",
+        "coverage_scope": "election"
+      }
+    ],
+    "available_record_count": 1
   },
   "agenda": {
     "current": {
       "profile_mode": "campaign",
-      "period_start": "2026-10-06",
-      "period_end": "2026-11-04",
+      "period_start": "2026-10-07",
+      "period_end": "2026-11-05",
       "day_count": 30,
       "association_count": 0,
       "topics": [
@@ -437,8 +489,8 @@
     "since_tracking": {
       "profile_mode": "campaign",
       "period_start": "2026-07-31",
-      "period_end": "2026-11-04",
-      "day_count": 97,
+      "period_end": "2026-11-05",
+      "day_count": 98,
       "association_count": 3,
       "topics": [
         {
@@ -1058,6 +1110,12 @@
         "counts": {
           "candidacies_endorsements": 0
         }
+      },
+      {
+        "date": "2026-11-05",
+        "counts": {
+          "candidacies_endorsements": 0
+        }
       }
     ]
   },
@@ -1612,13 +1670,13 @@
       "candidate_youtube": "2026-11-04T18:20:19.685245Z",
       "candidate_bluesky": "2026-11-04T18:21:10.996698Z",
       "claims_under_scrutiny": "2026-11-04T12:03:40Z",
-      "recent_changes": "2026-11-05T00:06:38.531773Z",
+      "recent_changes": "2026-11-05T03:35:43.927464Z",
       "campaign_events": "2026-11-04T12:00:56Z",
       "second_round_polls": "2026-11-05T00:06:31.891323Z",
-      "news_wire": "2026-11-04T22:44:45.799258Z"
+      "news_wire": "2026-11-05T03:35:09.603316Z"
     },
-    "media_period_end": "2026-11-03",
-    "agenda_data_as_of": "2026-11-04",
+    "media_period_end": "2026-11-04",
+    "agenda_data_as_of": "2026-11-05",
     "attention_period_end": "2026-11-03"
   },
   "bounds": {
