@@ -260,13 +260,11 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
         self.assertFalse(coverage.is_relevant_notice(self.record))
         self.assertNotIn(NOTICE_ID, [n["notice_id"] for n in discovery.registry_event_notices(self.registry)])
         self.assertTrue({"coverage", "parser", "survey_metadata"}.isdisjoint(self.record))
-        current = json.loads((ROOT / "commission_notice_registry.json").read_bytes())
-        self.assertEqual(coverage.coverage_warnings(current), coverage.coverage_warnings(self.registry))
-        self.assertEqual(coverage.coverage_summary(current), self.summary)
+        # This finite authenticated scope predates later production notices.
+        self.assertEqual(coverage.coverage_summary(self.registry), self.summary)
+        self.assertEqual((self.summary["relevant"], self.summary["reconciled"]), (43, 35))
         self.assertEqual(self.summary["unresolved_notice_ids"], ["commission:10333", "commission:10327", "commission:10319", "commission:10264", "commission:10260"])
-        lane = json.loads((ROOT / "publication_manifest.json").read_bytes())["lanes"]["polls"]
-        self.assertEqual(lane["warnings"], coverage.coverage_warnings(current))
-        self.assertEqual(lane["commission_notice_coverage"], self.summary)
+        self.assertEqual(len(coverage.coverage_warnings(self.registry)), 5)
         first = json.loads((ROOT / "polls.json").read_bytes())
         second = json.loads((ROOT / "second_round_polls.json").read_bytes())["events"]
         before = copy.deepcopy(first + second)
@@ -274,6 +272,66 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
         # Prior 349 plus four individually authenticated Ifop additions.
         self.assertEqual((len(first), len(second)), (353, 108))
         self.assertEqual(first + second, before)
+
+
+    def assert_current_publication_coverage(self, current, lane):
+        discovery.validate_registry(current)
+        records = [n for n in current["notices"] if n["notice_id"] == NOTICE_ID]
+        self.assertEqual(records, [self.record])
+        self.assertNotIn(NOTICE_ID, [n["notice_id"] for n in discovery.registry_event_notices(current)])
+        current_summary = coverage.coverage_summary(current)
+        self.assertEqual(current_summary["unresolved_notice_ids"], self.summary["unresolved_notice_ids"])
+        self.assertEqual(coverage.coverage_warnings(current), coverage.coverage_warnings(self.registry))
+        self.assertTrue(lane["valid"])
+        self.assertEqual(lane["warnings"], coverage.coverage_warnings(current))
+        # New reconciled notices may change current counts, never archival pins.
+        self.assertEqual(lane["commission_notice_coverage"], current_summary)
+
+    def current_publication_inputs(self):
+        current = json.loads((ROOT / "commission_notice_registry.json").read_bytes())
+        lane = json.loads((ROOT / "publication_manifest.json").read_bytes())["lanes"]["polls"]
+        return current, lane
+
+    def test_current_manifest_coverage_matches_validated_current_registry(self):
+        self.assert_current_publication_coverage(*self.current_publication_inputs())
+
+    def test_current_publication_rejects_10342_admission_even_with_matching_manifest(self):
+        current, lane = self.current_publication_inputs()
+        record = next(n for n in current["notices"] if n["notice_id"] == NOTICE_ID)
+        record.update(classification="unsupported", coverage={
+            "state": "reconciled", "method": "unreviewed_admission", "matched_event_ids": ["f" * 64],
+        })
+        discovery.validate_registry(current)
+        lane["commission_notice_coverage"] = coverage.coverage_summary(current)
+        with self.assertRaises(AssertionError):
+            self.assert_current_publication_coverage(current, lane)
+
+    def test_current_publication_rejects_invalid_registry_coverage(self):
+        current, lane = self.current_publication_inputs()
+        record = next(n for n in current["notices"] if n.get("coverage", {}).get("state") == "reconciled")
+        record["coverage"]["matched_event_ids"] = []
+        with self.assertRaisesRegex(discovery.CommissionNoticeError, "coverage must match events"):
+            self.assert_current_publication_coverage(current, lane)
+
+    def test_current_publication_rejects_each_missing_warning(self):
+        current, lane = self.current_publication_inputs()
+        for warning in lane["warnings"]:
+            changed = copy.deepcopy(lane)
+            changed["warnings"].remove(warning)
+            with self.subTest(warning=warning), self.assertRaises(AssertionError):
+                self.assert_current_publication_coverage(current, changed)
+
+    def test_current_publication_rejects_stale_or_invalid_manifest_coverage(self):
+        current, lane = self.current_publication_inputs()
+        stale = copy.deepcopy(lane["commission_notice_coverage"])
+        stale["relevant"] -= 1
+        stale["reconciled"] -= 1
+        for field, value in {"stale_balanced_counts": stale, "historical_counts": self.summary,
+                             "missing_summary": None, "invalid_lane": False}.items():
+            changed = copy.deepcopy(lane)
+            changed["valid" if field == "invalid_lane" else "commission_notice_coverage"] = value
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                self.assert_current_publication_coverage(current, changed)
 
 
 if __name__ == "__main__":
