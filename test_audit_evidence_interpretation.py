@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+from build_candidate_signals import _round_visibility_ratio
 from fetch_news_wire import build_candidate_visibility
 from test_frontend_facts import function_body
 from test_news_change_integrity import DUPONT_AIGNAN_2017
@@ -126,6 +127,24 @@ const formatScore = v=>v+'%';
         with self.assertRaisesRegex(RuntimeError, 'periods are invalid'):
             validate_candidate_visibility(partial, [], datetime(2026, 11, 2, tzinfo=timezone.utc))
 
+    def test_active_share_rounding_boundaries(self):
+        # Fixed expectations pin the publication policy independently of live data.
+        # Half ties go toward positive infinity, including negative changes.
+        for numerator, denominator, expected in (
+            (18, 480, 0.038),
+            (1, 16, 0.063),
+            (1, 2000, 0.001),
+            (-1, 16, -0.062),
+            (-1, 2000, 0.0),
+            (37499, 1000000, 0.037),
+            (37501, 1000000, 0.038),
+            (-62501, 1000000, -0.063),
+            (-62499, 1000000, -0.062),
+        ):
+            with self.subTest(numerator=numerator, denominator=denominator):
+                self.assertEqual(
+                    _round_visibility_ratio(numerator / denominator), expected)
+
     def test_published_active_shares_recompute_from_records(self):
         wire = json.loads((ROOT / 'news_wire.json').read_text(encoding='utf-8'))
         signals = json.loads((ROOT / 'candidate_signals.json').read_text(encoding='utf-8'))
@@ -146,12 +165,14 @@ const formatScore = v=>v+'%';
         for row in primary['main'] + primary['secondary']:
             counts = [sum(row['candidate_name'] in record['candidates'] for record in records.values())
                       for records in periods]
-            shares = [round(count / len(records), 3) if records else None
+            # Recount the source records independently, then apply the same
+            # publication rounding to both periods and their rounded-share delta.
+            shares = [_round_visibility_ratio(count / len(records)) if records else None
                       for count, records in zip(counts, periods)]
             self.assertEqual(counts, [row['current_record_count'], row['prior_record_count']])
             self.assertEqual(shares, [row['current_share'], row['prior_share']])
             if primary['comparison_quality']['status'] == 'comparable':
-                self.assertEqual(row['share_change'], round(shares[0] - shares[1], 3))
+                self.assertEqual(row['share_change'], _round_visibility_ratio(shares[0] - shares[1]))
 
 
 if __name__ == '__main__':
