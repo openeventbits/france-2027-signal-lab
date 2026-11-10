@@ -384,11 +384,47 @@ def _event_date(value: dict[str, Any]) -> date:
 
 
 def _event_reference_date() -> date:
-    """Return the current civil date used for event classification."""
+    """Use the transaction pin, or choose the current Paris generation date."""
+
+    pinned = os.environ.get("CANDIDATE_EVENT_REFERENCE_DATE")
+    if pinned is not None:
+        return _parse_event_reference_date(pinned)
 
     return datetime.now(
         ZoneInfo("Europe/Paris")
     ).date()
+
+
+def _parse_event_reference_date(value: str) -> date:
+    """Require the exact civil-date representation stored in a snapshot."""
+    try:
+        parsed = date.fromisoformat(value)
+    except (TypeError, ValueError) as error:
+        raise CandidateReferenceError("invalid event reference date") from error
+    if parsed.isoformat() != value:
+        raise CandidateReferenceError("event reference date must use YYYY-MM-DD")
+    return parsed
+
+
+def snapshot_event_reference_date(
+    site_root: Path, candidate_ids: Iterable[str],
+) -> date:
+    """Read one unanimous represented date; never infer it from the clock."""
+    dates = set()
+    for candidate_id in candidate_ids:
+        path = site_root / "candidates" / candidate_id / "data.json"
+        try:
+            value = _load(path)["events"]["reference_date"]
+            dates.add(_parse_event_reference_date(value))
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise CandidateReferenceError(
+                f"invalid candidate snapshot event reference date: {path}"
+            ) from error
+    if len(dates) != 1:
+        raise CandidateReferenceError(
+            "candidate snapshot must have one unanimous event reference date"
+        )
+    return dates.pop()
 
 
 def _event_projection(event: dict[str, Any], lane: str) -> dict[str, Any]:
@@ -783,6 +819,7 @@ def build_projection(
     root: Path = ROOT,
     *,
     candidate_id: str = CANDIDATE_ID,
+    event_reference_date: date | None = None,
     _sources_validated: bool = False,
     _allow_archived: bool = False,
     _attention_snapshot: dict[str, Any] | None = None,
@@ -1002,7 +1039,12 @@ def build_projection(
             for event in event_payload[lane]
             if candidate_id in event.get("candidate_ids", [])
         )
-    reference_date = _event_reference_date()
+    if event_reference_date is None:
+        reference_date = _event_reference_date()
+    elif type(event_reference_date) is date:
+        reference_date = event_reference_date
+    else:
+        raise CandidateReferenceError("event_reference_date must be a civil date")
     upcoming = sorted(
         (
             _event_projection(event, lane)
@@ -4212,6 +4254,7 @@ def build_all_active_artifacts(
     root: Path = ROOT,
     *,
     site_root: Path | None = None,
+    event_reference_date: date | None = None,
 ) -> dict[Path, bytes]:
     """Build current dossiers, retained archives and both generated hubs."""
 
@@ -4219,6 +4262,8 @@ def build_all_active_artifacts(
 
     validate_sources(sources, root)
     site_root = site_root or root
+    if event_reference_date is None:
+        event_reference_date = _event_reference_date()
     registry = sources["candidate_candidacy_status"]
     lifecycle = project_candidate_page_lifecycle(
         registry,
@@ -4230,6 +4275,7 @@ def build_all_active_artifacts(
             sources,
             root,
             candidate_id=record["candidate_id"],
+            event_reference_date=event_reference_date,
             _sources_validated=True,
         )
         for record in active_records
@@ -4267,6 +4313,7 @@ def build_all_active_artifacts(
                 ],
                 _sources_validated=True,
                 _allow_archived=True,
+                event_reference_date=event_reference_date,
                 _attention_snapshot=attention_snapshot,
             )
         )
@@ -4394,11 +4441,19 @@ def _parse_args() -> argparse.Namespace:
         help="destination root for --all-active (defaults to --root)",
     )
     parser.add_argument("--check", action="store_true")
+    parser.add_argument(
+        "--event-reference-date", type=_parse_event_reference_date,
+        help="Paris civil date pinned for a new candidate publication transaction",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
+    event_reference_date = args.event_reference_date
+    pinned = os.environ.get("CANDIDATE_EVENT_REFERENCE_DATE")
+    if event_reference_date is None and pinned is not None:
+        event_reference_date = _parse_event_reference_date(pinned)
     sources = load_sources(args.root)
 
     if args.all_active:
@@ -4409,10 +4464,18 @@ def main() -> int:
             sources["candidate_candidacy_status"],
             output_root,
         )
+        if args.check:
+            represented = snapshot_event_reference_date(
+                output_root, lifecycle["published_ids"],
+            )
+            if event_reference_date is not None and represented != event_reference_date:
+                raise CandidateReferenceError("candidate snapshot event reference date mismatch")
+            event_reference_date = represented
         artifacts = build_all_active_artifacts(
             sources,
             args.root,
             site_root=output_root,
+            event_reference_date=event_reference_date,
         )
 
         if args.check:
@@ -4457,7 +4520,15 @@ def main() -> int:
             print(f"wrote {target}")
         return 0
 
-    serialized = serialize_projection(build_projection(sources, args.root))
+    output = args.output if args.output.is_absolute() else args.root / args.output
+    if args.check:
+        represented = _parse_event_reference_date(_load(output)["events"]["reference_date"])
+        if event_reference_date is not None and represented != event_reference_date:
+            raise CandidateReferenceError("candidate snapshot event reference date mismatch")
+        event_reference_date = represented
+    serialized = serialize_projection(build_projection(
+        sources, args.root, event_reference_date=event_reference_date,
+    ))
     projection = json.loads(serialized)
     hud_metrics = derive_hud_metrics(sources)
     poll_wave_index = load_poll_wave_link_index(args.root)
@@ -4476,7 +4547,6 @@ def main() -> int:
         poll_wave_index=poll_wave_index,
         root=args.root, signal_histories=signal_histories,
     )
-    output = args.output if args.output.is_absolute() else args.root / args.output
     html_output = (
         args.html_output if args.html_output.is_absolute() else args.root / args.html_output
     )
