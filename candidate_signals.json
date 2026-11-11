@@ -3,11 +3,11 @@
   "candidate_universe": {
     "source": "candidate_candidacy_status.json",
     "rule": "Complete controlled candidacy registry: main, secondary, and hidden",
-    "status_as_of": "2026-11-10",
+    "status_as_of": "2026-11-11",
     "count": 78
   },
   "presidential_field": {
-    "status_as_of": "2026-11-10",
+    "status_as_of": "2026-11-11",
     "main": [
       "anasse-kazib",
       "antoine-mikolajczak",
@@ -45,6 +45,7 @@
       "aurore-berge",
       "bernard-cazeneuve",
       "bruno-le-maire",
+      "christine-lagarde",
       "dominique-de-villepin",
       "francois-hollande",
       "jean-lassalle",
@@ -58,7 +59,6 @@
       "boris-vallaud",
       "carole-delga",
       "christiane-taubira",
-      "christine-lagarde",
       "clementine-autain",
       "cyril-hanouna",
       "emmanuel-maurel",
@@ -94,8 +94,8 @@
     ],
     "counts": {
       "main": 31,
-      "secondary": 10,
-      "hidden": 37,
+      "secondary": 11,
+      "hidden": 36,
       "total": 78
     }
   },
@@ -135,6 +135,7 @@
       "aurore-berge",
       "bernard-cazeneuve",
       "bruno-le-maire",
+      "christine-lagarde",
       "dominique-de-villepin",
       "francois-hollande",
       "jean-lassalle",
@@ -145,14 +146,14 @@
     ],
     "counts": {
       "main": 29,
-      "secondary": 10,
-      "active": 39
+      "secondary": 11,
+      "active": 40
     }
   },
   "active_field_visibility": {
     "method": "share_of_active_candidate_linked_records",
     "denominator_scope": "records_linked_to_at_least_one_active_monitoring_candidate",
-    "status_as_of": "2026-11-10",
+    "status_as_of": "2026-11-11",
     "primary": {
       "current_period": {
         "start_date": "2026-11-04",
@@ -598,6 +599,17 @@
         {
           "candidate_id": "bernard-cazeneuve",
           "candidate_name": "Bernard Cazeneuve",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
+        },
+        {
+          "candidate_id": "christine-lagarde",
+          "candidate_name": "Christine Lagarde",
           "status": "active_potential",
           "display_tier": "secondary",
           "current_record_count": 0,
@@ -1071,6 +1083,17 @@
           "prior_record_count": 2,
           "prior_share": 0.005,
           "share_change": -0.005
+        },
+        {
+          "candidate_id": "christine-lagarde",
+          "candidate_name": "Christine Lagarde",
+          "status": "active_potential",
+          "display_tier": "secondary",
+          "current_record_count": 0,
+          "current_share": 0.0,
+          "prior_record_count": 0,
+          "prior_share": 0.0,
+          "share_change": 0.0
         },
         {
           "candidate_id": "jean-lassalle",
@@ -3698,16 +3721,16 @@
       "candidate_id": "christine-lagarde",
       "candidate_name": "Christine Lagarde",
       "candidacy": {
-        "status": "ruled_out",
-        "display_tier": "hidden",
+        "status": "active_potential",
+        "display_tier": "secondary",
         "upstream_presence": "present",
-        "active_field_eligible": false,
-        "status_as_of": "2026-08-06",
-        "source_date": "2026-08-06",
-        "source_url": "https://fr.wikipedia.org/w/index.php?title=%C3%89lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=238417295",
-        "source_title": "Élection présidentielle française de 2027",
+        "active_field_eligible": true,
+        "status_as_of": "2026-11-11",
+        "source_date": "2026-11-11",
+        "source_url": "https://fr.wikipedia.org/w/index.php?title=Candidatures+%C3%A0+l%27%C3%A9lection+pr%C3%A9sidentielle+fran%C3%A7aise+de+2027&oldid=241234541",
+        "source_title": "Candidatures à l'élection présidentielle française de 2027",
         "source_publisher": "French Wikipedia",
-        "status_note": "Listed in the French Wikipedia 2027 election page as having declined candidacy."
+        "status_note": "Listed in the French Wikipedia 2027 election page as a prospective candidate."
       },
       "polling": {
         "evidence_state": "not_observed",
