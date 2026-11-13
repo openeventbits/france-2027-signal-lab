@@ -54,3 +54,15 @@ Remaining work is limited to review/current-main compatibility, the deferred Pol
 - Local worktrees: `C:/Users/Tanya/.codex/worktrees/recovery-candidate-nov13/france-2027-signal-lab`, `.../recovery-polls-nov13/france-2027-signal-lab`, `.../recovery-news-nov13/france-2027-signal-lab`.
 
 All ten complete original Actions logs remain byte-identical to the retrieved UTF-8 text. Archived incomplete diagnostic logs are labeled by the handoff/test notes and are not counted as passing results. The inventory's `.partial.json` file is a retained incomplete serialization, not an authoritative result.
+
+## Shutdown / storage confirmation
+
+All essential work for this recovery is preserved on GitHub: the three correction commits and draft PRs, this report, ASUS instructions, complete production-suite logs, documented failed/deferred gates, all ten original Actions logs, diffs and evidence inventories. **No essential raw test log is local-only.** The `EVIDENCE_INDEX.json` inventory records the uploaded files and SHA-256 hashes.
+
+Large, reproducible generated working copies were intentionally not uploaded. They are not required to resume from ASUS; their manifests and relevant result logs are uploaded. Optional local caches remain at:
+
+- `C:/Users/Tanya/.codex/visualizations/2026/11/13/01a1d45d-5a0f-74b2-b594-767de3ca9b51/recovery/validation/` (disposable validation checkouts).
+- `C:/Users/Tanya/.codex/visualizations/2026/11/13/01a1d45d-5a0f-74b2-b594-767de3ca9b51/recovery/candidate-artifacts-before/`.
+- `C:/Users/Tanya/.codex/visualizations/2026/11/13/01a1d45d-5a0f-74b2-b594-767de3ca9b51/recovery/candidate-artifacts-after/`.
+
+The original three local worktrees and the complete local evidence directory are also retained. Unrelated frozen worktrees were left untouched and were not incorporated into these corrections. No further local test process is needed for this handoff. Codex may be closed and the Zenbook shut down; resume review from the verified remote branches on ASUS. This is not merge or deployment approval.
