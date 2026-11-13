@@ -3328,7 +3328,7 @@ def _candidate_product_ui_en(value: str) -> str | None:
     if match:
         count = int(match.group(2))
         noun = "hypothesis" if count == 1 else "hypotheses"
-        localized = re.sub(r"(?<=\d),(?=\d+%)", ".", match.group(1))
+        localized = re.sub(r"(?<=\d),(?=\d)", ".", match.group(1))
         return f"{localized} · {count} {noun}"
 
     match = re.fullmatch(r"(.+) · terrain du (.+) au (.+)", value)
