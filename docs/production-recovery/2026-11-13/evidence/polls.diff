@@ -1,0 +1,44 @@
+diff --git a/test_reviewed_cluster17_source_retention.py b/test_reviewed_cluster17_source_retention.py
+index ac7adff6b..2528ac4fd 100644
+--- a/test_reviewed_cluster17_source_retention.py
++++ b/test_reviewed_cluster17_source_retention.py
+@@ -96,10 +96,6 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
+     def test_previously_supported_snapshots_preserve_their_authenticated_corpora(self):
+         historical = json.loads(gzip.decompress(
+             (FIXTURES / "phase1_published_326_97.json.gz").read_bytes()))
+-        # These early sources contain only 95 runoff rows. Today's 106-row
+-        # baseline must still trigger the unchanged widespread-loss guard.
+-        with self.assertRaisesRegex(ValueError, "widespread second_round extraction loss"):
+-            self.integrate(source(240490172))
+         for revision in (240490172, 240498648, 240522402):
+             with self.subTest(revision=revision):
+                 first, second = historical["first_round"], historical["second_round"]
+@@ -110,6 +106,28 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
+         self.assertEqual(typed_json(self.integrate(source(240570516))[:2]),
+                          typed_json((self.first, self.second)))
+ 
++    def test_old_snapshots_reject_extraction_loss_against_the_current_corpus(self):
++        # Current additions belong in this negative control, not in the
++        # authenticated 326/97 historical success replay above. The first-round
++        # guard now fires before the runoff guard; neither guard is relaxed.
++        for revision in (240490172, 240498648, 240522402):
++            with self.subTest(revision=revision):
++                with self.assertRaisesRegex(ValueError, "widespread first_round extraction loss"):
++                    self.integrate(source(revision))
++
++    def test_old_snapshots_still_reject_runoff_extraction_loss_independently(self):
++        from run_update_polls_contract_tests import historical_inputs
++
++        # Hold the first round at its authenticated historical scope so that
++        # its guard cannot mask the independent current-runoff loss check.
++        first = historical_inputs()["polls.json"]
++        for revision in (240490172, 240498648, 240522402):
++            with self.subTest(revision=revision):
++                with self.assertRaisesRegex(ValueError, "widespread second_round extraction loss"):
++                    integrate_french_migration_source(source(revision), first, self.second,
++                        [e for e in first if e.get("official_notice_id")],
++                        retain_published_history=True)
++
+     def test_every_enumerated_variant_maps_only_to_its_unchanged_target(self):
+         retained = {e["event_id"]: e for e in self.first if e["event_id"] in self.ids}
+         for decision in self.review["decisions"]:

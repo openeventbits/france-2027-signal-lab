@@ -1,0 +1,36 @@
+[
+  {
+    "mode": "noop",
+    "returncode": 0,
+    "changed_files": [],
+    "stdout": "Rolling inventory: 18746 items\nRelevant News: 2926\nElection News: 2600\nCandidate Watch: 4061\nRecent Changes: 61\nFeeds ready: 18/18\nChanges detected: inventory=False, corpus=False, wire=False, ledger=False, source_health=False, candidate_visibility_history=False, candidate_agenda_history=False\n",
+    "stderr": ""
+  },
+  {
+    "mode": "semantic",
+    "returncode": 0,
+    "changed_files": [
+      "news_wire.json",
+      "agenda/live.json",
+      "enjeux/live.json"
+    ],
+    "stdout": "Rolling inventory: 18746 items\nRelevant News: 2926\nElection News: 2600\nCandidate Watch: 4061\nRecent Changes: 61\nFeeds ready: 17/18\nChanges detected: inventory=False, corpus=False, wire=True, ledger=False, source_health=False, candidate_visibility_history=False, candidate_agenda_history=False\n",
+    "stderr": ""
+  },
+  {
+    "mode": "stale",
+    "returncode": 0,
+    "changed_files": [
+      "agenda/live.json"
+    ],
+    "stdout": "Rolling inventory: 18746 items\nRelevant News: 2926\nElection News: 2600\nCandidate Watch: 4061\nRecent Changes: 61\nFeeds ready: 18/18\nChanges detected: inventory=False, corpus=False, wire=False, ledger=False, source_health=False, candidate_visibility_history=False, candidate_agenda_history=False\n",
+    "stderr": ""
+  },
+  {
+    "mode": "invalid",
+    "returncode": 1,
+    "changed_files": [],
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 112, in <module>\n    validate_live_projection(issues_live, wire, \"issues\")\n    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Tanya\\.codex\\worktrees\\recovery-news-nov13\\france-2027-signal-lab\\live_projection_contract.py\", line 207, in validate_live_projection\n    raise ValueError(f\"{family} live projection differs from authoritative source snapshot\")\nValueError: issues live projection differs from authoritative source snapshot\n"
+  }
+]

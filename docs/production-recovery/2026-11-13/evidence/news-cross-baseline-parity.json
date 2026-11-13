@@ -1,0 +1,42 @@
+{
+  "news-after-cross.log": {
+    "ids": [
+      "test_issue_pages.HistoricalIssueDetailRedesignTests.test_locked_source_renders_remain_byte_identical",
+      "test_issue_pages.IssuePageArtifactTests.test_current_hub_html_remains_byte_identical",
+      "test_issue_pages.IssuePageArtifactTests.test_historical_detail_pages_match_redesign_source_contract",
+      "test_issue_pages.IssuePageArtifactTests.test_rendering_is_deterministic",
+      "test_policy_agenda_frontend.PolicyAgendaFrontendTests.test_poll_compare_is_not_a_workspace"
+    ],
+    "summary": [
+      "Ran 161 tests in 252.242s",
+      "FAILED (failures=5)"
+    ],
+    "assertions": [
+      "AssertionError: b'<!d[2200 chars]261112-162005\">\\n  <meta property=\"og:image:ty[82000 chars]l>\\n' != b'<!d[2200 chars]261111-162305\">\\n  <meta property=\"og:image:ty[80840 chars]l>\\n'",
+      "AssertionError: b'<!d[2200 chars]261112-162005\">\\n  <meta property=\"og:image:ty[82000 chars]l>\\n' != b'<!d[2200 chars]261111-162305\">\\n  <meta property=\"og:image:ty[80840 chars]l>\\n'",
+      "AssertionError: b'<!d[2249 chars]261112-162005\">\\n  <meta property=\"og:image:ty[99686 chars]l>\\n' != b'<!d[2249 chars]261111-162305\">\\n  <meta property=\"og:image:ty[99670 chars]l>\\n'",
+      "AssertionError: b'<!d[2200 chars]261112-162005\">\\n  <meta property=\"og:image:ty[82000 chars]l>\\n' != b'<!d[2200 chars]261111-162305\">\\n  <meta property=\"og:image:ty[80840 chars]l>\\n'",
+      "AssertionError: 'label: translate(\"signal_board.issues\", \"ISSUES\")' not found in '(() => {\\n  \"use strict\";\\n  // Script reinjection must not install a second set of global listeners/loaders.\\n  if (window.hybridDashboard) return;\\n\\n\\n  const translate = (key, fallback, parameters) => {\\n    const localizer = globalThis.FR27I18N;\\n\\n    return loc"
+    ]
+  },
+  "news-baseline-cross-counterexamples.log": {
+    "ids": [
+      "test_issue_pages.HistoricalIssueDetailRedesignTests.test_locked_source_renders_remain_byte_identical",
+      "test_issue_pages.IssuePageArtifactTests.test_current_hub_html_remains_byte_identical",
+      "test_issue_pages.IssuePageArtifactTests.test_historical_detail_pages_match_redesign_source_contract",
+      "test_issue_pages.IssuePageArtifactTests.test_rendering_is_deterministic",
+      "test_policy_agenda_frontend.PolicyAgendaFrontendTests.test_poll_compare_is_not_a_workspace"
+    ],
+    "summary": [
+      "Ran 5 tests in 8.309s",
+      "FAILED (failures=5)"
+    ],
+    "assertions": [
+      "AssertionError: b'<!d[2200 chars]261112-162005\">\\n  <meta property=\"og:image:ty[82000 chars]l>\\n' != b'<!d[2200 chars]261111-162305\">\\n  <meta property=\"og:image:ty[80840 chars]l>\\n'",
+      "AssertionError: b'<!d[2200 chars]261112-162005\">\\n  <meta property=\"og:image:ty[82000 chars]l>\\n' != b'<!d[2200 chars]261111-162305\">\\n  <meta property=\"og:image:ty[80840 chars]l>\\n'",
+      "AssertionError: b'<!d[2249 chars]261112-162005\">\\n  <meta property=\"og:image:ty[99686 chars]l>\\n' != b'<!d[2249 chars]261111-162305\">\\n  <meta property=\"og:image:ty[99670 chars]l>\\n'",
+      "AssertionError: b'<!d[2200 chars]261112-162005\">\\n  <meta property=\"og:image:ty[82000 chars]l>\\n' != b'<!d[2200 chars]261111-162305\">\\n  <meta property=\"og:image:ty[80840 chars]l>\\n'",
+      "AssertionError: 'label: translate(\"signal_board.issues\", \"ISSUES\")' not found in '(() => {\\n  \"use strict\";\\n  // Script reinjection must not install a second set of global listeners/loaders.\\n  if (window.hybridDashboard) return;\\n\\n\\n  const translate = (key, fallback, parameters) => {\\n    const localizer = globalThis.FR27I18N;\\n\\n    return loc"
+    ]
+  }
+}

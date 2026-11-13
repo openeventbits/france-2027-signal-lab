@@ -1,0 +1,66 @@
+test_actions_contract_invokes_both_reviews_and_pins_both_new_fixtures (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_actions_contract_invokes_both_reviews_and_pins_both_new_fixtures) ... ok
+test_binding_or_original_document_pin_changes_cannot_hide_behind_cache (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_binding_or_original_document_pin_changes_cannot_hide_behind_cache) ... ok
+test_candidate_membership_identity_and_scores_fail_closed (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_candidate_membership_identity_and_scores_fail_closed) ... ok
+test_current_and_parent_real_integration_preserve_all_typed_objects_and_order (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_current_and_parent_real_integration_preserve_all_typed_objects_and_order) ... ok
+test_duplicate_sources_old_and_new_representations_and_locators_fail (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_duplicate_sources_old_and_new_representations_and_locators_fail) ... ok
+test_duplicate_target_decisions_fail_even_before_matching (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_duplicate_target_decisions_fail_even_before_matching) ... ok
+test_every_enumerated_variant_maps_only_to_its_unchanged_target (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_every_enumerated_variant_maps_only_to_its_unchanged_target) ... ok
+test_independent_retention_decisions_cannot_overlap (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_independent_retention_decisions_cannot_overlap) ... ok
+test_missing_changed_reidentified_and_duplicated_retained_objects_fail (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_missing_changed_reidentified_and_duplicated_retained_objects_fail) ... ok
+test_old_snapshots_reject_extraction_loss_against_the_current_corpus (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_old_snapshots_reject_extraction_loss_against_the_current_corpus) ... ok
+test_old_snapshots_still_reject_runoff_extraction_loss_independently (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_old_snapshots_still_reject_runoff_extraction_loss_independently) ... 
+  test_old_snapshots_still_reject_runoff_extraction_loss_independently (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_old_snapshots_still_reject_runoff_extraction_loss_independently) (revision=240490172) ... FAIL
+  test_old_snapshots_still_reject_runoff_extraction_loss_independently (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_old_snapshots_still_reject_runoff_extraction_loss_independently) (revision=240498648) ... FAIL
+  test_old_snapshots_still_reject_runoff_extraction_loss_independently (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_old_snapshots_still_reject_runoff_extraction_loss_independently) (revision=240522402) ... FAIL
+test_original_guard_still_rejects_the_unregistered_representation (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_original_guard_still_rejects_the_unregistered_representation) ... ok
+test_other_studies_sharing_institute_or_dates_receive_no_exemption (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_other_studies_sharing_institute_or_dates_receive_no_exemption) ... ok
+test_pre_study_corpora_remain_independent (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_pre_study_corpora_remain_independent) ... ok
+test_previously_supported_snapshots_preserve_their_authenticated_corpora (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_previously_supported_snapshots_preserve_their_authenticated_corpora) ... ok
+test_review_target_and_document_hash_changes_are_rejected (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_review_target_and_document_hash_changes_are_rejected) ... ok
+test_revision_and_locator_alone_never_authorize_different_facts (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_revision_and_locator_alone_never_authorize_different_facts) ... ok
+test_sample_dates_round_institute_and_scope_are_not_aliased (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_sample_dates_round_institute_and_scope_are_not_aliased) ... ok
+test_unapproved_urls_cannot_authorize_either_sample_representation (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_unapproved_urls_cannot_authorize_either_sample_representation) ... ok
+
+======================================================================
+FAIL: test_old_snapshots_still_reject_runoff_extraction_loss_independently (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_old_snapshots_still_reject_runoff_extraction_loss_independently) (revision=240490172)
+----------------------------------------------------------------------
+ValueError: Batch 1 prior event facts/provenance changed or missing
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Tanya\.codex\worktrees\recovery-polls-nov13\france-2027-signal-lab\test_reviewed_cluster17_source_retention.py", line 126, in test_old_snapshots_still_reject_runoff_extraction_loss_independently
+    with self.assertRaisesRegex(ValueError, "widespread second_round extraction loss"):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "widespread second_round extraction loss" does not match "Batch 1 prior event facts/provenance changed or missing"
+
+======================================================================
+FAIL: test_old_snapshots_still_reject_runoff_extraction_loss_independently (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_old_snapshots_still_reject_runoff_extraction_loss_independently) (revision=240498648)
+----------------------------------------------------------------------
+ValueError: Batch 1 prior event facts/provenance changed or missing
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Tanya\.codex\worktrees\recovery-polls-nov13\france-2027-signal-lab\test_reviewed_cluster17_source_retention.py", line 126, in test_old_snapshots_still_reject_runoff_extraction_loss_independently
+    with self.assertRaisesRegex(ValueError, "widespread second_round extraction loss"):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "widespread second_round extraction loss" does not match "Batch 1 prior event facts/provenance changed or missing"
+
+======================================================================
+FAIL: test_old_snapshots_still_reject_runoff_extraction_loss_independently (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_old_snapshots_still_reject_runoff_extraction_loss_independently) (revision=240522402)
+----------------------------------------------------------------------
+ValueError: Batch 1 prior event facts/provenance changed or missing
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Tanya\.codex\worktrees\recovery-polls-nov13\france-2027-signal-lab\test_reviewed_cluster17_source_retention.py", line 126, in test_old_snapshots_still_reject_runoff_extraction_loss_independently
+    with self.assertRaisesRegex(ValueError, "widespread second_round extraction loss"):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "widespread second_round extraction loss" does not match "Batch 1 prior event facts/provenance changed or missing"
+
+----------------------------------------------------------------------
+Ran 19 tests in 621.686s
+
+FAILED (failures=3)

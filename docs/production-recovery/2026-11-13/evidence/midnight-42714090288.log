@@ -1,0 +1,1681 @@
+﻿2026-11-09T22:53:59.7163306Z Current runner version: '2.338.2'
+2026-11-09T22:53:59.7180730Z ##[group]Runner Image Provisioner
+2026-11-09T22:53:59.7181347Z Hosted Compute Agent
+2026-11-09T22:53:59.7181698Z Version: 20261028.624
+2026-11-09T22:53:59.7182130Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-09T22:53:59.7182564Z Build Date: 2026-10-28T21:51:42Z
+2026-11-09T22:53:59.7182965Z Worker ID: {3be69c60-1c4c-4424-bdad-c0591e0ba4a2}
+2026-11-09T22:53:59.7183425Z Region: centralus
+2026-11-09T22:53:59.7183757Z Cloud: Azure
+2026-11-09T22:53:59.7184104Z ##[endgroup]
+2026-11-09T22:53:59.7184926Z ##[group]Operating System
+2026-11-09T22:53:59.7185289Z Ubuntu
+2026-11-09T22:53:59.7185671Z 26.04.1
+2026-11-09T22:53:59.7185981Z LTS
+2026-11-09T22:53:59.7186314Z ##[endgroup]
+2026-11-09T22:53:59.7186686Z ##[group]Runner Image
+2026-11-09T22:53:59.7187049Z Image: ubuntu-26.04
+2026-11-09T22:53:59.7187412Z Version: 20261101.186.1
+2026-11-09T22:53:59.7188197Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261101.186/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-09T22:53:59.7189330Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261101.186
+2026-11-09T22:53:59.7189878Z ##[endgroup]
+2026-11-09T22:53:59.7190620Z ##[group]GITHUB_TOKEN Permissions
+2026-11-09T22:53:59.7192027Z Contents: write
+2026-11-09T22:53:59.7192413Z Metadata: read
+2026-11-09T22:53:59.7192758Z Pages: write
+2026-11-09T22:53:59.7193088Z ##[endgroup]
+2026-11-09T22:53:59.7194395Z Secret source: Actions
+2026-11-09T22:53:59.7194948Z Cache mode: read
+2026-11-09T22:53:59.7195533Z Prepare workflow directory
+2026-11-09T22:53:59.7396756Z Prepare all required actions
+2026-11-09T22:53:59.7427444Z Getting action download info
+2026-11-09T22:53:59.9846272Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-09T22:54:00.0763656Z Download action repository 'actions/setup-python@v6' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-11-09T22:54:00.2104424Z Complete job name: publish
+2026-11-09T22:54:00.2627048Z ##[group]Run actions/checkout@v7
+2026-11-09T22:54:00.2627456Z with:
+2026-11-09T22:54:00.2627685Z   ref: main
+2026-11-09T22:54:00.2627923Z   fetch-depth: 0
+2026-11-09T22:54:00.2628208Z   repository: openeventbits/france-2027-signal-lab
+2026-11-09T22:54:00.2630585Z   token: ***
+2026-11-09T22:54:00.2630820Z   ssh-strict: true
+2026-11-09T22:54:00.2631063Z   ssh-user: git
+2026-11-09T22:54:00.2631311Z   persist-credentials: true
+2026-11-09T22:54:00.2631586Z   clean: true
+2026-11-09T22:54:00.2631838Z   sparse-checkout-cone-mode: true
+2026-11-09T22:54:00.2632125Z   fetch-tags: false
+2026-11-09T22:54:00.2632376Z   show-progress: true
+2026-11-09T22:54:00.2632620Z   lfs: false
+2026-11-09T22:54:00.2632851Z   submodules: false
+2026-11-09T22:54:00.2633102Z   set-safe-directory: true
+2026-11-09T22:54:00.2633392Z   allow-unsafe-pr-checkout: false
+2026-11-09T22:54:00.2633754Z ##[endgroup]
+2026-11-09T22:54:00.4450279Z Syncing repository: openeventbits/france-2027-signal-lab
+2026-11-09T22:54:00.4451694Z ##[group]Getting Git version info
+2026-11-09T22:54:00.4452155Z Working directory is '/home/runner/work/france-2027-signal-lab/france-2027-signal-lab'
+2026-11-09T22:54:00.4452858Z [command]/usr/bin/git version
+2026-11-09T22:54:00.4469117Z git version 2.56.0
+2026-11-09T22:54:00.4493668Z ##[endgroup]
+2026-11-09T22:54:00.4498316Z Temporarily overriding HOME='/home/runner/work/_temp/86059069-fa67-4676-9144-f92adedc7994' before making global git config changes
+2026-11-09T22:54:00.4499921Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T22:54:00.4501591Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/france-2027-signal-lab/france-2027-signal-lab
+2026-11-09T22:54:00.4545310Z Deleting the contents of '/home/runner/work/france-2027-signal-lab/france-2027-signal-lab'
+2026-11-09T22:54:00.4547280Z ##[group]Determining repository object format
+2026-11-09T22:54:00.6675139Z ##[endgroup]
+2026-11-09T22:54:00.6676104Z ##[group]Initializing the repository
+2026-11-09T22:54:00.6682149Z [command]/usr/bin/git init /home/runner/work/france-2027-signal-lab/france-2027-signal-lab
+2026-11-09T22:54:00.6769321Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T22:54:00.6770289Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T22:54:00.6770971Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T22:54:00.6771505Z hint: call:
+2026-11-09T22:54:00.6771787Z hint:
+2026-11-09T22:54:00.6772192Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T22:54:00.6772610Z hint:
+2026-11-09T22:54:00.6772991Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T22:54:00.6773762Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T22:54:00.6774297Z hint:
+2026-11-09T22:54:00.6774560Z hint: 	git branch -m <name>
+2026-11-09T22:54:00.6774982Z hint:
+2026-11-09T22:54:00.6775481Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T22:54:00.6779399Z Initialized empty Git repository in /home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/
+2026-11-09T22:54:00.6789819Z [command]/usr/bin/git remote add origin https://github.com/openeventbits/france-2027-signal-lab
+2026-11-09T22:54:00.6841089Z ##[endgroup]
+2026-11-09T22:54:00.6842070Z ##[group]Disabling automatic garbage collection
+2026-11-09T22:54:00.6843051Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-09T22:54:00.6877446Z ##[endgroup]
+2026-11-09T22:54:00.6878187Z ##[group]Setting up auth
+2026-11-09T22:54:00.6878938Z Removing SSH command configuration
+2026-11-09T22:54:00.6882469Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T22:54:00.6922393Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T22:54:00.7260249Z Removing HTTP extra header
+2026-11-09T22:54:00.7264472Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T22:54:00.7297638Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T22:54:00.7507362Z Removing includeIf entries pointing to credentials config files
+2026-11-09T22:54:00.7510233Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T22:54:00.7540775Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T22:54:00.7764478Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-09T22:54:00.7801789Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git.path /home/runner/work/_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config
+2026-11-09T22:54:00.7832712Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config
+2026-11-09T22:54:00.7868312Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config
+2026-11-09T22:54:00.7901313Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config
+2026-11-09T22:54:00.7929611Z ##[endgroup]
+2026-11-09T22:54:00.7930384Z ##[group]Fetching the repository
+2026-11-09T22:54:00.7934775Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-11-09T22:54:59.3737603Z From https://github.com/openeventbits/france-2027-signal-lab
+2026-11-09T22:54:59.3738470Z  * [new branch]          architecture/wikipedia-candidate-universe -> origin/architecture/wikipedia-candidate-universe
+2026-11-09T22:54:59.3739376Z  * [new branch]          chore/clean-tools-before-signal-extractor -> origin/chore/clean-tools-before-signal-extractor
+2026-11-09T22:54:59.3740123Z  * [new branch]          chore/french-media-registry-2026-09-04 -> origin/chore/french-media-registry-2026-09-04
+2026-11-09T22:54:59.3740732Z  * [new branch]          ci/pr-dashboard-smoke   -> origin/ci/pr-dashboard-smoke
+2026-11-09T22:54:59.3741306Z  * [new branch]          codex/agenda-push-race-b1 -> origin/codex/agenda-push-race-b1
+2026-11-09T22:54:59.3741880Z  * [new branch]          codex/baseline-ci-auth-metrics -> origin/codex/baseline-ci-auth-metrics
+2026-11-09T22:54:59.3742578Z  * [new branch]          codex/campaign-events-2026-11-05 -> origin/codex/campaign-events-2026-11-05
+2026-11-09T22:54:59.3743210Z  * [new branch]          codex/candidate-bluesky-parity -> origin/codex/candidate-bluesky-parity
+2026-11-09T22:54:59.3743822Z  * [new branch]          codex/candidate-events-2026-10-29 -> origin/codex/candidate-events-2026-10-29
+2026-11-09T22:54:59.3744404Z  * [new branch]          codex/candidate-family-size-budget -> origin/codex/candidate-family-size-budget
+2026-11-09T22:54:59.3744885Z  * [new branch]          codex/candidate-publication-hash-pass -> origin/codex/candidate-publication-hash-pass
+2026-11-09T22:54:59.3745357Z  * [new branch]          codex/candidate-universe-dependencies -> origin/codex/candidate-universe-dependencies
+2026-11-09T22:54:59.3745825Z  * [new branch]          codex/cluster17-10339-source-retention -> origin/codex/cluster17-10339-source-retention
+2026-11-09T22:54:59.3746539Z  * [new branch]          codex/cluster17-study-gate1 -> origin/codex/cluster17-study-gate1
+2026-11-09T22:54:59.3747042Z  * [new branch]          codex/commission-10205-composite-rn -> origin/codex/commission-10205-composite-rn
+2026-11-09T22:54:59.3747480Z  * [new branch]          codex/commission-10260-documentary -> origin/codex/commission-10260-documentary
+2026-11-09T22:54:59.3747900Z  * [new branch]          codex/commission-10264-documentary -> origin/codex/commission-10264-documentary
+2026-11-09T22:54:59.3748309Z  * [new branch]          codex/commission-10333-coverage -> origin/codex/commission-10333-coverage
+2026-11-09T22:54:59.3749007Z  * [new branch]          codex/commission-10342-registry-extension -> origin/codex/commission-10342-registry-extension
+2026-11-09T22:54:59.3749768Z  * [new branch]          codex/commission-barometer-classifier -> origin/codex/commission-barometer-classifier
+2026-11-09T22:54:59.3750325Z  * [new branch]          codex/commission-historical-baseline-repair -> origin/codex/commission-historical-baseline-repair
+2026-11-09T22:54:59.3751070Z  * [new branch]          codex/commission-notice-reconciliation-20261026 -> origin/codex/commission-notice-reconciliation-20261026
+2026-11-09T22:54:59.3751847Z  * [new branch]          codex/elabe-reviewed-provenance -> origin/codex/elabe-reviewed-provenance
+2026-11-09T22:54:59.3752588Z  * [new branch]          codex/exceptional-source-tables-integration -> origin/codex/exceptional-source-tables-integration
+2026-11-09T22:54:59.3753267Z  * [new branch]          codex/fix-og-cover-lxml -> origin/codex/fix-og-cover-lxml
+2026-11-09T22:54:59.3753899Z  * [new branch]          codex/fix-polls-selection-contract -> origin/codex/fix-polls-selection-contract
+2026-11-09T22:54:59.3754446Z  * [new branch]          codex/fr27-audit-nov2   -> origin/codex/fr27-audit-nov2
+2026-11-09T22:54:59.3755027Z  * [new branch]          codex/fr27-campaign-event-grouping -> origin/codex/fr27-campaign-event-grouping
+2026-11-09T22:54:59.3755792Z  * [new branch]          codex/fr27-cnews-lab-browsing -> origin/codex/fr27-cnews-lab-browsing
+2026-11-09T22:54:59.3756611Z  * [new branch]          codex/fr27-cnews-source-evidence -> origin/codex/fr27-cnews-source-evidence
+2026-11-09T22:54:59.3757399Z  * [new branch]          codex/fr27-coverage-diagnostic -> origin/codex/fr27-coverage-diagnostic
+2026-11-09T22:54:59.3758022Z  * [new branch]          codex/fr27-french-migration-phase1 -> origin/codex/fr27-french-migration-phase1
+2026-11-09T22:54:59.3758708Z  * [new branch]          codex/fr27-news-change-integrity -> origin/codex/fr27-news-change-integrity
+2026-11-09T22:54:59.3759124Z  * [new branch]          codex/fr27-news-wire-lxml -> origin/codex/fr27-news-wire-lxml
+2026-11-09T22:54:59.3759477Z  * [new branch]          codex/fr27-phase1-stability -> origin/codex/fr27-phase1-stability
+2026-11-09T22:54:59.3759900Z  * [new branch]          codex/fr27-pr1-historical-polling-scope -> origin/codex/fr27-pr1-historical-polling-scope
+2026-11-09T22:54:59.3760345Z  * [new branch]          codex/freeze-polling-regressions -> origin/codex/freeze-polling-regressions
+2026-11-09T22:54:59.3760764Z  * [new branch]          codex/historical-replay-isolation -> origin/codex/historical-replay-isolation
+2026-11-09T22:54:59.3761226Z  * [new branch]          codex/homepage-completeness-parity -> origin/codex/homepage-completeness-parity
+2026-11-09T22:54:59.3761663Z  * [new branch]          codex/news-wire-audit-rounding-nov08 -> origin/codex/news-wire-audit-rounding-nov08
+2026-11-09T22:54:59.3762081Z  * [new branch]          codex/news-wire-dependencies -> origin/codex/news-wire-dependencies
+2026-11-09T22:54:59.3762490Z  * [new branch]          codex/og-cover-document-allowlist -> origin/codex/og-cover-document-allowlist
+2026-11-09T22:54:59.3762900Z  * [new branch]          codex/polling-accuracy-batch1 -> origin/codex/polling-accuracy-batch1
+2026-11-09T22:54:59.3763377Z  * [new branch]          codex/polling-ci-historical-snapshot-followup -> origin/codex/polling-ci-historical-snapshot-followup
+2026-11-09T22:54:59.3763919Z  * [new branch]          codex/polling-ci-hotfix -> origin/codex/polling-ci-hotfix
+2026-11-09T22:54:59.3764333Z  * [new branch]          codex/polling-commission-batch2 -> origin/codex/polling-commission-batch2
+2026-11-09T22:54:59.3764934Z  * [new branch]          codex/polling-live-review-anchor-diagnosis -> origin/codex/polling-live-review-anchor-diagnosis
+2026-11-09T22:54:59.3765432Z  * [new branch]          codex/polls-french-source-drift-v1 -> origin/codex/polls-french-source-drift-v1
+2026-11-09T22:54:59.3765817Z  * [new branch]          codex/remove-x-publisher -> origin/codex/remove-x-publisher
+2026-11-09T22:54:59.3766201Z  * [new branch]          codex/repair-polling-test-scopes -> origin/codex/repair-polling-test-scopes
+2026-11-09T22:54:59.3766634Z  * [new branch]          codex/repair-publication-contracts -> origin/codex/repair-publication-contracts
+2026-11-09T22:54:59.3767104Z  * [new branch]          codex/repair-publication-manifest-pr310 -> origin/codex/repair-publication-manifest-pr310
+2026-11-09T22:54:59.3767592Z  * [new branch]          codex/wikipedia-primary-section-update -> origin/codex/wikipedia-primary-section-update
+2026-11-09T22:54:59.3768016Z  * [new branch]          cutover/fr27-french-polling -> origin/cutover/fr27-french-polling
+2026-11-09T22:54:59.3768425Z  * [new branch]          design/candidate-explore-further-v1 -> origin/design/candidate-explore-further-v1
+2026-11-09T22:54:59.3769010Z  * [new branch]          design/color-contract-lab-v1 -> origin/design/color-contract-lab-v1
+2026-11-09T22:54:59.3769410Z  * [new branch]          design/race-prior-observation-v1 -> origin/design/race-prior-observation-v1
+2026-11-09T22:54:59.3769783Z  * [new branch]          design/signal-console-v1 -> origin/design/signal-console-v1
+2026-11-09T22:54:59.3770174Z  * [new branch]          design/typography-architecture-v2 -> origin/design/typography-architecture-v2
+2026-11-09T22:54:59.3770556Z  * [new branch]          docs/poll-semantics-sync -> origin/docs/poll-semantics-sync
+2026-11-09T22:54:59.3770881Z  * [new branch]          docs/readme-fr          -> origin/docs/readme-fr
+2026-11-09T22:54:59.3771315Z  * [new branch]          experiment/event-leads-v0-1 -> origin/experiment/event-leads-v0-1
+2026-11-09T22:54:59.3771688Z  * [new branch]          feat/agenda-policy-issues-v2 -> origin/feat/agenda-policy-issues-v2
+2026-11-09T22:54:59.3772099Z  * [new branch]          feat/candidate-analysis-history-v1 -> origin/feat/candidate-analysis-history-v1
+2026-11-09T22:54:59.3772522Z  * [new branch]          feat/candidate-scrutiny-popover -> origin/feat/candidate-scrutiny-popover
+2026-11-09T22:54:59.3772912Z  * [new branch]          feat/cloudflare-traffic-v1 -> origin/feat/cloudflare-traffic-v1
+2026-11-09T22:54:59.3773344Z  * [new branch]          feat/first-party-discovery-architecture -> origin/feat/first-party-discovery-architecture
+2026-11-09T22:54:59.3773801Z  * [new branch]          feat/selected-analysis-history-v1 -> origin/feat/selected-analysis-history-v1
+2026-11-09T22:54:59.3774219Z  * [new branch]          feat/x-publishing-automation-v1 -> origin/feat/x-publishing-automation-v1
+2026-11-09T22:54:59.3774641Z  * [new branch]          feat/x-publishing-signal-engine-v2 -> origin/feat/x-publishing-signal-engine-v2
+2026-11-09T22:54:59.3775091Z  * [new branch]          feat/x-publishing-v2-1-newsroom -> origin/feat/x-publishing-v2-1-newsroom
+2026-11-09T22:54:59.3775478Z  * [new branch]          feature/agenda-url-family-v1 -> origin/feature/agenda-url-family-v1
+2026-11-09T22:54:59.3775876Z  * [new branch]          feature/analytics-foundation-v1 -> origin/feature/analytics-foundation-v1
+2026-11-09T22:54:59.3776303Z  * [new branch]          feature/campaign-events-adapters-v1 -> origin/feature/campaign-events-adapters-v1
+2026-11-09T22:54:59.3776744Z  * [new branch]          feature/campaign-events-frontend-v1 -> origin/feature/campaign-events-frontend-v1
+2026-11-09T22:54:59.3777185Z  * [new branch]          feature/campaign-events-rn-agenda-v1 -> origin/feature/campaign-events-rn-agenda-v1
+2026-11-09T22:54:59.3777796Z  * [new branch]          feature/dashboard-internal-navigation-v1 -> origin/feature/dashboard-internal-navigation-v1
+2026-11-09T22:54:59.3778319Z  * [new branch]          feature/dashboard-internal-navigation-v1-final -> origin/feature/dashboard-internal-navigation-v1-final
+2026-11-09T22:54:59.3842528Z  * [new branch]          feature/fr-localization-v1 -> origin/feature/fr-localization-v1
+2026-11-09T22:54:59.3843244Z  * [new branch]          feature/global-section-launcher-agenda-v2 -> origin/feature/global-section-launcher-agenda-v2
+2026-11-09T22:54:59.3844017Z  * [new branch]          feature/global-ui-consistency-v1 -> origin/feature/global-ui-consistency-v1
+2026-11-09T22:54:59.3844829Z  * [new branch]          feature/global-ui-navigation-polish-v1 -> origin/feature/global-ui-navigation-polish-v1
+2026-11-09T22:54:59.3845465Z  * [new branch]          feature/live-agenda-issues-v1 -> origin/feature/live-agenda-issues-v1
+2026-11-09T22:54:59.3846020Z  * [new branch]          feature/manual-og-refresh -> origin/feature/manual-og-refresh
+2026-11-09T22:54:59.3846588Z  * [new branch]          feature/menu-footer-polish-v1 -> origin/feature/menu-footer-polish-v1
+2026-11-09T22:54:59.3847215Z  * [new branch]          feature/publication-orchestration-v1 -> origin/feature/publication-orchestration-v1
+2026-11-09T22:54:59.3847827Z  * [new branch]          feature/search-foundation-v1 -> origin/feature/search-foundation-v1
+2026-11-09T22:54:59.3848405Z  * [new branch]          feature/semantic-snapshot-v1 -> origin/feature/semantic-snapshot-v1
+2026-11-09T22:54:59.3849118Z  * [new branch]          feature/social-share-cards -> origin/feature/social-share-cards
+2026-11-09T22:54:59.3849660Z  * [new branch]          feature/trace-candidate-v1 -> origin/feature/trace-candidate-v1
+2026-11-09T22:54:59.3850264Z  * [new branch]          feature/trace-coverage-anatomy-v1 -> origin/feature/trace-coverage-anatomy-v1
+2026-11-09T22:54:59.3850897Z  * [new branch]          feature/trace-flash-shift-v1 -> origin/feature/trace-flash-shift-v1
+2026-11-09T22:54:59.3851487Z  * [new branch]          feature/trace-rendering-v1 -> origin/feature/trace-rendering-v1
+2026-11-09T22:54:59.3852307Z  * [new branch]          feature/trace-v1        -> origin/feature/trace-v1
+2026-11-09T22:54:59.3853029Z  * [new branch]          feature/wikimedia-candidate-attention-backend-v1 -> origin/feature/wikimedia-candidate-attention-backend-v1
+2026-11-09T22:54:59.3853859Z  * [new branch]          feature/x-buffer-scheduled-core-v1 -> origin/feature/x-buffer-scheduled-core-v1
+2026-11-09T22:54:59.3854559Z  * [new branch]          feature/x-visibility-content-v1 -> origin/feature/x-visibility-content-v1
+2026-11-09T22:54:59.3855261Z  * [new branch]          fix/agenda-bar-precision-contract-v1 -> origin/fix/agenda-bar-precision-contract-v1
+2026-11-09T22:54:59.3855916Z  * [new branch]          fix/bing-meta-description -> origin/fix/bing-meta-description
+2026-11-09T22:54:59.3856659Z  * [new branch]          fix/candidate-attention-aggregate-preflight -> origin/fix/candidate-attention-aggregate-preflight
+2026-11-09T22:54:59.3857460Z  * [new branch]          fix/candidate-attention-availability-lag -> origin/fix/candidate-attention-availability-lag
+2026-11-09T22:54:59.3858054Z  * [new branch]          fix/candidate-attention-incomplete-200-retry -> origin/fix/candidate-attention-incomplete-200-retry
+2026-11-09T22:54:59.3858761Z  * [new branch]          fix/candidate-attention-manifest-schema-guard -> origin/fix/candidate-attention-manifest-schema-guard
+2026-11-09T22:54:59.3859321Z  * [new branch]          fix/candidate-attention-sparse-zero-days -> origin/fix/candidate-attention-sparse-zero-days
+2026-11-09T22:54:59.3859835Z  * [new branch]          fix/candidate-attention-wikimedia-availability -> origin/fix/candidate-attention-wikimedia-availability
+2026-11-09T22:54:59.3860433Z  * [new branch]          fix/candidate-dossier-photos-runoff-issues-sort-v1 -> origin/fix/candidate-dossier-photos-runoff-issues-sort-v1
+2026-11-09T22:54:59.3861080Z  * [new branch]          fix/candidate-identity-normalization -> origin/fix/candidate-identity-normalization
+2026-11-09T22:54:59.3861588Z  * [new branch]          fix/candidate-latest-news-duplicate-headline-v1 -> origin/fix/candidate-latest-news-duplicate-headline-v1
+2026-11-09T22:54:59.3862049Z  * [new branch]          fix/candidate-poll-locale-v1 -> origin/fix/candidate-poll-locale-v1
+2026-11-09T22:54:59.3862440Z  * [new branch]          fix/candidate-poll-status-copy -> origin/fix/candidate-poll-status-copy
+2026-11-09T22:54:59.3862886Z  * [new branch]          fix/candidate-reference-featured-poll-v1 -> origin/fix/candidate-reference-featured-poll-v1
+2026-11-09T22:54:59.3863396Z  * [new branch]          fix/candidate-runoff-localization-contract-v1 -> origin/fix/candidate-runoff-localization-contract-v1
+2026-11-09T22:54:59.3863883Z  * [new branch]          fix/candidate-signals-102-contract-v1 -> origin/fix/candidate-signals-102-contract-v1
+2026-11-09T22:54:59.3864362Z  * [new branch]          fix/candidate-signals-dynamic-board-test -> origin/fix/candidate-signals-dynamic-board-test
+2026-11-09T22:54:59.3864890Z  * [new branch]          fix/candidate-signals-equal-poll-range-display-v1 -> origin/fix/candidate-signals-equal-poll-range-display-v1
+2026-11-09T22:54:59.3865521Z  * [new branch]          fix/candidate-signals-schema15-contracts-v1 -> origin/fix/candidate-signals-schema15-contracts-v1
+2026-11-09T22:54:59.3866301Z  * [new branch]          fix/candidate-signals-stale-live-contracts-v1 -> origin/fix/candidate-signals-stale-live-contracts-v1
+2026-11-09T22:54:59.3867005Z  * [new branch]          fix/candidate-signals-test-maintenance -> origin/fix/candidate-signals-test-maintenance
+2026-11-09T22:54:59.3867483Z  * [new branch]          fix/candidate-universe-attention-parity -> origin/fix/candidate-universe-attention-parity
+2026-11-09T22:54:59.3867946Z  * [new branch]          fix/candidate-universe-claims-parity -> origin/fix/candidate-universe-claims-parity
+2026-11-09T22:54:59.3868409Z  * [new branch]          fix/candidate-universe-full-suite-tests -> origin/fix/candidate-universe-full-suite-tests
+2026-11-09T22:54:59.3869238Z  * [new branch]          fix/candidate-universe-reviewed-missing-v1 -> origin/fix/candidate-universe-reviewed-missing-v1
+2026-11-09T22:54:59.3869824Z  * [new branch]          fix/candidate-universe-row-parser-review-v1 -> origin/fix/candidate-universe-row-parser-review-v1
+2026-11-09T22:54:59.3870536Z  * [new branch]          fix/candidate-universe-schema-sync -> origin/fix/candidate-universe-schema-sync
+2026-11-09T22:54:59.3871307Z  * [new branch]          fix/candidate-universe-socialist-source-v1 -> origin/fix/candidate-universe-socialist-source-v1
+2026-11-09T22:54:59.3872088Z  * [new branch]          fix/candidate-universe-temporal-parity -> origin/fix/candidate-universe-temporal-parity
+2026-11-09T22:54:59.3872861Z  * [new branch]          fix/candidate-universe-trigger-contract-v1 -> origin/fix/candidate-universe-trigger-contract-v1
+2026-11-09T22:54:59.3873649Z  * [new branch]          fix/candidate-universe-visibility-history -> origin/fix/candidate-universe-visibility-history
+2026-11-09T22:54:59.3874410Z  * [new branch]          fix/candidate-universe-wikipedia-source -> origin/fix/candidate-universe-wikipedia-source
+2026-11-09T22:54:59.3875101Z  * [new branch]          fix/candidate-workspace-polish -> origin/fix/candidate-workspace-polish
+2026-11-09T22:54:59.3875783Z  * [new branch]          fix/commission-coverage-completion -> origin/fix/commission-coverage-completion
+2026-11-09T22:54:59.3876510Z  * [new branch]          fix/commission-live-evidence-contract-v1 -> origin/fix/commission-live-evidence-contract-v1
+2026-11-09T22:54:59.3877232Z  * [new branch]          fix/commission-transient-retries-v1 -> origin/fix/commission-transient-retries-v1
+2026-11-09T22:54:59.3877855Z  * [new branch]          fix/compact-hero-top-gap-v1 -> origin/fix/compact-hero-top-gap-v1
+2026-11-09T22:54:59.3878422Z  * [new branch]          fix/conditional-scrollbars -> origin/fix/conditional-scrollbars
+2026-11-09T22:54:59.3879423Z  * [new branch]          fix/coverage-percentage-semantics -> origin/fix/coverage-percentage-semantics
+2026-11-09T22:54:59.3880021Z  * [new branch]          fix/daily-og-cover-v1   -> origin/fix/daily-og-cover-v1
+2026-11-09T22:54:59.3880613Z  * [new branch]          fix/desktop-layout-stabilization -> origin/fix/desktop-layout-stabilization
+2026-11-09T22:54:59.3881342Z  * [new branch]          fix/dynamic-route-census-v1 -> origin/fix/dynamic-route-census-v1
+2026-11-09T22:54:59.3881963Z  * [new branch]          fix/footer-live-metrics -> origin/fix/footer-live-metrics
+2026-11-09T22:54:59.3882363Z  * [new branch]          fix/french-autres-multitable-review-v1 -> origin/fix/french-autres-multitable-review-v1
+2026-11-09T22:54:59.3882810Z  * [new branch]          fix/french-autres-pandas3-review-v1 -> origin/fix/french-autres-pandas3-review-v1
+2026-11-09T22:54:59.3883231Z  * [new branch]          fix/french-notice-10292-review-v1 -> origin/fix/french-notice-10292-review-v1
+2026-11-09T22:54:59.3883648Z  * [new branch]          fix/french-poll-heading-hierarchy -> origin/fix/french-poll-heading-hierarchy
+2026-11-09T22:54:59.3884101Z  * [new branch]          fix/french-poll-schema-drift-2026-09-05 -> origin/fix/french-poll-schema-drift-2026-09-05
+2026-11-09T22:54:59.3884595Z  * [new branch]          fix/french-row-linked-candidate-resolution-v1 -> origin/fix/french-row-linked-candidate-resolution-v1
+2026-11-09T22:54:59.3885081Z  * [new branch]          fix/french-row-review-anchor-drift-v1 -> origin/fix/french-row-review-anchor-drift-v1
+2026-11-09T22:54:59.3885519Z  * [new branch]          fix/french-runoff-heading-order-v1 -> origin/fix/french-runoff-heading-order-v1
+2026-11-09T22:54:59.3885917Z  * [new branch]          fix/frontend-facts-schema-1-3 -> origin/fix/frontend-facts-schema-1-3
+2026-11-09T22:54:59.3886314Z  * [new branch]          fix/frozen-fixture-lf-contract-v1 -> origin/fix/frozen-fixture-lf-contract-v1
+2026-11-09T22:54:59.3886734Z  * [new branch]          fix/ifop-10314-live-source-drift-v1 -> origin/fix/ifop-10314-live-source-drift-v1
+2026-11-09T22:54:59.3887261Z  * [new branch]          fix/issues-incidence-consistency-v1 -> origin/fix/issues-incidence-consistency-v1
+2026-11-09T22:54:59.3887898Z  * [new branch]          fix/issues-policy-subtopic-taxonomy-v1 -> origin/fix/issues-policy-subtopic-taxonomy-v1
+2026-11-09T22:54:59.3888491Z  * [new branch]          fix/le-figaro-source-icon -> origin/fix/le-figaro-source-icon
+2026-11-09T22:54:59.3889200Z  * [new branch]          fix/live-projections-orchestration-contract-v1 -> origin/fix/live-projections-orchestration-contract-v1
+2026-11-09T22:54:59.3889666Z  * [new branch]          fix/media-pulse-window-labels-v1 -> origin/fix/media-pulse-window-labels-v1
+2026-11-09T22:54:59.3890119Z  * [new branch]          fix/navigation-json-deterministic-order-v1 -> origin/fix/navigation-json-deterministic-order-v1
+2026-11-09T22:54:59.3890552Z  * [new branch]          fix/news-wire-checkout-main -> origin/fix/news-wire-checkout-main
+2026-11-09T22:54:59.3890938Z  * [new branch]          fix/news-wire-commit-refs-retry -> origin/fix/news-wire-commit-refs-retry
+2026-11-09T22:54:59.3891345Z  * [new branch]          fix/news-wire-manifest-fixture-v1 -> origin/fix/news-wire-manifest-fixture-v1
+2026-11-09T22:54:59.3891776Z  * [new branch]          fix/news-wire-registry-migration-tests -> origin/fix/news-wire-registry-migration-tests
+2026-11-09T22:54:59.3892422Z  * [new branch]          fix/news-wire-temporarily-missing-roster-v1 -> origin/fix/news-wire-temporarily-missing-roster-v1
+2026-11-09T22:54:59.3893125Z  * [new branch]          fix/odoxa-blank-runoff-sample-v1 -> origin/fix/odoxa-blank-runoff-sample-v1
+2026-11-09T22:54:59.3893728Z  * [new branch]          fix/og-cover-midnight-refresh -> origin/fix/og-cover-midnight-refresh
+2026-11-09T22:54:59.3894295Z  * [new branch]          fix/og-refresh-pwsh     -> origin/fix/og-refresh-pwsh
+2026-11-09T22:54:59.3894812Z  * [new branch]          fix/og-refresh-tzdata-v1 -> origin/fix/og-refresh-tzdata-v1
+2026-11-09T22:54:59.3895382Z  * [new branch]          fix/poll-autres-drift-v1 -> origin/fix/poll-autres-drift-v1
+2026-11-09T22:54:59.3895794Z  * [new branch]          fix/poll-candidate-expansion-20261018-v2 -> origin/fix/poll-candidate-expansion-20261018-v2
+2026-11-09T22:54:59.3896230Z  * [new branch]          fix/poll-coverage-reconciliation -> origin/fix/poll-coverage-reconciliation
+2026-11-09T22:54:59.3896624Z  * [new branch]          fix/poll-evidence-fallback-v1 -> origin/fix/poll-evidence-fallback-v1
+2026-11-09T22:54:59.3897005Z  * [new branch]          fix/poll-fixture-lf-contract-v1 -> origin/fix/poll-fixture-lf-contract-v1
+2026-11-09T22:54:59.3897438Z  * [new branch]          fix/poll-fr-t0r1-duplicate-candidates-v1 -> origin/fix/poll-fr-t0r1-duplicate-candidates-v1
+2026-11-09T22:54:59.3897887Z  * [new branch]          fix/poll-frozen-post-audit-baseline -> origin/fix/poll-frozen-post-audit-baseline
+2026-11-09T22:54:59.3898285Z  * [new branch]          fix/poll-history-persistence -> origin/fix/poll-history-persistence
+2026-11-09T22:54:59.3898934Z  * [new branch]          fix/poll-lxml-lazy-import -> origin/fix/poll-lxml-lazy-import
+2026-11-09T22:54:59.3899352Z  * [new branch]          fix/poll-migration-frozen-baseline-tests -> origin/fix/poll-migration-frozen-baseline-tests
+2026-11-09T22:54:59.3899816Z  * [new branch]          fix/poll-page-dynamic-related-test-v1 -> origin/fix/poll-page-dynamic-related-test-v1
+2026-11-09T22:54:59.3900228Z  * [new branch]          fix/poll-pandas3-header-compat -> origin/fix/poll-pandas3-header-compat
+2026-11-09T22:54:59.3900597Z  * [new branch]          fix/poll-post-cutover-tests -> origin/fix/poll-post-cutover-tests
+2026-11-09T22:54:59.3900972Z  * [new branch]          fix/poll-registry-line-endings -> origin/fix/poll-registry-line-endings
+2026-11-09T22:54:59.3901386Z  * [new branch]          fix/poll-runoff-philippe-melenchon-v1 -> origin/fix/poll-runoff-philippe-melenchon-v1
+2026-11-09T22:54:59.3901796Z  * [new branch]          fix/poll-semantic-runoff-churn -> origin/fix/poll-semantic-runoff-churn
+2026-11-09T22:54:59.3902167Z  * [new branch]          fix/poll-wave-provenance-v1 -> origin/fix/poll-wave-provenance-v1
+2026-11-09T22:54:59.3902644Z  * [new branch]          fix/poll-workflow-pin-main -> origin/fix/poll-workflow-pin-main
+2026-11-09T22:54:59.3903013Z  * [new branch]          fix/polling-hub-static-links-v1 -> origin/fix/polling-hub-static-links-v1
+2026-11-09T22:54:59.3903368Z  * [new branch]          fix/polling-hud-purple  -> origin/fix/polling-hud-purple
+2026-11-09T22:54:59.3903702Z  * [new branch]          fix/polling-hud-wave-count -> origin/fix/polling-hud-wave-count
+2026-11-09T22:54:59.3904122Z  * [new branch]          fix/polling-second-round-evidence-drift-v1 -> origin/fix/polling-second-round-evidence-drift-v1
+2026-11-09T22:54:59.3904590Z  * [new branch]          fix/polling-second-run-idempotence-v1 -> origin/fix/polling-second-run-idempotence-v1
+2026-11-09T22:54:59.3904998Z  * [new branch]          fix/polls-fixture-lf-hash-v1 -> origin/fix/polls-fixture-lf-hash-v1
+2026-11-09T22:54:59.3905340Z  * [new branch]          fix/pollster-icons-v1   -> origin/fix/pollster-icons-v1
+2026-11-09T22:54:59.3905753Z  * [new branch]          fix/publication-manifest-null-scrutiny-date -> origin/fix/publication-manifest-null-scrutiny-date
+2026-11-09T22:54:59.3906319Z  * [new branch]          fix/publication-orchestration-v1 -> origin/fix/publication-orchestration-v1
+2026-11-09T22:54:59.3906698Z  * [new branch]          fix/race-attention-scope-v1 -> origin/fix/race-attention-scope-v1
+2026-11-09T22:54:59.3907091Z  * [new branch]          fix/race-coverage-contract-migration -> origin/fix/race-coverage-contract-migration
+2026-11-09T22:54:59.3907517Z  * [new branch]          fix/race-coverage-post-merge-tests -> origin/fix/race-coverage-post-merge-tests
+2026-11-09T22:54:59.3907985Z  * [new branch]          fix/race-glance-tab-regression -> origin/fix/race-glance-tab-regression
+2026-11-09T22:54:59.3908506Z  * [new branch]          fix/race-news-relevance-v2 -> origin/fix/race-news-relevance-v2
+2026-11-09T22:54:59.3909155Z  * [new branch]          fix/recent-changes-dedup -> origin/fix/recent-changes-dedup
+2026-11-09T22:54:59.3909556Z  * [new branch]          fix/recent-changes-duplicate-headline -> origin/fix/recent-changes-duplicate-headline
+2026-11-09T22:54:59.3909980Z  * [new branch]          fix/registry-snapshot-provenance -> origin/fix/registry-snapshot-provenance
+2026-11-09T22:54:59.3910396Z  * [new branch]          fix/rolling-snapshot-reconciliation -> origin/fix/rolling-snapshot-reconciliation
+2026-11-09T22:54:59.3910807Z  * [new branch]          fix/runoff-active-load-isolation -> origin/fix/runoff-active-load-isolation
+2026-11-09T22:54:59.3911368Z  * [new branch]          fix/runoff-common-matchup-line-break-v1 -> origin/fix/runoff-common-matchup-line-break-v1
+2026-11-09T22:54:59.3911914Z  * [new branch]          fix/runoff-stale-live-contracts-v1 -> origin/fix/runoff-stale-live-contracts-v1
+2026-11-09T22:54:59.3912438Z  * [new branch]          fix/small-fr27-updates-2026-08-25 -> origin/fix/small-fr27-updates-2026-08-25
+2026-11-09T22:54:59.3912877Z  * [new branch]          fix/status-band-publication-metadata-v6 -> origin/fix/status-band-publication-metadata-v6
+2026-11-09T22:54:59.3913307Z  * [new branch]          fix/topic-modal-mobile-close-v1 -> origin/fix/topic-modal-mobile-close-v1
+2026-11-09T22:54:59.3913740Z  * [new branch]          fix/update-polls-french-heading-drift-v1 -> origin/fix/update-polls-french-heading-drift-v1
+2026-11-09T22:54:59.3914172Z  * [new branch]          fix/what-changed-loading-handoff -> origin/fix/what-changed-loading-handoff
+2026-11-09T22:54:59.3914570Z  * [new branch]          fix/x-buffer-delivery-safety-v1 -> origin/fix/x-buffer-delivery-safety-v1
+2026-11-09T22:54:59.3914957Z  * [new branch]          fix/x-buffer-exact-reconcile-v1 -> origin/fix/x-buffer-exact-reconcile-v1
+2026-11-09T22:54:59.3915371Z  * [new branch]          fix/x-planner-trigger-reliability-v1 -> origin/fix/x-planner-trigger-reliability-v1
+2026-11-09T22:54:59.3915774Z  * [new branch]          fix/x-scheduler-heartbeat-v1 -> origin/fix/x-scheduler-heartbeat-v1
+2026-11-09T22:54:59.3916203Z  * [new branch]          footer-polish           -> origin/footer-polish
+2026-11-09T22:54:59.3916571Z  * [new branch]          foundation/campaign-events-data-audit -> origin/foundation/campaign-events-data-audit
+2026-11-09T22:54:59.3917030Z  * [new branch]          foundation/commission-notice-discovery-v1 -> origin/foundation/commission-notice-discovery-v1
+2026-11-09T22:54:59.3917486Z  * [new branch]          frontend/candidate-signals-workspace -> origin/frontend/candidate-signals-workspace
+2026-11-09T22:54:59.3917886Z  * [new branch]          frontend/status-band-redesign -> origin/frontend/status-band-redesign
+2026-11-09T22:54:59.3918334Z  * [new branch]          integrate/candidate-public-signals-20261018-v2 -> origin/integrate/candidate-public-signals-20261018-v2
+2026-11-09T22:54:59.3919025Z  * [new branch]          integration/campaign-events-rn-current-main-v1 -> origin/integration/campaign-events-rn-current-main-v1
+2026-11-09T22:54:59.3919414Z  * [new branch]          main                    -> origin/main
+2026-11-09T22:54:59.3919807Z  * [new branch]          maintenance/dashboard-publication-workflow-v1 -> origin/maintenance/dashboard-publication-workflow-v1
+2026-11-09T22:54:59.3920288Z  * [new branch]          manual/campaign-events-2026-10-23 -> origin/manual/campaign-events-2026-10-23
+2026-11-09T22:54:59.3920889Z  * [new branch]          manual/candidate-events-deep-audit-2026-10-26 -> origin/manual/candidate-events-deep-audit-2026-10-26
+2026-11-09T22:54:59.3921393Z  * [new branch]          manual/unhidden-candidate-events-2026-10-26 -> origin/manual/unhidden-candidate-events-2026-10-26
+2026-11-09T22:54:59.3921825Z  * [new branch]          polish/candidate-portraits-v1 -> origin/polish/candidate-portraits-v1
+2026-11-09T22:54:59.3922216Z  * [new branch]          polish/candidates-empty-state-v1 -> origin/polish/candidates-empty-state-v1
+2026-11-09T22:54:59.3922795Z  * [new branch]          polish/countdown-freshness-tooltip-v1 -> origin/polish/countdown-freshness-tooltip-v1
+2026-11-09T22:54:59.3923204Z  * [new branch]          polish/first-round-poll-tabs -> origin/polish/first-round-poll-tabs
+2026-11-09T22:54:59.3923567Z  * [new branch]          polish/hud-metric-tooltips-v1 -> origin/polish/hud-metric-tooltips-v1
+2026-11-09T22:54:59.3923923Z  * [new branch]          polish/media-pulse-density -> origin/polish/media-pulse-density
+2026-11-09T22:54:59.3924262Z  * [new branch]          polish/poll-ui-semantics -> origin/polish/poll-ui-semantics
+2026-11-09T22:54:59.3924609Z  * [new branch]          polish/race-at-a-glance-tabs -> origin/polish/race-at-a-glance-tabs
+2026-11-09T22:54:59.3924983Z  * [new branch]          polish/runoff-neutral-status-v1 -> origin/polish/runoff-neutral-status-v1
+2026-11-09T22:54:59.3925429Z  * [new branch]          polish/runoff-other-matchups-typography-v1 -> origin/polish/runoff-other-matchups-typography-v1
+2026-11-09T22:54:59.3925871Z  * [new branch]          polish/runoff-workspace-final-v1 -> origin/polish/runoff-workspace-final-v1
+2026-11-09T22:54:59.3926242Z  * [new branch]          polish/runoff-workspace-v1 -> origin/polish/runoff-workspace-v1
+2026-11-09T22:54:59.3926622Z  * [new branch]          polish/source-network-status-tile -> origin/polish/source-network-status-tile
+2026-11-09T22:54:59.3926986Z  * [new branch]          polish/tooltips-loading -> origin/polish/tooltips-loading
+2026-11-09T22:54:59.3927371Z  * [new branch]          polish/wikipedia-trendline-hover-v1 -> origin/polish/wikipedia-trendline-hover-v1
+2026-11-09T22:54:59.3927751Z  * [new branch]          polish/workspace-order-v1 -> origin/polish/workspace-order-v1
+2026-11-09T22:54:59.3928153Z  * [new branch]          prototype/marine-le-pen-candidate-page -> origin/prototype/marine-le-pen-candidate-page
+2026-11-09T22:54:59.3928537Z  * [new branch]          prototype/polling-lab   -> origin/prototype/polling-lab
+2026-11-09T22:54:59.3929086Z  * [new branch]          redesign/recent-changes-ledger-manual -> origin/redesign/recent-changes-ledger-manual
+2026-11-09T22:54:59.3929640Z  * [new branch]          refactor/remove-claim-scrutiny-workspace -> origin/refactor/remove-claim-scrutiny-workspace
+2026-11-09T22:54:59.3930112Z  * [new branch]          repair/recent-changes-semantic-precision -> origin/repair/recent-changes-semantic-precision
+2026-11-09T22:54:59.3930558Z  * [new branch]          restore/pre-race-coverage-20260815 -> origin/restore/pre-race-coverage-20260815
+2026-11-09T22:54:59.3930992Z  * [new branch]          seo/candidate-poll-reciprocal-links-v1 -> origin/seo/candidate-poll-reciprocal-links-v1
+2026-11-09T22:54:59.3931361Z  * [new branch]          social-assets           -> origin/social-assets
+2026-11-09T22:54:59.3931668Z  * [new branch]          stage2-freshness-watch  -> origin/stage2-freshness-watch
+2026-11-09T22:54:59.3931984Z  * [new branch]          stage3-hero-briefing    -> origin/stage3-hero-briefing
+2026-11-09T22:54:59.3932411Z  * [new branch]          transfer/candidate-visibility-history-20260817 -> origin/transfer/candidate-visibility-history-20260817
+2026-11-09T22:54:59.3932874Z  * [new branch]          upgrade/cross-publisher-discovery -> origin/upgrade/cross-publisher-discovery
+2026-11-09T22:54:59.3933291Z  * [new branch]          upgrade/recent-changes-ledger-data -> origin/upgrade/recent-changes-ledger-data
+2026-11-09T22:54:59.3934429Z ##[endgroup]
+2026-11-09T22:54:59.3934718Z ##[group]Determining the checkout info
+2026-11-09T22:54:59.3934956Z [command]/usr/bin/git branch --list --remote origin/main
+2026-11-09T22:54:59.3935263Z   origin/main
+2026-11-09T22:54:59.3935726Z ##[endgroup]
+2026-11-09T22:54:59.3935906Z [command]/usr/bin/git sparse-checkout disable
+2026-11-09T22:54:59.3936400Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-09T22:54:59.3936991Z ##[group]Checking out the ref
+2026-11-09T22:54:59.3937254Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-09T22:54:59.8069927Z Switched to a new branch 'main'
+2026-11-09T22:54:59.8073392Z branch 'main' set up to track 'origin/main'.
+2026-11-09T22:54:59.8158742Z ##[endgroup]
+2026-11-09T22:54:59.8208784Z [command]/usr/bin/git log -1 --format=%H
+2026-11-09T22:54:59.8241172Z c5a071876e09963b11286ccc108240c813fd0bd4
+2026-11-09T22:54:59.8485555Z ##[group]Run actions/setup-python@v6
+2026-11-09T22:54:59.8485728Z with:
+2026-11-09T22:54:59.8485856Z   python-version: 3.12
+2026-11-09T22:54:59.8485990Z   check-latest: false
+2026-11-09T22:54:59.8488250Z   token: ***
+2026-11-09T22:54:59.8488395Z   update-environment: true
+2026-11-09T22:54:59.8488774Z   allow-prereleases: false
+2026-11-09T22:54:59.8488945Z   freethreaded: false
+2026-11-09T22:54:59.8489115Z ##[endgroup]
+2026-11-09T22:54:59.9362010Z ##[group]Installed versions
+2026-11-09T22:54:59.9444016Z Successfully set up CPython (3.12.16)
+2026-11-09T22:54:59.9444502Z ##[endgroup]
+2026-11-09T22:54:59.9585219Z ##[group]Run python -m pip install --disable-pip-version-check pandas lxml pypdf
+2026-11-09T22:54:59.9585644Z [36;1mpython -m pip install --disable-pip-version-check pandas lxml pypdf[0m
+2026-11-09T22:54:59.9644304Z shell: /usr/bin/bash -e {0}
+2026-11-09T22:54:59.9644473Z env:
+2026-11-09T22:54:59.9644644Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:54:59.9644914Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T22:54:59.9645159Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:54:59.9645379Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:54:59.9645606Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:54:59.9645833Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T22:54:59.9646032Z ##[endgroup]
+2026-11-09T22:55:00.5988741Z Collecting pandas
+2026-11-09T22:55:00.6587418Z   Downloading pandas-3.1.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (16 kB)
+2026-11-09T22:55:00.8095723Z Collecting lxml
+2026-11-09T22:55:00.8252395Z   Downloading lxml-6.1.3-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.3 kB)
+2026-11-09T22:55:00.8478250Z Collecting pypdf
+2026-11-09T22:55:00.8631405Z   Downloading pypdf-7.0.0-py3-none-any.whl.metadata (7.6 kB)
+2026-11-09T22:55:00.9833854Z Collecting numpy>=2.0.2 (from pandas)
+2026-11-09T22:55:00.9988829Z   Downloading numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+2026-11-09T22:55:01.0160895Z Collecting python-dateutil>=2.9.0 (from pandas)
+2026-11-09T22:55:01.0321442Z   Downloading python_dateutil-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+2026-11-09T22:55:01.0507252Z Collecting tzdata (from python-dateutil>=2.9.0->pandas)
+2026-11-09T22:55:01.0662498Z   Downloading tzdata-2026.6-py2.py3-none-any.whl.metadata (1.4 kB)
+2026-11-09T22:55:01.0860465Z Downloading pandas-3.1.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (12.0 MB)
+2026-11-09T22:55:01.2723728Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.0/12.0 MB 78.9 MB/s  0:00:00
+2026-11-09T22:55:01.2874897Z Downloading lxml-6.1.3-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+2026-11-09T22:55:01.3315462Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 117.1 MB/s  0:00:00
+2026-11-09T22:55:01.3466025Z Downloading pypdf-7.0.0-py3-none-any.whl (413 kB)
+2026-11-09T22:55:01.3641730Z Downloading numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+2026-11-09T22:55:01.5022224Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 121.9 MB/s  0:00:00
+2026-11-09T22:55:01.5176199Z Downloading python_dateutil-4.0.0-py3-none-any.whl (92 kB)
+2026-11-09T22:55:01.5347957Z Downloading tzdata-2026.6-py2.py3-none-any.whl (348 kB)
+2026-11-09T22:55:01.6144376Z Installing collected packages: tzdata, pypdf, numpy, lxml, python-dateutil, pandas
+2026-11-09T22:55:06.8646062Z 
+2026-11-09T22:55:06.8655678Z Successfully installed lxml-6.1.3 numpy-2.5.4 pandas-3.1.1 pypdf-7.0.0 python-dateutil-4.0.0 tzdata-2026.6
+2026-11-09T22:55:06.9255573Z ##[group]Run set -euo pipefail
+2026-11-09T22:55:06.9255839Z [36;1mset -euo pipefail[0m
+2026-11-09T22:55:06.9256001Z [36;1m[0m
+2026-11-09T22:55:06.9256130Z [36;1mpython -B - <<'PY'[0m
+2026-11-09T22:55:06.9256276Z [36;1mimport json[0m
+2026-11-09T22:55:06.9256403Z [36;1mimport os[0m
+2026-11-09T22:55:06.9256537Z [36;1mimport subprocess[0m
+2026-11-09T22:55:06.9256676Z [36;1mimport sys[0m
+2026-11-09T22:55:06.9256812Z [36;1mfrom pathlib import Path[0m
+2026-11-09T22:55:06.9256961Z [36;1m[0m
+2026-11-09T22:55:06.9257090Z [36;1mfrom build_route_registry import ([0m
+2026-11-09T22:55:06.9257262Z [36;1m    _canonical_url,[0m
+2026-11-09T22:55:06.9257408Z [36;1m    _route_content_hash,[0m
+2026-11-09T22:55:06.9257556Z [36;1m    _route_pair,[0m
+2026-11-09T22:55:06.9257698Z [36;1m    _source_file,[0m
+2026-11-09T22:55:06.9257827Z [36;1m)[0m
+2026-11-09T22:55:06.9258017Z [36;1mfrom candidate_candidacy_status import load_candidate_candidacy_status[0m
+2026-11-09T22:55:06.9258341Z [36;1mfrom candidate_page_contract import project_candidate_route_index[0m
+2026-11-09T22:55:06.9258553Z [36;1m[0m
+2026-11-09T22:55:06.9258903Z [36;1mroot = Path.cwd()[0m
+2026-11-09T22:55:06.9259046Z [36;1mready = True[0m
+2026-11-09T22:55:06.9259178Z [36;1mreasons = [][0m
+2026-11-09T22:55:06.9259305Z [36;1mtry:[0m
+2026-11-09T22:55:06.9259456Z [36;1m    candidacy = load_candidate_candidacy_status([0m
+2026-11-09T22:55:06.9259667Z [36;1m        root / "candidate_candidacy_status.json"[0m
+2026-11-09T22:55:06.9259845Z [36;1m    )[0m
+2026-11-09T22:55:06.9260020Z [36;1m    projection = project_candidate_route_index(candidacy, root)[0m
+2026-11-09T22:55:06.9260237Z [36;1m    registry = json.loads([0m
+2026-11-09T22:55:06.9260440Z [36;1m        (root / "route_registry.json").read_text(encoding="utf-8")[0m
+2026-11-09T22:55:06.9260647Z [36;1m    )[0m
+2026-11-09T22:55:06.9260863Z [36;1m    if not isinstance(registry, dict) or registry.get("schema_version") != "1.0":[0m
+2026-11-09T22:55:06.9261160Z [36;1m        raise ValueError("route registry schema version mismatch")[0m
+2026-11-09T22:55:06.9261385Z [36;1m    routes = registry.get("routes")[0m
+2026-11-09T22:55:06.9261711Z [36;1m    if not isinstance(routes, list) or any([0m
+2026-11-09T22:55:06.9261924Z [36;1m        not isinstance(route, dict) for route in routes[0m
+2026-11-09T22:55:06.9262105Z [36;1m    ):[0m
+2026-11-09T22:55:06.9262275Z [36;1m        raise ValueError("route registry routes must be objects")[0m
+2026-11-09T22:55:06.9262562Z [36;1m    published = [route for route in routes if route.get("family") == "candidates"][0m
+2026-11-09T22:55:06.9262809Z [36;1m    expected = _route_pair([0m
+2026-11-09T22:55:06.9263004Z [36;1m        route_key="candidates", family="candidates", kind="hub",[0m
+2026-11-09T22:55:06.9263213Z [36;1m        entity_id="candidates",[0m
+2026-11-09T22:55:06.9263437Z [36;1m        path_fr=projection["hubs"]["fr"], path_en=projection["hubs"]["en"],[0m
+2026-11-09T22:55:06.9263652Z [36;1m    )[0m
+2026-11-09T22:55:06.9263800Z [36;1m    for candidate in projection["candidates"]:[0m
+2026-11-09T22:55:06.9263994Z [36;1m        expected.extend(_route_pair([0m
+2026-11-09T22:55:06.9264206Z [36;1m            route_key=f"candidate:{candidate['candidate_id']}",[0m
+2026-11-09T22:55:06.9264407Z [36;1m            family="candidates",[0m
+2026-11-09T22:55:06.9264620Z [36;1m            kind=("candidate-detail" if candidate["lifecycle"] == "active"[0m
+2026-11-09T22:55:06.9264853Z [36;1m                  else "candidate-archive"),[0m
+2026-11-09T22:55:06.9265046Z [36;1m            entity_id=candidate["candidate_id"],[0m
+2026-11-09T22:55:06.9265288Z [36;1m            path_fr=candidate["routes"]["fr"], path_en=candidate["routes"]["en"],[0m
+2026-11-09T22:55:06.9265509Z [36;1m        ))[0m
+2026-11-09T22:55:06.9265633Z [36;1m    if ([0m
+2026-11-09T22:55:06.9265771Z [36;1m        len(published) != len(expected)[0m
+2026-11-09T22:55:06.9266105Z [36;1m        or {route.get("route_id") for route in published}[0m
+2026-11-09T22:55:06.9266322Z [36;1m        != {route["route_id"] for route in expected}[0m
+2026-11-09T22:55:06.9266501Z [36;1m    ):[0m
+2026-11-09T22:55:06.9266703Z [36;1m        raise ValueError("candidate routes do not match the published projection")[0m
+2026-11-09T22:55:06.9266985Z [36;1m    by_id = {route["route_id"]: route for route in published}[0m
+2026-11-09T22:55:06.9267186Z [36;1m    for route in expected:[0m
+2026-11-09T22:55:06.9267354Z [36;1m        stored = by_id[route["route_id"]][0m
+2026-11-09T22:55:06.9267575Z [36;1m        if any(stored.get(key) != value for key, value in route.items()):[0m
+2026-11-09T22:55:06.9267871Z [36;1m            raise ValueError(f"candidate route identity is stale: {route['route_id']}")[0m
+2026-11-09T22:55:06.9268118Z [36;1m        for field, path_field in ([0m
+2026-11-09T22:55:06.9268337Z [36;1m            ("canonical_url", "path"), ("alternate_url_fr", "alternate_fr"),[0m
+2026-11-09T22:55:06.9268958Z [36;1m            ("alternate_url_en", "alternate_en"), ("x_default_url", "x_default"),[0m
+2026-11-09T22:55:06.9269176Z [36;1m        ):[0m
+2026-11-09T22:55:06.9269363Z [36;1m            if stored.get(field) != _canonical_url(route[path_field]):[0m
+2026-11-09T22:55:06.9269641Z [36;1m                raise ValueError(f"candidate route URL is stale: {route['route_id']}")[0m
+2026-11-09T22:55:06.9269893Z [36;1m        source = _source_file(route["path"])[0m
+2026-11-09T22:55:06.9270151Z [36;1m        if stored.get("source_file") != source.as_posix() or not (root / source).is_file():[0m
+2026-11-09T22:55:06.9270469Z [36;1m            raise ValueError(f"candidate route source is stale: {route['route_id']}")[0m
+2026-11-09T22:55:06.9270786Z [36;1m        digest = _route_content_hash(route=route, root=root, source_path=root / source)[0m
+2026-11-09T22:55:06.9271053Z [36;1m        if stored.get("content_sha256") != digest:[0m
+2026-11-09T22:55:06.9271307Z [36;1m            raise ValueError(f"candidate route hash is stale: {route['route_id']}")[0m
+2026-11-09T22:55:06.9271590Z [36;1mexcept (OSError, ValueError, KeyError, TypeError) as error:[0m
+2026-11-09T22:55:06.9271904Z [36;1m    ready = False[0m
+2026-11-09T22:55:06.9272055Z [36;1m    reasons.append(str(error))[0m
+2026-11-09T22:55:06.9272211Z [36;1m[0m
+2026-11-09T22:55:06.9272323Z [36;1mif ready:[0m
+2026-11-09T22:55:06.9272512Z [36;1m    # Both CLI checks are read-only; never generate in this barrier.[0m
+2026-11-09T22:55:06.9272728Z [36;1m    for arguments in ([0m
+2026-11-09T22:55:06.9272929Z [36;1m        ["build_candidate_reference.py", "--all-active", "--check"],[0m
+2026-11-09T22:55:06.9273167Z [36;1m        ["build_search_entrypoints.py", "--check"],[0m
+2026-11-09T22:55:06.9273343Z [36;1m    ):[0m
+2026-11-09T22:55:06.9273477Z [36;1m        result = subprocess.run([0m
+2026-11-09T22:55:06.9273656Z [36;1m            [sys.executable, "-B", *arguments],[0m
+2026-11-09T22:55:06.9273866Z [36;1m            text=True, capture_output=True, check=False,[0m
+2026-11-09T22:55:06.9274054Z [36;1m        )[0m
+2026-11-09T22:55:06.9274191Z [36;1m        if result.returncode:[0m
+2026-11-09T22:55:06.9274353Z [36;1m            ready = False[0m
+2026-11-09T22:55:06.9274595Z [36;1m            reasons.append(" ".join(arguments) + ": " + (result.stderr or result.stdout).strip())[0m
+2026-11-09T22:55:06.9274837Z [36;1m[0m
+2026-11-09T22:55:06.9275025Z [36;1mwith Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:[0m
+2026-11-09T22:55:06.9275285Z [36;1m    output.write(f"ready={str(ready).lower()}\n")[0m
+2026-11-09T22:55:06.9275465Z [36;1mif ready:[0m
+2026-11-09T22:55:06.9275657Z [36;1m    print("Candidate publication is ready for downstream publication.")[0m
+2026-11-09T22:55:06.9275879Z [36;1melse:[0m
+2026-11-09T22:55:06.9276111Z [36;1m    message = "Publication deferred: candidate publication is not ready.\n" + "\n".join(reasons)[0m
+2026-11-09T22:55:06.9276379Z [36;1m    print(message)[0m
+2026-11-09T22:55:06.9276651Z [36;1m    if os.environ.get("GITHUB_STEP_SUMMARY"):[0m
+2026-11-09T22:55:06.9276923Z [36;1m        with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:[0m
+2026-11-09T22:55:06.9277190Z [36;1m            summary.write(message + "\n")[0m
+2026-11-09T22:55:06.9277353Z [36;1mPY[0m
+2026-11-09T22:55:06.9325420Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T22:55:06.9325618Z env:
+2026-11-09T22:55:06.9325786Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:06.9326039Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T22:55:06.9326482Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:06.9343951Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:06.9344196Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:06.9344427Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T22:55:06.9344624Z ##[endgroup]
+2026-11-09T22:55:12.7560608Z Candidate publication is ready for downstream publication.
+2026-11-09T22:55:12.7741840Z ##[group]Run set -euo pipefail
+2026-11-09T22:55:12.7742095Z [36;1mset -euo pipefail[0m
+2026-11-09T22:55:12.7742235Z [36;1m[0m
+2026-11-09T22:55:12.7742420Z [36;1mif [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then[0m
+2026-11-09T22:55:12.7742693Z [36;1m  echo "Checkout must be clean before Agenda generation." >&2[0m
+2026-11-09T22:55:12.7742896Z [36;1m  exit 1[0m
+2026-11-09T22:55:12.7743013Z [36;1mfi[0m
+2026-11-09T22:55:12.7743125Z [36;1m[0m
+2026-11-09T22:55:12.7743246Z [36;1mpython -B - <<'PY'[0m
+2026-11-09T22:55:12.7743386Z [36;1mimport json[0m
+2026-11-09T22:55:12.7743510Z [36;1mimport os[0m
+2026-11-09T22:55:12.7743664Z [36;1mfrom datetime import datetime, timezone[0m
+2026-11-09T22:55:12.7743848Z [36;1mfrom pathlib import Path[0m
+2026-11-09T22:55:12.7743993Z [36;1m[0m
+2026-11-09T22:55:12.7744129Z [36;1mfrom build_publication_manifest import ([0m
+2026-11-09T22:55:12.7744309Z [36;1m    build_manifest,[0m
+2026-11-09T22:55:12.7744485Z [36;1m    validate_manifest,[0m
+2026-11-09T22:55:12.7744631Z [36;1m)[0m
+2026-11-09T22:55:12.7744864Z [36;1m[0m
+2026-11-09T22:55:12.7744976Z [36;1mrequired = ([0m
+2026-11-09T22:55:12.7745110Z [36;1m    "news_wire.json",[0m
+2026-11-09T22:55:12.7745271Z [36;1m    "candidate_agenda_history.json",[0m
+2026-11-09T22:55:12.7745450Z [36;1m    "candidate_candidacy_status.json",[0m
+2026-11-09T22:55:12.7745629Z [36;1m    "poll_pages_manifest.json",[0m
+2026-11-09T22:55:12.7745799Z [36;1m    "issue_pages_manifest.json",[0m
+2026-11-09T22:55:12.7745968Z [36;1m    "route_registry.json",[0m
+2026-11-09T22:55:12.7746128Z [36;1m    "agenda_pages_manifest.json",[0m
+2026-11-09T22:55:12.7746298Z [36;1m    "publication_manifest.json",[0m
+2026-11-09T22:55:12.7746454Z [36;1m)[0m
+2026-11-09T22:55:12.7746572Z [36;1mpayloads = {}[0m
+2026-11-09T22:55:12.7746712Z [36;1mfor name in required:[0m
+2026-11-09T22:55:12.7746861Z [36;1m    path = Path(name)[0m
+2026-11-09T22:55:12.7747048Z [36;1m    if not path.is_file() or not os.access(path, os.R_OK):[0m
+2026-11-09T22:55:12.7747310Z [36;1m        raise SystemExit(f"required readable input is missing: {name}")[0m
+2026-11-09T22:55:12.7747526Z [36;1m    try:[0m
+2026-11-09T22:55:12.7747707Z [36;1m        payloads[name] = json.loads(path.read_text(encoding="utf-8"))[0m
+2026-11-09T22:55:12.7747978Z [36;1m    except (OSError, UnicodeError, json.JSONDecodeError) as error:[0m
+2026-11-09T22:55:12.7748263Z [36;1m        raise SystemExit(f"required input is not readable JSON: {name}: {error}")[0m
+2026-11-09T22:55:12.7748488Z [36;1m[0m
+2026-11-09T22:55:12.7748896Z [36;1mfor name in ("index.html", "sondages/index.html", "en/sondages/index.html"):[0m
+2026-11-09T22:55:12.7749124Z [36;1m    path = Path(name)[0m
+2026-11-09T22:55:12.7749310Z [36;1m    if not path.is_file() or not os.access(path, os.R_OK):[0m
+2026-11-09T22:55:12.7749575Z [36;1m        raise SystemExit(f"required readable shell template is missing: {name}")[0m
+2026-11-09T22:55:12.7749824Z [36;1m    path.read_text(encoding="utf-8")[0m
+2026-11-09T22:55:12.7749984Z [36;1m[0m
+2026-11-09T22:55:12.7750132Z [36;1mstored = payloads["publication_manifest.json"][0m
+2026-11-09T22:55:12.7750320Z [36;1mvalidate_manifest(stored)[0m
+2026-11-09T22:55:12.7750486Z [36;1mpublished_at = stored["published_at"][0m
+2026-11-09T22:55:12.7750740Z [36;1mexpected = build_manifest(Path.cwd(), published_at=published_at)[0m
+2026-11-09T22:55:12.7750958Z [36;1mif stored != expected:[0m
+2026-11-09T22:55:12.7751111Z [36;1m    raise SystemExit([0m
+2026-11-09T22:55:12.7751317Z [36;1m        "publication_manifest.json is not synchronized with its inputs"[0m
+2026-11-09T22:55:12.7751525Z [36;1m    )[0m
+2026-11-09T22:55:12.7751640Z [36;1m[0m
+2026-11-09T22:55:12.7751761Z [36;1mnormalized = published_at[0m
+2026-11-09T22:55:12.7751929Z [36;1mif normalized.endswith("Z"):[0m
+2026-11-09T22:55:12.7752106Z [36;1m    normalized = normalized[:-1] + "+00:00"[0m
+2026-11-09T22:55:12.7752433Z [36;1minstant = datetime.fromisoformat(normalized)[0m
+2026-11-09T22:55:12.7752618Z [36;1mif instant.tzinfo is None:[0m
+2026-11-09T22:55:12.7752864Z [36;1m    raise SystemExit("publication_manifest.json published_at must be timezone-aware")[0m
+2026-11-09T22:55:12.7753183Z [36;1mroute_effective_date = instant.astimezone(timezone.utc).date().isoformat()[0m
+2026-11-09T22:55:12.7753408Z [36;1m[0m
+2026-11-09T22:55:12.7753597Z [36;1mwith Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:[0m
+2026-11-09T22:55:12.7753865Z [36;1m    output.write(f"published_at={published_at}\n")[0m
+2026-11-09T22:55:12.7754102Z [36;1m    output.write(f"route_effective_date={route_effective_date}\n")[0m
+2026-11-09T22:55:12.7754306Z [36;1mPY[0m
+2026-11-09T22:55:12.7754419Z [36;1m[0m
+2026-11-09T22:55:12.7754544Z [36;1mpublished_at="$(python -B -c \[0m
+2026-11-09T22:55:12.7754820Z [36;1m  'import json; print(json.load(open("publication_manifest.json", encoding="utf-8"))["published_at"])')"[0m
+2026-11-09T22:55:12.7755128Z [36;1mpython -B build_publication_manifest.py \[0m
+2026-11-09T22:55:12.7755302Z [36;1m  --check \[0m
+2026-11-09T22:55:12.7755521Z [36;1m  --published-at "$published_at"[0m
+2026-11-09T22:55:12.7798802Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T22:55:12.7798993Z env:
+2026-11-09T22:55:12.7799153Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:12.7799396Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T22:55:12.7799634Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:12.7799858Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:12.7800077Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:12.7800303Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T22:55:12.7800494Z ##[endgroup]
+2026-11-09T22:55:14.5992491Z validated publication_manifest.json (snapshot 56e594944f43e8b0630a89a6fc8f7dadabb7cb2b56e3c1876639a5e15cf432a2)
+2026-11-09T22:55:14.5993347Z warning: poll coverage: unresolved relevant Commission notice commission:10362 (10362 Pres IV TOLUNA HARRIS INTERACTIVE 9 novembre)
+2026-11-09T22:55:14.5994148Z warning: poll coverage: unresolved relevant Commission notice commission:10333 (10333 Pres IV OPINIONWAY Cnews 22 octobre)
+2026-11-09T22:55:14.5994887Z warning: poll coverage: unresolved relevant Commission notice commission:10327 (10327 Pres Barometre election V7 IFOP 20 octobre)
+2026-11-09T22:55:14.5995614Z warning: poll coverage: unresolved relevant Commission notice commission:10319 (10319 Pres IV OPINIONWAY Cnews 15 octobre)
+2026-11-09T22:55:14.5996318Z warning: poll coverage: unresolved relevant Commission notice commission:10264 (10264 Pres OPINIONWAY Facebook 15 septembre)
+2026-11-09T22:55:14.5997035Z warning: poll coverage: unresolved relevant Commission notice commission:10260 (10260 Pres IV OPINIONWAY Cnews 11 septembre)
+2026-11-09T22:55:14.6212100Z ##[group]Run set -euo pipefail
+2026-11-09T22:55:14.6212359Z [36;1mset -euo pipefail[0m
+2026-11-09T22:55:14.6212498Z [36;1m[0m
+2026-11-09T22:55:14.6212638Z [36;1massert_allowed_changes() {[0m
+2026-11-09T22:55:14.6212814Z [36;1m  local entry path unexpected=0[0m
+2026-11-09T22:55:14.6212989Z [36;1m  while IFS= read -r -d '' entry; do[0m
+2026-11-09T22:55:14.6213190Z [36;1m    if [[ "${entry:0:2}" == *R* || "${entry:0:2}" == *C* ]]; then[0m
+2026-11-09T22:55:14.6213421Z [36;1m      echo "Unexpected generated rename/copy: $entry" >&2[0m
+2026-11-09T22:55:14.6213611Z [36;1m      return 1[0m
+2026-11-09T22:55:14.6213741Z [36;1m    fi[0m
+2026-11-09T22:55:14.6213864Z [36;1m    path="${entry:3}"[0m
+2026-11-09T22:55:14.6214007Z [36;1m    case "$path" in[0m
+2026-11-09T22:55:14.6214513Z [36;1m      agenda_coverage_history.json|agenda_pages_manifest.json|agenda/*|en/agenda/*|route_registry.json|sitemap.xml|sitemap-core.xml|sitemap-candidates.xml|sitemap-polls.xml|sitemap-issues.xml|sitemap-agenda.xml)[0m
+2026-11-09T22:55:14.6214983Z [36;1m        ;;[0m
+2026-11-09T22:55:14.6215105Z [36;1m      *)[0m
+2026-11-09T22:55:14.6215252Z [36;1m        echo "Unexpected generated path: $path" >&2[0m
+2026-11-09T22:55:14.6215438Z [36;1m        unexpected=1[0m
+2026-11-09T22:55:14.6215574Z [36;1m        ;;[0m
+2026-11-09T22:55:14.6215700Z [36;1m    esac[0m
+2026-11-09T22:55:14.6215870Z [36;1m  done < <(git status --porcelain=v1 -z --untracked-files=all)[0m
+2026-11-09T22:55:14.6216086Z [36;1m  if [[ "$unexpected" -ne 0 ]]; then[0m
+2026-11-09T22:55:14.6216248Z [36;1m    return 1[0m
+2026-11-09T22:55:14.6216370Z [36;1m  fi[0m
+2026-11-09T22:55:14.6216479Z [36;1m}[0m
+2026-11-09T22:55:14.6216587Z [36;1m[0m
+2026-11-09T22:55:14.6216707Z [36;1msnapshot_generated_state() {[0m
+2026-11-09T22:55:14.6216865Z [36;1m  local label="$1"[0m
+2026-11-09T22:55:14.6217072Z [36;1m  git status --porcelain=v1 -z --untracked-files=all \[0m
+2026-11-09T22:55:14.6217287Z [36;1m    > "$RUNNER_TEMP/agenda-$label.status"[0m
+2026-11-09T22:55:14.6217464Z [36;1m  git diff --binary -- \[0m
+2026-11-09T22:55:14.6217662Z [36;1m    agenda_coverage_history.json agenda_pages_manifest.json \[0m
+2026-11-09T22:55:14.6218008Z [36;1m    agenda en/agenda route_registry.json \[0m
+2026-11-09T22:55:14.6218220Z [36;1m    sitemap.xml sitemap-core.xml sitemap-candidates.xml \[0m
+2026-11-09T22:55:14.6218470Z [36;1m    sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml \[0m
+2026-11-09T22:55:14.6218858Z [36;1m    > "$RUNNER_TEMP/agenda-$label.diff"[0m
+2026-11-09T22:55:14.6219075Z [36;1m  python -B - "$RUNNER_TEMP/agenda-$label.sha256" <<'PY'[0m
+2026-11-09T22:55:14.6219271Z [36;1mimport hashlib[0m
+2026-11-09T22:55:14.6219404Z [36;1mimport sys[0m
+2026-11-09T22:55:14.6219538Z [36;1mfrom pathlib import Path[0m
+2026-11-09T22:55:14.6219683Z [36;1m[0m
+2026-11-09T22:55:14.6219795Z [36;1mfiles = [][0m
+2026-11-09T22:55:14.6219919Z [36;1mfor name in ([0m
+2026-11-09T22:55:14.6220073Z [36;1m    "agenda_coverage_history.json",[0m
+2026-11-09T22:55:14.6220251Z [36;1m    "agenda_pages_manifest.json",[0m
+2026-11-09T22:55:14.6220415Z [36;1m    "route_registry.json",[0m
+2026-11-09T22:55:14.6220574Z [36;1m    "sitemap.xml",[0m
+2026-11-09T22:55:14.6220719Z [36;1m    "sitemap-core.xml",[0m
+2026-11-09T22:55:14.6220875Z [36;1m    "sitemap-candidates.xml",[0m
+2026-11-09T22:55:14.6221034Z [36;1m    "sitemap-polls.xml",[0m
+2026-11-09T22:55:14.6221185Z [36;1m    "sitemap-issues.xml",[0m
+2026-11-09T22:55:14.6221342Z [36;1m    "sitemap-agenda.xml",[0m
+2026-11-09T22:55:14.6221484Z [36;1m):[0m
+2026-11-09T22:55:14.6221606Z [36;1m    path = Path(name)[0m
+2026-11-09T22:55:14.6221753Z [36;1m    if path.is_file():[0m
+2026-11-09T22:55:14.6221903Z [36;1m        files.append(path)[0m
+2026-11-09T22:55:14.6222089Z [36;1mfor root in (Path("agenda"), Path("en/agenda")):[0m
+2026-11-09T22:55:14.6222277Z [36;1m    if root.is_dir():[0m
+2026-11-09T22:55:14.6222624Z [36;1m        files.extend(path for path in root.rglob("*") if path.is_file())[0m
+2026-11-09T22:55:14.6222834Z [36;1m[0m
+2026-11-09T22:55:14.6222947Z [36;1mlines = [][0m
+2026-11-09T22:55:14.6223124Z [36;1mfor path in sorted(files, key=lambda item: item.as_posix()):[0m
+2026-11-09T22:55:14.6223364Z [36;1m    digest = hashlib.sha256(path.read_bytes()).hexdigest()[0m
+2026-11-09T22:55:14.6223586Z [36;1m    lines.append(f"{digest}  {path.as_posix()}")[0m
+2026-11-09T22:55:14.6223831Z [36;1mPath(sys.argv[1]).write_text("\n".join(lines) + "\n", encoding="utf-8")[0m
+2026-11-09T22:55:14.6224048Z [36;1mPY[0m
+2026-11-09T22:55:14.6224158Z [36;1m}[0m
+2026-11-09T22:55:14.6224270Z [36;1m[0m
+2026-11-09T22:55:14.6224409Z [36;1mpython -B build_agenda_coverage_history.py[0m
+2026-11-09T22:55:14.6224619Z [36;1mpython -B build_agenda_coverage_history.py --check[0m
+2026-11-09T22:55:14.6224799Z [36;1m[0m
+2026-11-09T22:55:14.6224925Z [36;1mpython -B build_agenda_pages.py[0m
+2026-11-09T22:55:14.6225103Z [36;1mpython -B build_agenda_pages.py --check[0m
+2026-11-09T22:55:14.6225300Z [36;1mpython -B build_agenda_pages.py --thin-audit[0m
+2026-11-09T22:55:14.6225474Z [36;1m[0m
+2026-11-09T22:55:14.6225612Z [36;1mpython -B -m unittest -v test_agenda_pages[0m
+2026-11-09T22:55:14.6225779Z [36;1m[0m
+2026-11-09T22:55:14.6225911Z [36;1mpython -B build_route_registry.py \[0m
+2026-11-09T22:55:14.6226109Z [36;1m  --agenda-manifest agenda_pages_manifest.json \[0m
+2026-11-09T22:55:14.6226313Z [36;1m  --effective-date "$ROUTE_EFFECTIVE_DATE"[0m
+2026-11-09T22:55:14.6226496Z [36;1mpython -B build_route_registry.py \[0m
+2026-11-09T22:55:14.6226685Z [36;1m  --agenda-manifest agenda_pages_manifest.json \[0m
+2026-11-09T22:55:14.6226860Z [36;1m  --check[0m
+2026-11-09T22:55:14.6226982Z [36;1m[0m
+2026-11-09T22:55:14.6227105Z [36;1mpython -B build_sitemaps.py[0m
+2026-11-09T22:55:14.6227273Z [36;1mpython -B build_sitemaps.py --check[0m
+2026-11-09T22:55:14.6227429Z [36;1m[0m
+2026-11-09T22:55:14.6227549Z [36;1mpython -B -m unittest -v \[0m
+2026-11-09T22:55:14.6227710Z [36;1m  test_agenda_page_contract \[0m
+2026-11-09T22:55:14.6227880Z [36;1m  test_build_agenda_coverage_history \[0m
+2026-11-09T22:55:14.6228049Z [36;1m  test_agenda_pages \[0m
+2026-11-09T22:55:14.6228293Z [36;1m  test_campaign_agenda_evidence \[0m
+2026-11-09T22:55:14.6228471Z [36;1m  test_build_candidate_agenda_history \[0m
+2026-11-09T22:55:14.6228832Z [36;1m  test_candidate_agenda_history_contract \[0m
+2026-11-09T22:55:14.6229095Z [36;1m  test_route_registry \[0m
+2026-11-09T22:55:14.6229304Z [36;1m  test_search_foundation \[0m
+2026-11-09T22:55:14.6229460Z [36;1m  test_publication_manifest \[0m
+2026-11-09T22:55:14.6229635Z [36;1m  test_publication_manifest_registry_v2 \[0m
+2026-11-09T22:55:14.6229815Z [36;1m  test_agenda_family_automation \[0m
+2026-11-09T22:55:14.6229985Z [36;1m  test_production_publication_queue[0m
+2026-11-09T22:55:14.6230139Z [36;1m[0m
+2026-11-09T22:55:14.6230255Z [36;1mgit diff --check[0m
+2026-11-09T22:55:14.6230400Z [36;1massert_allowed_changes[0m
+2026-11-09T22:55:14.6230558Z [36;1msnapshot_generated_state first[0m
+2026-11-09T22:55:14.6230707Z [36;1m[0m
+2026-11-09T22:55:14.6230846Z [36;1mpython -B build_agenda_coverage_history.py[0m
+2026-11-09T22:55:14.6231056Z [36;1mpython -B build_agenda_coverage_history.py --check[0m
+2026-11-09T22:55:14.6231233Z [36;1m[0m
+2026-11-09T22:55:14.6231357Z [36;1mpython -B build_agenda_pages.py[0m
+2026-11-09T22:55:14.6231534Z [36;1mpython -B build_agenda_pages.py --check[0m
+2026-11-09T22:55:14.6231730Z [36;1mpython -B build_agenda_pages.py --thin-audit[0m
+2026-11-09T22:55:14.6231897Z [36;1m[0m
+2026-11-09T22:55:14.6232030Z [36;1mpython -B build_route_registry.py \[0m
+2026-11-09T22:55:14.6232227Z [36;1m  --agenda-manifest agenda_pages_manifest.json \[0m
+2026-11-09T22:55:14.6232431Z [36;1m  --effective-date "$ROUTE_EFFECTIVE_DATE"[0m
+2026-11-09T22:55:14.6232618Z [36;1mpython -B build_route_registry.py \[0m
+2026-11-09T22:55:14.6232809Z [36;1m  --agenda-manifest agenda_pages_manifest.json \[0m
+2026-11-09T22:55:14.6233095Z [36;1m  --check[0m
+2026-11-09T22:55:14.6233218Z [36;1m[0m
+2026-11-09T22:55:14.6233338Z [36;1mpython -B build_sitemaps.py[0m
+2026-11-09T22:55:14.6233507Z [36;1mpython -B build_sitemaps.py --check[0m
+2026-11-09T22:55:14.6233671Z [36;1m[0m
+2026-11-09T22:55:14.6233785Z [36;1mgit diff --check[0m
+2026-11-09T22:55:14.6233928Z [36;1massert_allowed_changes[0m
+2026-11-09T22:55:14.6234082Z [36;1msnapshot_generated_state second[0m
+2026-11-09T22:55:14.6234235Z [36;1m[0m
+2026-11-09T22:55:14.6234426Z [36;1mcmp "$RUNNER_TEMP/agenda-first.status" "$RUNNER_TEMP/agenda-second.status"[0m
+2026-11-09T22:55:14.6234725Z [36;1mcmp "$RUNNER_TEMP/agenda-first.diff" "$RUNNER_TEMP/agenda-second.diff"[0m
+2026-11-09T22:55:14.6235017Z [36;1mcmp "$RUNNER_TEMP/agenda-first.sha256" "$RUNNER_TEMP/agenda-second.sha256"[0m
+2026-11-09T22:55:14.6235316Z [36;1mecho "Deterministic regeneration introduced zero additional changes."[0m
+2026-11-09T22:55:14.6278536Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T22:55:14.6278876Z env:
+2026-11-09T22:55:14.6279040Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:14.6279285Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T22:55:14.6279531Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:14.6279752Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:14.6279972Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T22:55:14.6280199Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T22:55:14.6280401Z   ROUTE_EFFECTIVE_DATE: 2026-11-09
+2026-11-09T22:55:14.6280553Z ##[endgroup]
+2026-11-09T22:57:58.8445073Z built Agenda coverage history: 2026-07-23 to 2026-11-08 (109 complete days)
+2026-11-09T23:00:46.8897634Z Agenda coverage history check clean: 109 complete days
+2026-11-09T23:00:47.3145383Z built Agenda pages: 6 public topics, 28 routes
+2026-11-09T23:00:47.6724603Z Agenda page check clean: 6 topics, 28 routes
+2026-11-09T23:00:48.0489865Z Agenda thin-page audit clean
+2026-11-09T23:00:48.7793725Z test_agenda_build_does_not_modify_issues_family (test_agenda_pages.AgendaPageTests.test_agenda_build_does_not_modify_issues_family) ... ok
+2026-11-09T23:00:49.9286144Z test_all_english_routes_have_no_french_structural_ui (test_agenda_pages.AgendaPageTests.test_all_english_routes_have_no_french_structural_ui) ... ok
+2026-11-09T23:00:50.9471981Z test_all_french_routes_have_no_english_structural_ui (test_agenda_pages.AgendaPageTests.test_all_french_routes_have_no_english_structural_ui) ... ok
+2026-11-09T23:00:50.9472576Z test_all_six_topics_are_current_and_rendered (test_agenda_pages.AgendaPageTests.test_all_six_topics_are_current_and_rendered) ... ok
+2026-11-09T23:00:50.9476947Z test_associated_signals_come_only_from_matched_term_counts (test_agenda_pages.AgendaPageTests.test_associated_signals_come_only_from_matched_term_counts) ... ok
+2026-11-09T23:00:51.1021908Z test_bilingual_page_hierarchy_is_parallel (test_agenda_pages.AgendaPageTests.test_bilingual_page_hierarchy_is_parallel) ... ok
+2026-11-09T23:00:51.1026261Z test_candidate_associations_are_semantically_and_numerically_separate (test_agenda_pages.AgendaPageTests.test_candidate_associations_are_semantically_and_numerically_separate) ... ok
+2026-11-09T23:00:51.1035340Z test_check_detects_stale_text_with_normalized_portable_comparison (test_agenda_pages.AgendaPageTests.test_check_detects_stale_text_with_normalized_portable_comparison) ... ok
+2026-11-09T23:00:51.1036315Z test_complete_week_movement_uses_exact_evolution_domain (test_agenda_pages.AgendaPageTests.test_complete_week_movement_uses_exact_evolution_domain) ... ok
+2026-11-09T23:00:51.1145298Z test_copy_audit_excludes_source_leaves_but_keeps_surrounding_ui (test_agenda_pages.AgendaPageTests.test_copy_audit_excludes_source_leaves_but_keeps_surrounding_ui) ... ok
+2026-11-09T23:00:51.1155139Z test_css_preserves_issues_baseline_with_scoped_agenda_hub_overrides (test_agenda_pages.AgendaPageTests.test_css_preserves_issues_baseline_with_scoped_agenda_hub_overrides) ... ok
+2026-11-09T23:00:51.1163980Z test_current_activity_absolute_weekly_summary (test_agenda_pages.AgendaPageTests.test_current_activity_absolute_weekly_summary) ... ok
+2026-11-09T23:00:51.1166057Z test_current_activity_bar_precision_half_even_zero_and_maximum (test_agenda_pages.AgendaPageTests.test_current_activity_bar_precision_half_even_zero_and_maximum) ... ok
+2026-11-09T23:00:51.1186611Z test_current_activity_temporal_dates_and_source_day_heights (test_agenda_pages.AgendaPageTests.test_current_activity_temporal_dates_and_source_day_heights) ... ok
+2026-11-09T23:00:51.1233134Z test_current_bar_contract_rejects_wrong_value_and_precision (test_agenda_pages.AgendaPageTests.test_current_bar_contract_rejects_wrong_value_and_precision) ... ok
+2026-11-09T23:00:51.1234153Z test_current_bar_precision_all_zero_series (test_agenda_pages.AgendaPageTests.test_current_bar_precision_all_zero_series) ... ok
+2026-11-09T23:00:51.1240896Z test_current_bottom_navigation_localized_routes (test_agenda_pages.AgendaPageTests.test_current_bottom_navigation_localized_routes) ... ok
+2026-11-09T23:00:51.1244196Z test_current_candidate_adaptive_columns_share_global_magnitude_scale (test_agenda_pages.AgendaPageTests.test_current_candidate_adaptive_columns_share_global_magnitude_scale) ... ok
+2026-11-09T23:00:51.1266940Z test_current_compact_history_coverage_metrics_and_daily_series (test_agenda_pages.AgendaPageTests.test_current_compact_history_coverage_metrics_and_daily_series) ... ok
+2026-11-09T23:00:51.1283137Z test_current_detail_bilingual_product_vocabulary (test_agenda_pages.AgendaPageTests.test_current_detail_bilingual_product_vocabulary) ... ok
+2026-11-09T23:00:51.1298670Z test_current_detail_required_structure_and_no_related_module (test_agenda_pages.AgendaPageTests.test_current_detail_required_structure_and_no_related_module) ... ok
+2026-11-09T23:00:51.1309312Z test_current_evidence_desktop_and_mobile_scroll_css_contract (test_agenda_pages.AgendaPageTests.test_current_evidence_desktop_and_mobile_scroll_css_contract) ... ok
+2026-11-09T23:00:51.1317374Z test_current_evidence_header_and_omissions_stay_outside_scroll_body (test_agenda_pages.AgendaPageTests.test_current_evidence_header_and_omissions_stay_outside_scroll_body) ... ok
+2026-11-09T23:00:51.1338297Z test_current_evidence_uses_base_cap_omissions_and_verbatim_urls (test_agenda_pages.AgendaPageTests.test_current_evidence_uses_base_cap_omissions_and_verbatim_urls) ... ok
+2026-11-09T23:00:51.1345021Z test_current_hero_weekly_share_two_cells (test_agenda_pages.AgendaPageTests.test_current_hero_weekly_share_two_cells) ... ok
+2026-11-09T23:00:51.1346157Z test_current_hub_bar_precision_half_even_zero_minimum_and_maximum (test_agenda_pages.AgendaPageTests.test_current_hub_bar_precision_half_even_zero_minimum_and_maximum) ... ok
+2026-11-09T23:00:51.3039646Z test_current_hub_bar_renderer_cannot_change_detail_or_history_outputs (test_agenda_pages.AgendaPageTests.test_current_hub_bar_renderer_cannot_change_detail_or_history_outputs) ... ok
+2026-11-09T23:00:51.3049677Z test_current_hub_bilingual_product_vocabulary (test_agenda_pages.AgendaPageTests.test_current_hub_bilingual_product_vocabulary) ... ok
+2026-11-09T23:00:51.3054605Z test_current_hub_card_component_preserves_issues_geometry_and_three_columns (test_agenda_pages.AgendaPageTests.test_current_hub_card_component_preserves_issues_geometry_and_three_columns) ... ok
+2026-11-09T23:00:51.3069752Z test_current_hub_card_temporal_boundaries_values_and_order (test_agenda_pages.AgendaPageTests.test_current_hub_card_temporal_boundaries_values_and_order) ... ok
+2026-11-09T23:00:51.3075323Z test_current_hub_evidence_exact_source_rows_and_history_route (test_agenda_pages.AgendaPageTests.test_current_hub_evidence_exact_source_rows_and_history_route) ... ok
+2026-11-09T23:00:51.3077939Z test_current_hub_required_structure_and_order (test_agenda_pages.AgendaPageTests.test_current_hub_required_structure_and_order) ... ok
+2026-11-09T23:00:51.3080849Z test_daily_ledger_denominators_reconcile (test_agenda_pages.AgendaPageTests.test_daily_ledger_denominators_reconcile) ... ok
+2026-11-09T23:00:51.3480510Z test_dormant_sparse_state_and_unpublished_manifest_exclusion (test_agenda_pages.AgendaPageTests.test_dormant_sparse_state_and_unpublished_manifest_exclusion) ... ok
+2026-11-09T23:00:51.3481440Z test_every_public_topic_has_four_locked_routes (test_agenda_pages.AgendaPageTests.test_every_public_topic_has_four_locked_routes) ... ok
+2026-11-09T23:00:51.3489454Z test_exact_route_census_and_language_split (test_agenda_pages.AgendaPageTests.test_exact_route_census_and_language_split) ... ok
+2026-11-09T23:00:51.3518411Z test_footer_hud_is_prepared_from_live_poll_manifest (test_agenda_pages.AgendaPageTests.test_footer_hud_is_prepared_from_live_poll_manifest) ... ok
+2026-11-09T23:00:51.3551910Z test_french_english_dom_hierarchy_is_parallel (test_agenda_pages.AgendaPageTests.test_french_english_dom_hierarchy_is_parallel) ... ok
+2026-11-09T23:00:51.3585721Z test_historical_candidate_adaptive_columns_preserve_order_and_global_scale (test_agenda_pages.AgendaPageTests.test_historical_candidate_adaptive_columns_preserve_order_and_global_scale) ... ok
+2026-11-09T23:00:51.3590942Z test_historical_candidate_css_matches_bounded_issues_behavior (test_agenda_pages.AgendaPageTests.test_historical_candidate_css_matches_bounded_issues_behavior) ... ok
+2026-11-09T23:00:51.5252995Z test_historical_candidate_rendering_is_isolated_from_locked_families (test_agenda_pages.AgendaPageTests.test_historical_candidate_rendering_is_isolated_from_locked_families) ... ok
+2026-11-09T23:00:51.5271305Z test_historical_detail_candidate_panels_use_adaptive_helper (test_agenda_pages.AgendaPageTests.test_historical_detail_candidate_panels_use_adaptive_helper) ... ok
+2026-11-09T23:00:51.5279891Z test_historical_detail_hero_uses_source_day_peak_and_observation_dates (test_agenda_pages.AgendaPageTests.test_historical_detail_hero_uses_source_day_peak_and_observation_dates) ... ok
+2026-11-09T23:00:51.5321629Z test_historical_hub_aggregate_active_topic_days_are_not_calendar_days (test_agenda_pages.AgendaPageTests.test_historical_hub_aggregate_active_topic_days_are_not_calendar_days) ... ok
+2026-11-09T23:00:51.5329824Z test_historical_longitudinal_title_uses_accessible_tooltip_only_methodology (test_agenda_pages.AgendaPageTests.test_historical_longitudinal_title_uses_accessible_tooltip_only_methodology) ... ok
+2026-11-09T23:00:51.5332921Z test_historical_metrics_are_from_topic_coverage_history (test_agenda_pages.AgendaPageTests.test_historical_metrics_are_from_topic_coverage_history) ... ok
+2026-11-09T23:00:51.5361855Z test_history_cards_temporal_windows_and_unchanged_metrics (test_agenda_pages.AgendaPageTests.test_history_cards_temporal_windows_and_unchanged_metrics) ... ok
+2026-11-09T23:00:51.7075389Z test_history_components_cannot_change_locked_page_families (test_agenda_pages.AgendaPageTests.test_history_components_cannot_change_locked_page_families) ... ok
+2026-11-09T23:00:51.7110632Z test_history_composition_reconciles_correct_denominators_and_rank (test_agenda_pages.AgendaPageTests.test_history_composition_reconciles_correct_denominators_and_rank) ... ok
+2026-11-09T23:00:51.7115909Z test_history_css_keeps_issues_geometry_palette_and_three_columns (test_agenda_pages.AgendaPageTests.test_history_css_keeps_issues_geometry_palette_and_three_columns) ... ok
+2026-11-09T23:00:51.7133377Z test_history_detail_all_peak_rows_reconcile_with_authoritative_order (test_agenda_pages.AgendaPageTests.test_history_detail_all_peak_rows_reconcile_with_authoritative_order) ... ok
+2026-11-09T23:00:51.7152925Z test_history_detail_bilingual_product_vocabulary (test_agenda_pages.AgendaPageTests.test_history_detail_bilingual_product_vocabulary) ... ok
+2026-11-09T23:00:51.7272605Z test_history_detail_candidates_reconcile_with_raw_retained_associations (test_agenda_pages.AgendaPageTests.test_history_detail_candidates_reconcile_with_raw_retained_associations) ... ok
+2026-11-09T23:00:51.9167403Z test_history_detail_changes_cannot_change_locked_generated_families (test_agenda_pages.AgendaPageTests.test_history_detail_changes_cannot_change_locked_generated_families) ... ok
+2026-11-09T23:00:51.9273448Z test_history_detail_complete_day_domain_and_every_ledger_cell (test_agenda_pages.AgendaPageTests.test_history_detail_complete_day_domain_and_every_ledger_cell) ... ok
+2026-11-09T23:00:52.0791106Z test_history_detail_markup_accessible_regions_and_keyboard_scroll_targets (test_agenda_pages.AgendaPageTests.test_history_detail_markup_accessible_regions_and_keyboard_scroll_targets) ... ok
+2026-11-09T23:00:52.0812079Z test_history_detail_required_structure (test_agenda_pages.AgendaPageTests.test_history_detail_required_structure) ... ok
+2026-11-09T23:00:53.7382837Z test_history_detail_structural_language_contract (test_agenda_pages.AgendaPageTests.test_history_detail_structural_language_contract) ... ok
+2026-11-09T23:00:53.7389456Z test_history_evidence_has_retained_snapshot_authority_and_theme_coverage (test_agenda_pages.AgendaPageTests.test_history_evidence_has_retained_snapshot_authority_and_theme_coverage) ... ok
+2026-11-09T23:00:53.7483931Z test_history_hub_period_copy_and_tooltip_only_methodology (test_agenda_pages.AgendaPageTests.test_history_hub_period_copy_and_tooltip_only_methodology) ... ok
+2026-11-09T23:00:53.7490382Z test_history_hub_required_structure (test_agenda_pages.AgendaPageTests.test_history_hub_required_structure) ... ok
+2026-11-09T23:00:53.7495642Z test_history_sparse_viewport_and_keyboard_focus_css_are_scoped (test_agenda_pages.AgendaPageTests.test_history_sparse_viewport_and_keyboard_focus_css_are_scoped) ... ok
+2026-11-09T23:00:53.7500808Z test_hub_comparison_panels_share_accessible_title_info_component (test_agenda_pages.AgendaPageTests.test_hub_comparison_panels_share_accessible_title_info_component) ... ok
+2026-11-09T23:00:53.7517033Z test_hubs_have_collection_itemlist_and_all_pages_have_breadcrumb_jsonld (test_agenda_pages.AgendaPageTests.test_hubs_have_collection_itemlist_and_all_pages_have_breadcrumb_jsonld) ... ok
+2026-11-09T23:00:53.7518228Z test_javascript_has_namespaced_search_sort_and_history_controls (test_agenda_pages.AgendaPageTests.test_javascript_has_namespaced_search_sort_and_history_controls) ... ok
+2026-11-09T23:00:53.7528982Z test_localized_metadata_open_graph_and_twitter (test_agenda_pages.AgendaPageTests.test_localized_metadata_open_graph_and_twitter) ... ok
+2026-11-09T23:00:53.7530373Z test_manifest_census_formula_and_source_context (test_agenda_pages.AgendaPageTests.test_manifest_census_formula_and_source_context) ... ok
+2026-11-09T23:00:53.7707575Z test_no_null_leakage_malformed_internal_urls_or_issue_markup (test_agenda_pages.AgendaPageTests.test_no_null_leakage_malformed_internal_urls_or_issue_markup) ... ok
+2026-11-09T23:00:53.7708988Z test_no_policy_taxonomy_or_unknown_topic_enters_family (test_agenda_pages.AgendaPageTests.test_no_policy_taxonomy_or_unknown_topic_enters_family) ... ok
+2026-11-09T23:00:53.8532762Z test_page_builder_evidence_cannot_fall_back_to_current_or_partial_census (test_agenda_pages.AgendaPageTests.test_page_builder_evidence_cannot_fall_back_to_current_or_partial_census) ... ok
+2026-11-09T23:00:54.0226602Z test_page_builder_renders_without_git_history_access (test_agenda_pages.AgendaPageTests.test_page_builder_renders_without_git_history_access) ... ok
+2026-11-09T23:00:54.0235025Z test_peak_days_follow_locked_order (test_agenda_pages.AgendaPageTests.test_peak_days_follow_locked_order) ... ok
+2026-11-09T23:00:54.0235982Z test_persistent_history_excludes_current_partial_day (test_agenda_pages.AgendaPageTests.test_persistent_history_excludes_current_partial_day) ... ok
+2026-11-09T23:00:54.0291295Z test_product_labels_do_not_import_incompatible_issue_semantics (test_agenda_pages.AgendaPageTests.test_product_labels_do_not_import_incompatible_issue_semantics) ... ok
+2026-11-09T23:00:54.0329212Z test_reciprocal_hreflang_french_default_and_unique_canonicals (test_agenda_pages.AgendaPageTests.test_reciprocal_hreflang_french_default_and_unique_canonicals) ... ok
+2026-11-09T23:00:54.2019183Z test_renderers_and_repeated_full_build_are_deterministic (test_agenda_pages.AgendaPageTests.test_renderers_and_repeated_full_build_are_deterministic) ... ok
+2026-11-09T23:00:54.2026577Z test_six_static_cards_are_in_each_hub (test_agenda_pages.AgendaPageTests.test_six_static_cards_are_in_each_hub) ... ok
+2026-11-09T23:00:54.2170636Z test_thin_page_audit_is_clean (test_agenda_pages.AgendaPageTests.test_thin_page_audit_is_clean) ... ok
+2026-11-09T23:00:54.2171028Z 
+2026-11-09T23:00:54.2223688Z ----------------------------------------------------------------------
+2026-11-09T23:00:54.2224105Z Ran 78 tests in 5.853s
+2026-11-09T23:00:54.2224241Z 
+2026-11-09T23:00:54.2224316Z OK
+2026-11-09T23:00:54.7395959Z built route registry: 340 routes across 5 families
+2026-11-09T23:00:55.1735737Z route registry check clean: 340 routes
+2026-11-09T23:00:55.2352792Z built sitemaps: 5 families + index
+2026-11-09T23:00:55.2884608Z sitemap check clean: 340 canonical URLs
+2026-11-09T23:00:55.8675955Z test_bilingual_slugs_are_unique (test_agenda_page_contract.AgendaPageContractTests.test_bilingual_slugs_are_unique) ... ok
+2026-11-09T23:00:55.9390928Z test_candidate_history_is_compatible_but_remains_a_separate_source (test_agenda_page_contract.AgendaPageContractTests.test_candidate_history_is_compatible_but_remains_a_separate_source) ... ok
+2026-11-09T23:00:56.0654922Z test_current_qualification_is_exact_existing_two_source_day_rule (test_agenda_page_contract.AgendaPageContractTests.test_current_qualification_is_exact_existing_two_source_day_rule) ... ok
+2026-11-09T23:00:56.0656975Z test_english_labels_match_source_and_french_labels_match_locale (test_agenda_page_contract.AgendaPageContractTests.test_english_labels_match_source_and_french_labels_match_locale) ... ok
+2026-11-09T23:00:56.0673393Z test_historical_evidence_allows_preceding_snapshot_but_rejects_later_snapshot (test_agenda_page_contract.AgendaPageContractTests.test_historical_evidence_allows_preceding_snapshot_but_rejects_later_snapshot) ... ok
+2026-11-09T23:00:56.0901669Z test_historical_evidence_census_order_and_authority_fail_closed (test_agenda_page_contract.AgendaPageContractTests.test_historical_evidence_census_order_and_authority_fail_closed) ... ok
+2026-11-09T23:00:56.1315556Z test_historical_evidence_schema_and_invalid_values_fail_closed (test_agenda_page_contract.AgendaPageContractTests.test_historical_evidence_schema_and_invalid_values_fail_closed) ... ok
+2026-11-09T23:00:56.2604499Z test_historical_qualification_uses_same_rolling_source_day_rule (test_agenda_page_contract.AgendaPageContractTests.test_historical_qualification_uses_same_rolling_source_day_rule) ... ok
+2026-11-09T23:00:56.2605250Z test_locked_taxonomy_is_exactly_six_ids_in_source_order (test_agenda_page_contract.AgendaPageContractTests.test_locked_taxonomy_is_exactly_six_ids_in_source_order) ... ok
+2026-11-09T23:00:56.2621089Z test_manifest_projection_has_locked_lifecycle_and_routes (test_agenda_page_contract.AgendaPageContractTests.test_manifest_projection_has_locked_lifecycle_and_routes) ... ok
+2026-11-09T23:00:56.3569353Z test_missing_current_canonical_topic_is_zero_not_taxonomy_removal (test_agenda_page_contract.AgendaPageContractTests.test_missing_current_canonical_topic_is_zero_not_taxonomy_removal) ... ok
+2026-11-09T23:00:56.3585184Z test_policy_agenda_ids_are_never_exposed (test_agenda_page_contract.AgendaPageContractTests.test_policy_agenda_ids_are_never_exposed) ... ok
+2026-11-09T23:00:56.4910580Z test_previously_public_weak_topic_becomes_dormant (test_agenda_page_contract.AgendaPageContractTests.test_previously_public_weak_topic_becomes_dormant) ... ok
+2026-11-09T23:00:56.7106814Z test_unknown_and_duplicate_current_topics_fail_closed (test_agenda_page_contract.AgendaPageContractTests.test_unknown_and_duplicate_current_topics_fail_closed) ... ok
+2026-11-09T23:00:56.7123000Z test_unknown_previously_public_topic_fails_closed (test_agenda_page_contract.AgendaPageContractTests.test_unknown_previously_public_topic_fails_closed) ... ok
+2026-11-09T23:00:56.7141369Z test_absent_historical_canonical_topic_is_zero_filled (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_absent_historical_canonical_topic_is_zero_filled) ... ok
+2026-11-09T23:00:56.7325987Z test_candidate_history_is_rejected_as_media_volume_history (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_candidate_history_is_rejected_as_media_volume_history) ... ok
+2026-11-09T23:00:56.7387491Z test_check_mode_detects_stale_artifact (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_check_mode_detects_stale_artifact) ... ok
+2026-11-09T23:00:56.7390183Z test_evidence_date_must_be_authoritatively_active_for_topic (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_evidence_date_must_be_authoritatively_active_for_topic) ... ok
+2026-11-09T23:00:56.7391970Z test_evidence_selection_retains_source_day_peak_tie_break_and_output_order (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_evidence_selection_retains_source_day_peak_tie_break_and_output_order) ... ok
+2026-11-09T23:00:56.7396628Z test_evidence_uses_preceding_retained_snapshot_but_never_later_current_only (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_evidence_uses_preceding_retained_snapshot_but_never_later_current_only) ... ok
+2026-11-09T23:00:56.7400486Z test_exact_authority_evidence_wins_over_preceding_fallback (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_exact_authority_evidence_wins_over_preceding_fallback) ... ok
+2026-11-09T23:00:57.5381188Z test_materialized_evidence_has_retained_authority_and_exact_source_values (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_materialized_evidence_has_retained_authority_and_exact_source_values) ... ok
+2026-11-09T23:00:57.5396924Z test_missing_required_complete_day_fails_closed (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_missing_required_complete_day_fails_closed) ... ok
+2026-11-09T23:00:57.5414128Z test_published_artifact_is_valid_contiguous_and_excludes_partial_day (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_published_artifact_is_valid_contiguous_and_excludes_partial_day) ... ok
+2026-11-09T23:00:57.5431486Z test_reconstruction_retains_published_classifications_without_headlines (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_reconstruction_retains_published_classifications_without_headlines) ... ok
+2026-11-09T23:00:57.5492989Z test_repeated_generation_is_byte_identical (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_repeated_generation_is_byte_identical) ... ok
+2026-11-09T23:00:57.5509879Z test_same_day_retained_snapshot_is_preserved_for_bounded_evidence_fallback (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_same_day_retained_snapshot_is_preserved_for_bounded_evidence_fallback) ... ok
+2026-11-09T23:00:57.5512991Z test_single_label_item_and_source_day_denominators_reconcile (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_single_label_item_and_source_day_denominators_reconcile) ... ok
+2026-11-09T23:00:57.5515978Z test_unknown_and_duplicate_historical_topics_fail_closed (test_build_agenda_coverage_history.AgendaCoverageHistoryTests.test_unknown_and_duplicate_historical_topics_fail_closed) ... ok
+2026-11-09T23:00:58.0386151Z test_agenda_build_does_not_modify_issues_family (test_agenda_pages.AgendaPageTests.test_agenda_build_does_not_modify_issues_family) ... ok
+2026-11-09T23:00:59.1847085Z test_all_english_routes_have_no_french_structural_ui (test_agenda_pages.AgendaPageTests.test_all_english_routes_have_no_french_structural_ui) ... ok
+2026-11-09T23:01:00.2397972Z test_all_french_routes_have_no_english_structural_ui (test_agenda_pages.AgendaPageTests.test_all_french_routes_have_no_english_structural_ui) ... ok
+2026-11-09T23:01:00.2398729Z test_all_six_topics_are_current_and_rendered (test_agenda_pages.AgendaPageTests.test_all_six_topics_are_current_and_rendered) ... ok
+2026-11-09T23:01:00.2403265Z test_associated_signals_come_only_from_matched_term_counts (test_agenda_pages.AgendaPageTests.test_associated_signals_come_only_from_matched_term_counts) ... ok
+2026-11-09T23:01:00.3974333Z test_bilingual_page_hierarchy_is_parallel (test_agenda_pages.AgendaPageTests.test_bilingual_page_hierarchy_is_parallel) ... ok
+2026-11-09T23:01:00.3979212Z test_candidate_associations_are_semantically_and_numerically_separate (test_agenda_pages.AgendaPageTests.test_candidate_associations_are_semantically_and_numerically_separate) ... ok
+2026-11-09T23:01:00.3986561Z test_check_detects_stale_text_with_normalized_portable_comparison (test_agenda_pages.AgendaPageTests.test_check_detects_stale_text_with_normalized_portable_comparison) ... ok
+2026-11-09T23:01:00.3987513Z test_complete_week_movement_uses_exact_evolution_domain (test_agenda_pages.AgendaPageTests.test_complete_week_movement_uses_exact_evolution_domain) ... ok
+2026-11-09T23:01:00.4093058Z test_copy_audit_excludes_source_leaves_but_keeps_surrounding_ui (test_agenda_pages.AgendaPageTests.test_copy_audit_excludes_source_leaves_but_keeps_surrounding_ui) ... ok
+2026-11-09T23:01:00.4101996Z test_css_preserves_issues_baseline_with_scoped_agenda_hub_overrides (test_agenda_pages.AgendaPageTests.test_css_preserves_issues_baseline_with_scoped_agenda_hub_overrides) ... ok
+2026-11-09T23:01:00.4110040Z test_current_activity_absolute_weekly_summary (test_agenda_pages.AgendaPageTests.test_current_activity_absolute_weekly_summary) ... ok
+2026-11-09T23:01:00.4112058Z test_current_activity_bar_precision_half_even_zero_and_maximum (test_agenda_pages.AgendaPageTests.test_current_activity_bar_precision_half_even_zero_and_maximum) ... ok
+2026-11-09T23:01:00.4130842Z test_current_activity_temporal_dates_and_source_day_heights (test_agenda_pages.AgendaPageTests.test_current_activity_temporal_dates_and_source_day_heights) ... ok
+2026-11-09T23:01:00.4175442Z test_current_bar_contract_rejects_wrong_value_and_precision (test_agenda_pages.AgendaPageTests.test_current_bar_contract_rejects_wrong_value_and_precision) ... ok
+2026-11-09T23:01:00.4176375Z test_current_bar_precision_all_zero_series (test_agenda_pages.AgendaPageTests.test_current_bar_precision_all_zero_series) ... ok
+2026-11-09T23:01:00.4182838Z test_current_bottom_navigation_localized_routes (test_agenda_pages.AgendaPageTests.test_current_bottom_navigation_localized_routes) ... ok
+2026-11-09T23:01:00.4186797Z test_current_candidate_adaptive_columns_share_global_magnitude_scale (test_agenda_pages.AgendaPageTests.test_current_candidate_adaptive_columns_share_global_magnitude_scale) ... ok
+2026-11-09T23:01:00.4209931Z test_current_compact_history_coverage_metrics_and_daily_series (test_agenda_pages.AgendaPageTests.test_current_compact_history_coverage_metrics_and_daily_series) ... ok
+2026-11-09T23:01:00.4225624Z test_current_detail_bilingual_product_vocabulary (test_agenda_pages.AgendaPageTests.test_current_detail_bilingual_product_vocabulary) ... ok
+2026-11-09T23:01:00.4240926Z test_current_detail_required_structure_and_no_related_module (test_agenda_pages.AgendaPageTests.test_current_detail_required_structure_and_no_related_module) ... ok
+2026-11-09T23:01:00.4251469Z test_current_evidence_desktop_and_mobile_scroll_css_contract (test_agenda_pages.AgendaPageTests.test_current_evidence_desktop_and_mobile_scroll_css_contract) ... ok
+2026-11-09T23:01:00.4259774Z test_current_evidence_header_and_omissions_stay_outside_scroll_body (test_agenda_pages.AgendaPageTests.test_current_evidence_header_and_omissions_stay_outside_scroll_body) ... ok
+2026-11-09T23:01:00.4280448Z test_current_evidence_uses_base_cap_omissions_and_verbatim_urls (test_agenda_pages.AgendaPageTests.test_current_evidence_uses_base_cap_omissions_and_verbatim_urls) ... ok
+2026-11-09T23:01:00.4287018Z test_current_hero_weekly_share_two_cells (test_agenda_pages.AgendaPageTests.test_current_hero_weekly_share_two_cells) ... ok
+2026-11-09T23:01:00.4288336Z test_current_hub_bar_precision_half_even_zero_minimum_and_maximum (test_agenda_pages.AgendaPageTests.test_current_hub_bar_precision_half_even_zero_minimum_and_maximum) ... ok
+2026-11-09T23:01:00.5959430Z test_current_hub_bar_renderer_cannot_change_detail_or_history_outputs (test_agenda_pages.AgendaPageTests.test_current_hub_bar_renderer_cannot_change_detail_or_history_outputs) ... ok
+2026-11-09T23:01:00.5969810Z test_current_hub_bilingual_product_vocabulary (test_agenda_pages.AgendaPageTests.test_current_hub_bilingual_product_vocabulary) ... ok
+2026-11-09T23:01:00.5974805Z test_current_hub_card_component_preserves_issues_geometry_and_three_columns (test_agenda_pages.AgendaPageTests.test_current_hub_card_component_preserves_issues_geometry_and_three_columns) ... ok
+2026-11-09T23:01:00.5991224Z test_current_hub_card_temporal_boundaries_values_and_order (test_agenda_pages.AgendaPageTests.test_current_hub_card_temporal_boundaries_values_and_order) ... ok
+2026-11-09T23:01:00.5997501Z test_current_hub_evidence_exact_source_rows_and_history_route (test_agenda_pages.AgendaPageTests.test_current_hub_evidence_exact_source_rows_and_history_route) ... ok
+2026-11-09T23:01:00.6000444Z test_current_hub_required_structure_and_order (test_agenda_pages.AgendaPageTests.test_current_hub_required_structure_and_order) ... ok
+2026-11-09T23:01:00.6003648Z test_daily_ledger_denominators_reconcile (test_agenda_pages.AgendaPageTests.test_daily_ledger_denominators_reconcile) ... ok
+2026-11-09T23:01:00.6404530Z test_dormant_sparse_state_and_unpublished_manifest_exclusion (test_agenda_pages.AgendaPageTests.test_dormant_sparse_state_and_unpublished_manifest_exclusion) ... ok
+2026-11-09T23:01:00.6405559Z test_every_public_topic_has_four_locked_routes (test_agenda_pages.AgendaPageTests.test_every_public_topic_has_four_locked_routes) ... ok
+2026-11-09T23:01:00.6413922Z test_exact_route_census_and_language_split (test_agenda_pages.AgendaPageTests.test_exact_route_census_and_language_split) ... ok
+2026-11-09T23:01:00.6444814Z test_footer_hud_is_prepared_from_live_poll_manifest (test_agenda_pages.AgendaPageTests.test_footer_hud_is_prepared_from_live_poll_manifest) ... ok
+2026-11-09T23:01:00.6479151Z test_french_english_dom_hierarchy_is_parallel (test_agenda_pages.AgendaPageTests.test_french_english_dom_hierarchy_is_parallel) ... ok
+2026-11-09T23:01:00.6513696Z test_historical_candidate_adaptive_columns_preserve_order_and_global_scale (test_agenda_pages.AgendaPageTests.test_historical_candidate_adaptive_columns_preserve_order_and_global_scale) ... ok
+2026-11-09T23:01:00.6519462Z test_historical_candidate_css_matches_bounded_issues_behavior (test_agenda_pages.AgendaPageTests.test_historical_candidate_css_matches_bounded_issues_behavior) ... ok
+2026-11-09T23:01:00.8248721Z test_historical_candidate_rendering_is_isolated_from_locked_families (test_agenda_pages.AgendaPageTests.test_historical_candidate_rendering_is_isolated_from_locked_families) ... ok
+2026-11-09T23:01:00.8266437Z test_historical_detail_candidate_panels_use_adaptive_helper (test_agenda_pages.AgendaPageTests.test_historical_detail_candidate_panels_use_adaptive_helper) ... ok
+2026-11-09T23:01:00.8275212Z test_historical_detail_hero_uses_source_day_peak_and_observation_dates (test_agenda_pages.AgendaPageTests.test_historical_detail_hero_uses_source_day_peak_and_observation_dates) ... ok
+2026-11-09T23:01:00.8315369Z test_historical_hub_aggregate_active_topic_days_are_not_calendar_days (test_agenda_pages.AgendaPageTests.test_historical_hub_aggregate_active_topic_days_are_not_calendar_days) ... ok
+2026-11-09T23:01:00.8323530Z test_historical_longitudinal_title_uses_accessible_tooltip_only_methodology (test_agenda_pages.AgendaPageTests.test_historical_longitudinal_title_uses_accessible_tooltip_only_methodology) ... ok
+2026-11-09T23:01:00.8327261Z test_historical_metrics_are_from_topic_coverage_history (test_agenda_pages.AgendaPageTests.test_historical_metrics_are_from_topic_coverage_history) ... ok
+2026-11-09T23:01:00.8356814Z test_history_cards_temporal_windows_and_unchanged_metrics (test_agenda_pages.AgendaPageTests.test_history_cards_temporal_windows_and_unchanged_metrics) ... ok
+2026-11-09T23:01:01.0010286Z test_history_components_cannot_change_locked_page_families (test_agenda_pages.AgendaPageTests.test_history_components_cannot_change_locked_page_families) ... ok
+2026-11-09T23:01:01.0047494Z test_history_composition_reconciles_correct_denominators_and_rank (test_agenda_pages.AgendaPageTests.test_history_composition_reconciles_correct_denominators_and_rank) ... ok
+2026-11-09T23:01:01.0054998Z test_history_css_keeps_issues_geometry_palette_and_three_columns (test_agenda_pages.AgendaPageTests.test_history_css_keeps_issues_geometry_palette_and_three_columns) ... ok
+2026-11-09T23:01:01.0073471Z test_history_detail_all_peak_rows_reconcile_with_authoritative_order (test_agenda_pages.AgendaPageTests.test_history_detail_all_peak_rows_reconcile_with_authoritative_order) ... ok
+2026-11-09T23:01:01.0093502Z test_history_detail_bilingual_product_vocabulary (test_agenda_pages.AgendaPageTests.test_history_detail_bilingual_product_vocabulary) ... ok
+2026-11-09T23:01:01.0221709Z test_history_detail_candidates_reconcile_with_raw_retained_associations (test_agenda_pages.AgendaPageTests.test_history_detail_candidates_reconcile_with_raw_retained_associations) ... ok
+2026-11-09T23:01:01.1839811Z test_history_detail_changes_cannot_change_locked_generated_families (test_agenda_pages.AgendaPageTests.test_history_detail_changes_cannot_change_locked_generated_families) ... ok
+2026-11-09T23:01:01.1948403Z test_history_detail_complete_day_domain_and_every_ledger_cell (test_agenda_pages.AgendaPageTests.test_history_detail_complete_day_domain_and_every_ledger_cell) ... ok
+2026-11-09T23:01:01.3189840Z test_history_detail_markup_accessible_regions_and_keyboard_scroll_targets (test_agenda_pages.AgendaPageTests.test_history_detail_markup_accessible_regions_and_keyboard_scroll_targets) ... ok
+2026-11-09T23:01:01.3212279Z test_history_detail_required_structure (test_agenda_pages.AgendaPageTests.test_history_detail_required_structure) ... ok
+2026-11-09T23:01:02.9343647Z test_history_detail_structural_language_contract (test_agenda_pages.AgendaPageTests.test_history_detail_structural_language_contract) ... ok
+2026-11-09T23:01:02.9350345Z test_history_evidence_has_retained_snapshot_authority_and_theme_coverage (test_agenda_pages.AgendaPageTests.test_history_evidence_has_retained_snapshot_authority_and_theme_coverage) ... ok
+2026-11-09T23:01:02.9445046Z test_history_hub_period_copy_and_tooltip_only_methodology (test_agenda_pages.AgendaPageTests.test_history_hub_period_copy_and_tooltip_only_methodology) ... ok
+2026-11-09T23:01:02.9451732Z test_history_hub_required_structure (test_agenda_pages.AgendaPageTests.test_history_hub_required_structure) ... ok
+2026-11-09T23:01:02.9457054Z test_history_sparse_viewport_and_keyboard_focus_css_are_scoped (test_agenda_pages.AgendaPageTests.test_history_sparse_viewport_and_keyboard_focus_css_are_scoped) ... ok
+2026-11-09T23:01:02.9462007Z test_hub_comparison_panels_share_accessible_title_info_component (test_agenda_pages.AgendaPageTests.test_hub_comparison_panels_share_accessible_title_info_component) ... ok
+2026-11-09T23:01:02.9477942Z test_hubs_have_collection_itemlist_and_all_pages_have_breadcrumb_jsonld (test_agenda_pages.AgendaPageTests.test_hubs_have_collection_itemlist_and_all_pages_have_breadcrumb_jsonld) ... ok
+2026-11-09T23:01:02.9479201Z test_javascript_has_namespaced_search_sort_and_history_controls (test_agenda_pages.AgendaPageTests.test_javascript_has_namespaced_search_sort_and_history_controls) ... ok
+2026-11-09T23:01:02.9489256Z test_localized_metadata_open_graph_and_twitter (test_agenda_pages.AgendaPageTests.test_localized_metadata_open_graph_and_twitter) ... ok
+2026-11-09T23:01:02.9489901Z test_manifest_census_formula_and_source_context (test_agenda_pages.AgendaPageTests.test_manifest_census_formula_and_source_context) ... ok
+2026-11-09T23:01:02.9669468Z test_no_null_leakage_malformed_internal_urls_or_issue_markup (test_agenda_pages.AgendaPageTests.test_no_null_leakage_malformed_internal_urls_or_issue_markup) ... ok
+2026-11-09T23:01:02.9670289Z test_no_policy_taxonomy_or_unknown_topic_enters_family (test_agenda_pages.AgendaPageTests.test_no_policy_taxonomy_or_unknown_topic_enters_family) ... ok
+2026-11-09T23:01:03.0526112Z test_page_builder_evidence_cannot_fall_back_to_current_or_partial_census (test_agenda_pages.AgendaPageTests.test_page_builder_evidence_cannot_fall_back_to_current_or_partial_census) ... ok
+2026-11-09T23:01:03.2399374Z test_page_builder_renders_without_git_history_access (test_agenda_pages.AgendaPageTests.test_page_builder_renders_without_git_history_access) ... ok
+2026-11-09T23:01:03.2406957Z test_peak_days_follow_locked_order (test_agenda_pages.AgendaPageTests.test_peak_days_follow_locked_order) ... ok
+2026-11-09T23:01:03.2407608Z test_persistent_history_excludes_current_partial_day (test_agenda_pages.AgendaPageTests.test_persistent_history_excludes_current_partial_day) ... ok
+2026-11-09T23:01:03.2466341Z test_product_labels_do_not_import_incompatible_issue_semantics (test_agenda_pages.AgendaPageTests.test_product_labels_do_not_import_incompatible_issue_semantics) ... ok
+2026-11-09T23:01:03.2504991Z test_reciprocal_hreflang_french_default_and_unique_canonicals (test_agenda_pages.AgendaPageTests.test_reciprocal_hreflang_french_default_and_unique_canonicals) ... ok
+2026-11-09T23:01:03.4417075Z test_renderers_and_repeated_full_build_are_deterministic (test_agenda_pages.AgendaPageTests.test_renderers_and_repeated_full_build_are_deterministic) ... ok
+2026-11-09T23:01:03.4425359Z test_six_static_cards_are_in_each_hub (test_agenda_pages.AgendaPageTests.test_six_static_cards_are_in_each_hub) ... ok
+2026-11-09T23:01:03.4623410Z test_thin_page_audit_is_clean (test_agenda_pages.AgendaPageTests.test_thin_page_audit_is_clean) ... ok
+2026-11-09T23:01:03.4637095Z test_agenda_validator_rejects_coverage_count_corruption (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_agenda_validator_rejects_coverage_count_corruption) ... ok
+2026-11-09T23:01:03.4640106Z test_ambiguous_rules_terms_require_presidential_headline (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_ambiguous_rules_terms_require_presidential_headline) ... ok
+2026-11-09T23:01:03.4641445Z test_campaign_financing_phrase_variant_is_classified (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_campaign_financing_phrase_variant_is_classified) ... ok
+2026-11-09T23:01:03.4642995Z test_equal_timestamps_use_stable_tie_breakers (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_equal_timestamps_use_stable_tie_breakers) ... ok
+2026-11-09T23:01:03.4650834Z test_evolution_term_counts_use_complete_classified_set (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_evolution_term_counts_use_complete_classified_set) ... ok
+2026-11-09T23:01:03.4654262Z test_evolution_uses_exact_thirty_calendar_days (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_evolution_uses_exact_thirty_calendar_days) ... ok
+2026-11-09T23:01:03.4659110Z test_evolution_validator_rejects_daily_parity_corruption (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_evolution_validator_rejects_daily_parity_corruption) ... ok
+2026-11-09T23:01:03.4669211Z test_exports_twenty_items_and_reports_omissions (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_exports_twenty_items_and_reports_omissions) ... ok
+2026-11-09T23:01:03.4671534Z test_generic_departure_and_preparation_are_not_topics (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_generic_departure_and_preparation_are_not_topics) ... ok
+2026-11-09T23:01:03.4672616Z test_generic_preparation_is_not_a_notable_development (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_generic_preparation_is_not_a_notable_development) ... ok
+2026-11-09T23:01:03.4680443Z test_nice_matin_support_is_not_endorsement_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_nice_matin_support_is_not_endorsement_evidence) ... ok
+2026-11-09T23:01:03.4684721Z test_notable_development_category_is_authoritative (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_notable_development_category_is_authoritative) ... ok
+2026-11-09T23:01:03.4699038Z test_ordinary_support_and_bare_rallying_are_not_agenda_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_ordinary_support_and_bare_rallying_are_not_agenda_evidence) ... ok
+2026-11-09T23:01:03.4700954Z test_presidential_candidate_preparation_requires_specific_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_presidential_candidate_preparation_requires_specific_evidence) ... ok
+2026-11-09T23:01:03.4702663Z test_smaller_topics_export_all_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_smaller_topics_export_all_evidence) ... ok
+2026-11-09T23:01:03.4713444Z test_structured_electoral_support_is_endorsement_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_structured_electoral_support_is_endorsement_evidence) ... ok
+2026-11-09T23:01:03.4714713Z test_unclassified_relevant_news_is_omitted_from_topics (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_unclassified_relevant_news_is_omitted_from_topics) ... ok
+2026-11-09T23:01:03.4724200Z test_validator_rejects_contract_corruption (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_validator_rejects_contract_corruption) ... ok
+2026-11-09T23:01:03.4736960Z test_campaign_classifier_uses_existing_single_topic_semantics (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_campaign_classifier_uses_existing_single_topic_semantics) ... ok
+2026-11-09T23:01:03.4745673Z test_duplicate_published_identity_counts_candidate_once (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_duplicate_published_identity_counts_candidate_once) ... ok
+2026-11-09T23:01:03.4752811Z test_exactly_three_policy_topics_selects_all_policy_topics (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_exactly_three_policy_topics_selects_all_policy_topics) ... ok
+2026-11-09T23:01:03.4759758Z test_exactly_two_policy_topics_falls_back_to_campaign (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_exactly_two_policy_topics_falls_back_to_campaign) ... ok
+2026-11-09T23:01:03.8949257Z test_failed_cli_build_preserves_last_good_output_bytes (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_failed_cli_build_preserves_last_good_output_bytes) ... ok
+2026-11-09T23:01:03.8968723Z test_gap_future_and_malformed_previous_fail_closed (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_gap_future_and_malformed_previous_fail_closed) ... ok
+2026-11-09T23:01:03.8974435Z test_initial_build_starts_at_earliest_reconstructable_complete_day (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_initial_build_starts_at_earliest_reconstructable_complete_day) ... ok
+2026-11-09T23:01:03.8984292Z test_new_candidate_starts_at_earliest_reconstructable_complete_day (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_new_candidate_starts_at_earliest_reconstructable_complete_day) ... ok
+2026-11-09T23:01:03.9030388Z test_new_completed_day_appends_once (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_new_completed_day_appends_once) ... ok
+2026-11-09T23:01:03.9037250Z test_one_and_multi_label_policy_counts_and_two_candidate_linkage (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_one_and_multi_label_policy_counts_and_two_candidate_linkage) ... ok
+2026-11-09T23:01:03.9051269Z test_overlap_is_replaced_and_deleted_evidence_removes_stale_count (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_overlap_is_replaced_and_deleted_evidence_removes_stale_count) ... ok
+2026-11-09T23:01:03.9057471Z test_policy_and_campaign_counts_coexist_in_daily_storage (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_policy_and_campaign_counts_coexist_in_daily_storage) ... ok
+2026-11-09T23:01:03.9071792Z test_rename_preserves_stable_id_history (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_rename_preserves_stable_id_history) ... ok
+2026-11-09T23:01:03.9106363Z test_repeated_same_horizon_is_byte_identical (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_repeated_same_horizon_is_byte_identical) ... ok
+2026-11-09T23:01:03.9121023Z test_settled_days_older_than_recomputable_window_survive (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_settled_days_older_than_recomputable_window_survive) ... ok
+2026-11-09T23:01:03.9122820Z test_uncontrolled_candidate_identity_fails_closed (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_uncontrolled_candidate_identity_fails_closed) ... ok
+2026-11-09T23:01:03.9128208Z test_zero_association_behavior_matches_current_profile (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_zero_association_behavior_matches_current_profile) ... ok
+2026-11-09T23:01:03.9688014Z test_candidate_registry_parity_is_exact (test_candidate_agenda_history_contract.CandidateAgendaHistoryContractTests.test_candidate_registry_parity_is_exact) ... ok
+2026-11-09T23:01:04.1026036Z test_cumulative_profile_must_reconcile_without_mixed_taxonomies (test_candidate_agenda_history_contract.CandidateAgendaHistoryContractTests.test_cumulative_profile_must_reconcile_without_mixed_taxonomies) ... ok
+2026-11-09T23:01:04.2470775Z test_daily_series_and_full_topic_dictionaries_are_enforced (test_candidate_agenda_history_contract.CandidateAgendaHistoryContractTests.test_daily_series_and_full_topic_dictionaries_are_enforced) ... ok
+2026-11-09T23:01:04.3365536Z test_exact_schema_tracking_and_taxonomies (test_candidate_agenda_history_contract.CandidateAgendaHistoryContractTests.test_exact_schema_tracking_and_taxonomies) ... ok
+2026-11-09T23:01:04.3384326Z test_hub_hash_canonicalizes_explorer_json_formatting (test_route_registry.PollingHubDependencyHashTests.test_hub_hash_canonicalizes_explorer_json_formatting) ... ok
+2026-11-09T23:01:04.3427998Z test_hub_hash_changes_when_poll_explorer_changes (test_route_registry.PollingHubDependencyHashTests.test_hub_hash_changes_when_poll_explorer_changes) ... ok
+2026-11-09T23:01:04.3460484Z test_hub_hash_changes_when_polling_lab_runtime_changes (test_route_registry.PollingHubDependencyHashTests.test_hub_hash_changes_when_polling_lab_runtime_changes) ... ok
+2026-11-09T23:01:04.3471329Z test_hub_hash_ignores_hud_counts_and_css (test_route_registry.PollingHubDependencyHashTests.test_hub_hash_ignores_hud_counts_and_css) ... ok
+2026-11-09T23:01:04.3480643Z test_poll_wave_hash_ignores_hub_dependencies (test_route_registry.PollingHubDependencyHashTests.test_poll_wave_hash_ignores_hub_dependencies) ... ok
+2026-11-09T23:01:04.3541973Z test_agenda_manifest_is_sole_agenda_membership_authority (test_route_registry.RouteRegistryTests.test_agenda_manifest_is_sole_agenda_membership_authority) ... ok
+2026-11-09T23:01:04.3543634Z test_agenda_route_keys_kinds_and_entities_are_correct (test_route_registry.RouteRegistryTests.test_agenda_route_keys_kinds_and_entities_are_correct) ... ok
+2026-11-09T23:01:04.3547703Z test_candidate_detail_hash_excludes_css_dependencies (test_route_registry.RouteRegistryTests.test_candidate_detail_hash_excludes_css_dependencies) ... ok
+2026-11-09T23:01:04.3560487Z test_candidate_detail_hash_includes_published_projection (test_route_registry.RouteRegistryTests.test_candidate_detail_hash_includes_published_projection) ... ok
+2026-11-09T23:01:04.3561483Z test_candidate_lifecycle_routes_are_all_registered (test_route_registry.RouteRegistryTests.test_candidate_lifecycle_routes_are_all_registered) ... ok
+2026-11-09T23:01:04.3562170Z test_canonical_urls_are_unique (test_route_registry.RouteRegistryTests.test_canonical_urls_are_unique) ... ok
+2026-11-09T23:01:04.3598840Z test_every_registered_source_file_exists (test_route_registry.RouteRegistryTests.test_every_registered_source_file_exists) ... ok
+2026-11-09T23:01:04.3608808Z test_every_route_has_reciprocal_language_pair (test_route_registry.RouteRegistryTests.test_every_route_has_reciprocal_language_pair) ... ok
+2026-11-09T23:01:04.3625360Z test_issue_manifest_is_sole_issue_membership_authority (test_route_registry.RouteRegistryTests.test_issue_manifest_is_sole_issue_membership_authority) ... ok
+2026-11-09T23:01:04.3628268Z test_lastmod_is_iso_date (test_route_registry.RouteRegistryTests.test_lastmod_is_iso_date) ... ok
+2026-11-09T23:01:04.3725988Z test_new_issue_adds_current_and_history_language_pairs (test_route_registry.RouteRegistryTests.test_new_issue_adds_current_and_history_language_pairs) ... ok
+2026-11-09T23:01:04.3806282Z test_new_poll_wave_adds_exactly_one_language_pair (test_route_registry.RouteRegistryTests.test_new_poll_wave_adds_exactly_one_language_pair) ... ok
+2026-11-09T23:01:04.3807356Z test_poll_manifest_routes_are_all_registered (test_route_registry.RouteRegistryTests.test_poll_manifest_routes_are_all_registered) ... ok
+2026-11-09T23:01:04.6555201Z test_registry_check_mode_is_clean (test_route_registry.RouteRegistryTests.test_registry_check_mode_is_clean) ... ok
+2026-11-09T23:01:04.6555838Z test_registry_matches_manifest_route_census (test_route_registry.RouteRegistryTests.test_registry_matches_manifest_route_census) ... ok
+2026-11-09T23:01:04.6556364Z test_semantic_hash_ignores_hud_poll_counter (test_route_registry.RouteRegistryTests.test_semantic_hash_ignores_hud_poll_counter) ... ok
+2026-11-09T23:01:04.6556944Z test_semantic_hash_ignores_og_cover_cache_version (test_route_registry.RouteRegistryTests.test_semantic_hash_ignores_og_cover_cache_version) ... ok
+2026-11-09T23:01:04.6568516Z test_titles_and_descriptions_are_present (test_route_registry.RouteRegistryTests.test_titles_and_descriptions_are_present) ... ok
+2026-11-09T23:01:05.2066325Z test_unchanged_content_preserves_lastmod (test_route_registry.RouteRegistryTests.test_unchanged_content_preserves_lastmod) ... ok
+2026-11-09T23:01:05.2084113Z test_agenda_sitemap_matches_agenda_registry_routes (test_route_registry.SitemapTests.test_agenda_sitemap_matches_agenda_registry_routes) ... ok
+2026-11-09T23:01:05.2106255Z test_every_canonical_url_occurs_once_in_family_sitemaps (test_route_registry.SitemapTests.test_every_canonical_url_occurs_once_in_family_sitemaps) ... ok
+2026-11-09T23:01:05.2131730Z test_family_sitemaps_include_hreflang_triplet (test_route_registry.SitemapTests.test_family_sitemaps_include_hreflang_triplet) ... ok
+2026-11-09T23:01:05.2156189Z test_family_sitemaps_include_lastmod (test_route_registry.SitemapTests.test_family_sitemaps_include_lastmod) ... ok
+2026-11-09T23:01:05.2174851Z test_no_sitemap_url_uses_www_or_lang_query (test_route_registry.SitemapTests.test_no_sitemap_url_uses_www_or_lang_query) ... ok
+2026-11-09T23:01:05.2196731Z test_sitemap_builder_check_is_clean (test_route_registry.SitemapTests.test_sitemap_builder_check_is_clean) ... ok
+2026-11-09T23:01:05.2197889Z test_sitemap_index_lists_current_families (test_route_registry.SitemapTests.test_sitemap_index_lists_current_families) ... ok
+2026-11-09T23:01:05.2270761Z test_agenda_family_search_metadata_is_complete (test_search_foundation.SearchFoundationTests.test_agenda_family_search_metadata_is_complete) ... ok
+2026-11-09T23:01:05.2273351Z test_candidate_and_ledger_order_are_preserved_without_extra_selection (test_search_foundation.SearchFoundationTests.test_candidate_and_ledger_order_are_preserved_without_extra_selection) ... ok
+2026-11-09T23:01:05.6125639Z test_check_mode_accepts_crlf_checkout_without_rewrite (test_search_foundation.SearchFoundationTests.test_check_mode_accepts_crlf_checkout_without_rewrite) ... ok
+2026-11-09T23:01:06.5464731Z test_check_mode_detects_stale_root_or_english_output (test_search_foundation.SearchFoundationTests.test_check_mode_detects_stale_root_or_english_output) ... ok
+2026-11-09T23:01:07.1553943Z test_committed_english_entrypoint_is_deterministic (test_search_foundation.SearchFoundationTests.test_committed_english_entrypoint_is_deterministic) ... ok
+2026-11-09T23:01:07.7608280Z test_committed_pair_is_deterministic_and_idempotent (test_search_foundation.SearchFoundationTests.test_committed_pair_is_deterministic_and_idempotent) ... ok
+2026-11-09T23:01:07.7609276Z test_english_entrypoint_is_static_english_canonical (test_search_foundation.SearchFoundationTests.test_english_entrypoint_is_static_english_canonical) ... ok
+2026-11-09T23:01:07.7615484Z test_four_authoritative_writers_regenerate_and_stage_exact_html_pair (test_search_foundation.SearchFoundationTests.test_four_authoritative_writers_regenerate_and_stage_exact_html_pair) ... ok
+2026-11-09T23:01:07.7806163Z test_french_and_english_labels_are_localized_but_evidence_is_unchanged (test_search_foundation.SearchFoundationTests.test_french_and_english_labels_are_localized_but_evidence_is_unchanged) ... ok
+2026-11-09T23:01:07.7810655Z test_hreflang_cluster_is_reciprocal_and_identical (test_search_foundation.SearchFoundationTests.test_hreflang_cluster_is_reciprocal_and_identical) ... ok
+2026-11-09T23:01:07.8093190Z test_invalid_input_failure_leaves_both_documents_unchanged (test_search_foundation.SearchFoundationTests.test_invalid_input_failure_leaves_both_documents_unchanged) ... ok
+2026-11-09T23:01:07.8110179Z test_issue_family_search_metadata_is_complete (test_search_foundation.SearchFoundationTests.test_issue_family_search_metadata_is_complete) ... ok
+2026-11-09T23:01:08.0722015Z test_model_uses_only_approved_authoritative_artifacts (test_search_foundation.SearchFoundationTests.test_model_uses_only_approved_authoritative_artifacts) ... ok
+2026-11-09T23:01:08.1332056Z test_navigation_payload_is_invariant_under_agenda_page_reordering (test_search_foundation.SearchFoundationTests.test_navigation_payload_is_invariant_under_agenda_page_reordering) ... ok
+2026-11-09T23:01:08.1909881Z test_navigation_payload_is_invariant_under_issue_page_reordering (test_search_foundation.SearchFoundationTests.test_navigation_payload_is_invariant_under_issue_page_reordering) ... ok
+2026-11-09T23:01:08.2051155Z test_navigation_serialization_preserves_routes_and_event_list_order (test_search_foundation.SearchFoundationTests.test_navigation_serialization_preserves_routes_and_event_list_order) ... ok
+2026-11-09T23:01:08.2052305Z test_og_cover_workflow_regenerates_and_stages_english_entrypoint (test_search_foundation.SearchFoundationTests.test_og_cover_workflow_regenerates_and_stages_english_entrypoint) ... ok
+2026-11-09T23:01:08.5395315Z test_pair_write_rolls_back_if_second_replace_fails (test_search_foundation.SearchFoundationTests.test_pair_write_rolls_back_if_second_replace_fails) ... ok
+2026-11-09T23:01:08.5396021Z test_robots_is_permissive_and_advertises_sitemap (test_search_foundation.SearchFoundationTests.test_robots_is_permissive_and_advertises_sitemap) ... ok
+2026-11-09T23:01:08.5397234Z test_root_is_static_french_canonical (test_search_foundation.SearchFoundationTests.test_root_is_static_french_canonical) ... ok
+2026-11-09T23:01:11.3047152Z test_route_rebuild_requires_and_refreshes_both_search_entrypoints (test_search_foundation.SearchFoundationTests.test_route_rebuild_requires_and_refreshes_both_search_entrypoints) ... ok
+2026-11-09T23:01:11.3053567Z test_runtime_preserves_published_or_live_content_while_loading_or_unavailable (test_search_foundation.SearchFoundationTests.test_runtime_preserves_published_or_live_content_while_loading_or_unavailable) ... ok
+2026-11-09T23:01:11.3056591Z test_semantic_snapshot_is_visible_body_content_before_runtime (test_search_foundation.SearchFoundationTests.test_semantic_snapshot_is_visible_body_content_before_runtime) ... ok
+2026-11-09T23:01:11.3094333Z test_sitemap_is_family_index_with_canonical_urls (test_search_foundation.SearchFoundationTests.test_sitemap_is_family_index_with_canonical_urls) ... ok
+2026-11-09T23:01:11.3099692Z test_static_language_links_use_canonical_routes (test_search_foundation.SearchFoundationTests.test_static_language_links_use_canonical_routes) ... ok
+2026-11-09T23:01:11.6068544Z test_valid_empty_recent_changes_renders_localized_visible_state (test_search_foundation.SearchFoundationTests.test_valid_empty_recent_changes_renders_localized_visible_state) ... ok
+2026-11-09T23:01:11.6075233Z test_writer_transaction_order_and_exact_initial_stage_sets (test_search_foundation.SearchFoundationTests.test_writer_transaction_order_and_exact_initial_stage_sets) ... ok
+2026-11-09T23:01:11.7862852Z test_active_field_projection_matches_record_level_news (test_publication_manifest.PublicationManifestTests.test_active_field_projection_matches_record_level_news) ... ok
+2026-11-09T23:01:13.0489038Z test_active_projection_structural_mutations_fail (test_publication_manifest.PublicationManifestTests.test_active_projection_structural_mutations_fail) ... ok
+2026-11-09T23:01:13.6660627Z test_atomic_output_replaces_the_target_only_at_the_end (test_publication_manifest.PublicationManifestTests.test_atomic_output_replaces_the_target_only_at_the_end) ... ok
+2026-11-09T23:01:14.1608044Z test_campaign_events_lane_metadata (test_publication_manifest.PublicationManifestTests.test_campaign_events_lane_metadata) ... ok
+2026-11-09T23:01:14.6608802Z test_candidacy_status_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidacy_status_lane_metadata) ... ok
+2026-11-09T23:01:15.1117211Z test_candidate_agenda_history_candidacy_parity (test_publication_manifest.PublicationManifestTests.test_candidate_agenda_history_candidacy_parity) ... ok
+2026-11-09T23:01:15.6349448Z test_candidate_agenda_history_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidate_agenda_history_lane_metadata) ... ok
+2026-11-09T23:01:16.1438078Z test_candidate_agenda_history_news_horizon_must_match (test_publication_manifest.PublicationManifestTests.test_candidate_agenda_history_news_horizon_must_match) ... ok
+2026-11-09T23:01:16.7751260Z test_candidate_attention_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidate_attention_lane_metadata) ... ok
+2026-11-09T23:01:16.9361759Z test_candidate_attention_parity_ignores_candidacy_state (test_publication_manifest.PublicationManifestTests.test_candidate_attention_parity_ignores_candidacy_state) ... ok
+2026-11-09T23:01:17.0824231Z test_candidate_attention_parity_wraps_bad_registry (test_publication_manifest.PublicationManifestTests.test_candidate_attention_parity_wraps_bad_registry) ... ok
+2026-11-09T23:01:17.9413264Z test_candidate_attention_participates_in_snapshot_id (test_publication_manifest.PublicationManifestTests.test_candidate_attention_participates_in_snapshot_id) ... ok
+2026-11-09T23:01:18.2024310Z test_candidate_count_mismatch_fails (test_publication_manifest.PublicationManifestTests.test_candidate_count_mismatch_fails) ... ok
+2026-11-09T23:01:18.8317837Z test_candidate_evidence_date_uses_latest_non_null_date (test_publication_manifest.PublicationManifestTests.test_candidate_evidence_date_uses_latest_non_null_date) ... ok
+2026-11-09T23:01:19.7005933Z test_candidate_signals_change_changes_snapshot_id (test_publication_manifest.PublicationManifestTests.test_candidate_signals_change_changes_snapshot_id) ... ok
+2026-11-09T23:01:20.2244679Z test_candidate_signals_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidate_signals_lane_metadata) ... ok
+2026-11-09T23:01:20.5696657Z test_candidate_visibility_history_candidacy_parity (test_publication_manifest.PublicationManifestTests.test_candidate_visibility_history_candidacy_parity) ... ok
+2026-11-09T23:01:21.1985810Z test_candidate_visibility_history_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidate_visibility_history_lane_metadata) ... ok
+2026-11-09T23:01:21.7130545Z test_check_does_not_modify_publication_manifest (test_publication_manifest.PublicationManifestTests.test_check_does_not_modify_publication_manifest) ... ok
+2026-11-09T23:01:22.2379273Z test_claim_data_as_of_uses_latest_valid_review_date (test_publication_manifest.PublicationManifestTests.test_claim_data_as_of_uses_latest_valid_review_date) ... ok
+2026-11-09T23:01:23.0906287Z test_content_change_changes_snapshot_id (test_publication_manifest.PublicationManifestTests.test_content_change_changes_snapshot_id) ... ok
+2026-11-09T23:01:24.0524067Z test_deterministic_snapshot_id (test_publication_manifest.PublicationManifestTests.test_deterministic_snapshot_id) ... ok
+2026-11-09T23:01:24.3102233Z test_duplicate_candidate_ids_fail (test_publication_manifest.PublicationManifestTests.test_duplicate_candidate_ids_fail) ... ok
+2026-11-09T23:01:24.5801792Z test_duplicate_featured_board_candidate_ids_fail (test_publication_manifest.PublicationManifestTests.test_duplicate_featured_board_candidate_ids_fail) ... ok
+2026-11-09T23:01:24.7698484Z test_generated_candidate_signals_passes_public_validation (test_publication_manifest.PublicationManifestTests.test_generated_candidate_signals_passes_public_validation) ... ok
+2026-11-09T23:01:26.1571802Z test_genuine_campaign_events_change_updates_digest_and_snapshot (test_publication_manifest.PublicationManifestTests.test_genuine_campaign_events_change_updates_digest_and_snapshot) ... ok
+2026-11-09T23:01:26.4250057Z test_incorrect_featured_board_score_order_fails (test_publication_manifest.PublicationManifestTests.test_incorrect_featured_board_score_order_fails) ... ok
+2026-11-09T23:01:26.7451609Z test_invalid_candidate_attention_structure_fails_cleanly (test_publication_manifest.PublicationManifestTests.test_invalid_candidate_attention_structure_fails_cleanly) ... ok
+2026-11-09T23:01:27.0018921Z test_invalid_candidate_evidence_date_fails (test_publication_manifest.PublicationManifestTests.test_invalid_candidate_evidence_date_fails) ... ok
+2026-11-09T23:01:27.2757942Z test_invalid_featured_board_source_url_fails (test_publication_manifest.PublicationManifestTests.test_invalid_featured_board_source_url_fails) ... ok
+2026-11-09T23:01:27.4269221Z test_legacy_attention_is_intrinsic_during_registry_v2_migration (test_publication_manifest.PublicationManifestTests.test_legacy_attention_is_intrinsic_during_registry_v2_migration) ... ok
+2026-11-09T23:01:27.9005205Z test_legacy_candidate_attention_id_parity_is_deferred_under_registry_v2 (test_publication_manifest.PublicationManifestTests.test_legacy_candidate_attention_id_parity_is_deferred_under_registry_v2) ... ok
+2026-11-09T23:01:28.4770220Z test_legacy_candidate_attention_name_parity_is_deferred_under_registry_v2 (test_publication_manifest.PublicationManifestTests.test_legacy_candidate_attention_name_parity_is_deferred_under_registry_v2) ... ok
+2026-11-09T23:01:28.9714182Z test_legacy_candidate_attention_order_parity_is_deferred_under_registry_v2 (test_publication_manifest.PublicationManifestTests.test_legacy_candidate_attention_order_parity_is_deferred_under_registry_v2) ... ok
+2026-11-09T23:01:29.4593772Z test_legacy_missing_coverage_keeps_polls_lane_valid_and_warns (test_publication_manifest.PublicationManifestTests.test_legacy_missing_coverage_keeps_polls_lane_valid_and_warns) ... ok
+2026-11-09T23:01:31.1186700Z test_lf_and_crlf_sources_have_identical_manifest_metadata (test_publication_manifest.PublicationManifestTests.test_lf_and_crlf_sources_have_identical_manifest_metadata) ... ok
+2026-11-09T23:01:32.5106603Z test_lone_cr_sources_match_lf_manifest_metadata (test_publication_manifest.PublicationManifestTests.test_lone_cr_sources_match_lf_manifest_metadata) ... ok
+2026-11-09T23:01:33.4623881Z test_malformed_campaign_events_is_isolated_to_its_lane (test_publication_manifest.PublicationManifestTests.test_malformed_campaign_events_is_isolated_to_its_lane) ... ok
+2026-11-09T23:01:33.7266539Z test_malformed_candidate_attention_json_fails (test_publication_manifest.PublicationManifestTests.test_malformed_candidate_attention_json_fails) ... ok
+2026-11-09T23:01:33.9716840Z test_malformed_candidate_signals_json_fails (test_publication_manifest.PublicationManifestTests.test_malformed_candidate_signals_json_fails) ... ok
+2026-11-09T23:01:34.2426004Z test_malformed_candidate_signals_structure_fails (test_publication_manifest.PublicationManifestTests.test_malformed_candidate_signals_structure_fails) ... ok
+2026-11-09T23:01:34.5217973Z test_malformed_featured_board_counts_fail (test_publication_manifest.PublicationManifestTests.test_malformed_featured_board_counts_fail) ... ok
+2026-11-09T23:01:35.0655261Z test_malformed_lane_completes_with_warning (test_publication_manifest.PublicationManifestTests.test_malformed_lane_completes_with_warning) ... ok
+2026-11-09T23:01:35.4035434Z test_malformed_youtube_mapping_fails_closed (test_publication_manifest.PublicationManifestTests.test_malformed_youtube_mapping_fails_closed) ... ok
+2026-11-09T23:01:35.9955740Z test_manifest_construction_does_not_rewrite_sources (test_publication_manifest.PublicationManifestTests.test_manifest_construction_does_not_rewrite_sources) ... ok
+2026-11-09T23:01:42.2936666Z test_manual_workflow_no_churn_sequence_matches_both_tracked_outputs (test_publication_manifest.PublicationManifestTests.test_manual_workflow_no_churn_sequence_matches_both_tracked_outputs) ... ok
+2026-11-09T23:01:42.5594688Z test_mismatched_featured_board_candidate_name_fails (test_publication_manifest.PublicationManifestTests.test_mismatched_featured_board_candidate_name_fails) ... ok
+2026-11-09T23:01:43.5085268Z test_missing_campaign_events_is_isolated_to_its_lane (test_publication_manifest.PublicationManifestTests.test_missing_campaign_events_is_isolated_to_its_lane) ... ok
+2026-11-09T23:01:43.7299912Z test_missing_candidate_attention_fails (test_publication_manifest.PublicationManifestTests.test_missing_candidate_attention_fails) ... ok
+2026-11-09T23:01:43.9639748Z test_missing_candidate_signals_fails (test_publication_manifest.PublicationManifestTests.test_missing_candidate_signals_fails) ... ok
+2026-11-09T23:01:44.2153716Z test_missing_featured_poll_board_fails (test_publication_manifest.PublicationManifestTests.test_missing_featured_poll_board_fails) ... ok
+2026-11-09T23:01:44.6065252Z test_missing_lane_completes_with_warning (test_publication_manifest.PublicationManifestTests.test_missing_lane_completes_with_warning) ... ok
+2026-11-09T23:01:44.7730462Z test_missing_or_malformed_candidacy_registry_fails (test_publication_manifest.PublicationManifestTests.test_missing_or_malformed_candidacy_registry_fails) ... ok
+2026-11-09T23:01:45.0920531Z test_missing_youtube_mapping_fails_closed (test_publication_manifest.PublicationManifestTests.test_missing_youtube_mapping_fails_closed) ... ok
+2026-11-09T23:01:45.6008286Z test_no_cross_lane_timestamp_inference (test_publication_manifest.PublicationManifestTests.test_no_cross_lane_timestamp_inference) ... ok
+2026-11-09T23:01:47.5920462Z test_non_newline_byte_changes_remain_digest_significant (test_publication_manifest.PublicationManifestTests.test_non_newline_byte_changes_remain_digest_significant) ... ok
+2026-11-09T23:01:48.5637805Z test_non_utf8_source_remains_invalid_and_lane_isolated (test_publication_manifest.PublicationManifestTests.test_non_utf8_source_remains_invalid_and_lane_isolated) ... ok
+2026-11-09T23:01:48.8376828Z test_noncontiguous_featured_board_positions_fail (test_publication_manifest.PublicationManifestTests.test_noncontiguous_featured_board_positions_fail) ... ok
+2026-11-09T23:01:49.3611108Z test_null_scrutiny_evidence_date_is_valid (test_publication_manifest.PublicationManifestTests.test_null_scrutiny_evidence_date_is_valid) ... ok
+2026-11-09T23:01:51.0913432Z test_poll_coverage_warns_only_for_unresolved_relevant_notices (test_publication_manifest.PublicationManifestTests.test_poll_coverage_warns_only_for_unresolved_relevant_notices) ... ok
+2026-11-09T23:01:51.6162807Z test_poll_data_as_of_uses_latest_valid_fieldwork_end (test_publication_manifest.PublicationManifestTests.test_poll_data_as_of_uses_latest_valid_fieldwork_end) ... ok
+2026-11-09T23:01:52.1558853Z test_poll_timestamp_is_unknown (test_publication_manifest.PublicationManifestTests.test_poll_timestamp_is_unknown) ... ok
+2026-11-09T23:01:52.7344924Z test_record_level_denominator_mismatch_fails (test_publication_manifest.PublicationManifestTests.test_record_level_denominator_mismatch_fails) ... ok
+2026-11-09T23:01:53.0265781Z test_registry_candidate_signals_parity_is_required (test_publication_manifest.PublicationManifestTests.test_registry_candidate_signals_parity_is_required) ... ok
+2026-11-09T23:01:53.6186566Z test_runoff_data_as_of_uses_latest_valid_fieldwork_end (test_publication_manifest.PublicationManifestTests.test_runoff_data_as_of_uses_latest_valid_fieldwork_end) ... ok
+2026-11-09T23:01:54.4801475Z test_snapshot_id_is_independent_of_published_at (test_publication_manifest.PublicationManifestTests.test_snapshot_id_is_independent_of_published_at) ... ok
+2026-11-09T23:01:54.9963827Z test_source_health_aggregate_remains_operationally_distinct (test_publication_manifest.PublicationManifestTests.test_source_health_aggregate_remains_operationally_distinct) ... ok
+2026-11-09T23:01:55.5188751Z test_source_network_metrics_remain_separate (test_publication_manifest.PublicationManifestTests.test_source_network_metrics_remain_separate) ... ok
+2026-11-09T23:01:56.2590966Z test_tracked_campaign_events_lane_metadata (test_publication_manifest.PublicationManifestTests.test_tracked_campaign_events_lane_metadata) ... ok
+2026-11-09T23:01:57.6444868Z test_tracked_legacy_bundle_remains_buildable_without_rewriting_manifest (test_publication_manifest.PublicationManifestTests.test_tracked_legacy_bundle_remains_buildable_without_rewriting_manifest) ... ok
+2026-11-09T23:01:57.9144376Z test_unknown_candidate_signals_top_level_key_still_fails (test_publication_manifest.PublicationManifestTests.test_unknown_candidate_signals_top_level_key_still_fails) ... ok
+2026-11-09T23:01:58.1991076Z test_unknown_featured_board_candidate_id_fails (test_publication_manifest.PublicationManifestTests.test_unknown_featured_board_candidate_id_fails) ... ok
+2026-11-09T23:01:59.2634719Z test_valid_active_projection_change_changes_snapshot_id (test_publication_manifest.PublicationManifestTests.test_valid_active_projection_change_changes_snapshot_id) ... ok
+2026-11-09T23:01:59.7952989Z test_valid_complete_inputs (test_publication_manifest.PublicationManifestTests.test_valid_complete_inputs) ... ok
+2026-11-09T23:02:00.1379667Z test_valid_featured_poll_board_is_accepted (test_publication_manifest.PublicationManifestTests.test_valid_featured_poll_board_is_accepted) ... ok
+2026-11-09T23:02:01.0213540Z test_valid_registry_and_projection_change_changes_snapshot_id (test_publication_manifest.PublicationManifestTests.test_valid_registry_and_projection_change_changes_snapshot_id) ... ok
+2026-11-09T23:02:01.3984455Z test_youtube_registry_coverage_is_required (test_publication_manifest.PublicationManifestTests.test_youtube_registry_coverage_is_required) ... ok
+2026-11-09T23:02:01.4082939Z test_attention_11_uses_active_not_complete_parity (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_attention_11_uses_active_not_complete_parity) ... ok
+2026-11-09T23:02:01.4085524Z test_claims_2_lane_exposes_query_metadata (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_claims_2_lane_exposes_query_metadata) ... ok
+2026-11-09T23:02:01.4092029Z test_claims_2_query_parity_does_not_require_evidence_parity (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_claims_2_query_parity_does_not_require_evidence_parity) ... ok
+2026-11-09T23:02:01.4102283Z test_claims_historical_hidden_evidence_remains_valid (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_claims_historical_hidden_evidence_remains_valid) ... ok
+2026-11-09T23:02:01.4104800Z test_fresh_news_active_roster_parity (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_fresh_news_active_roster_parity) ... ok
+2026-11-09T23:02:01.4122739Z test_generated_at_does_not_change_older_claims_reconciliation (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_generated_at_does_not_change_older_claims_reconciliation) ... ok
+2026-11-09T23:02:01.4127219Z test_news_registry_v1_compatibility_remains_supported (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_news_registry_v1_compatibility_remains_supported) ... ok
+2026-11-09T23:02:01.4147731Z test_older_attention_11_projection_is_valid_downstream_lag (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_older_attention_11_projection_is_valid_downstream_lag) ... ok
+2026-11-09T23:02:01.4159185Z test_older_claims_2_query_is_valid_downstream_lag (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_older_claims_2_query_is_valid_downstream_lag) ... ok
+2026-11-09T23:02:01.4171166Z test_older_news_roster_is_valid_downstream_lag (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_older_news_roster_is_valid_downstream_lag) ... ok
+2026-11-09T23:02:01.4182516Z test_older_revision_cannot_claim_newer_status_date (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_older_revision_cannot_claim_newer_status_date) ... ok
+2026-11-09T23:02:01.4194834Z test_real_claims_transition_accepts_old_snapshot_after_new_revision (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_real_claims_transition_accepts_old_snapshot_after_new_revision) ... ok
+2026-11-09T23:02:01.4202742Z test_registry_v2_lane_metadata_is_dynamic_and_provenanced (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_registry_v2_lane_metadata_is_dynamic_and_provenanced) ... ok
+2026-11-09T23:02:01.4215187Z test_revision_provenance_ordering_fails_closed (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_revision_provenance_ordering_fails_closed) ... ok
+2026-11-09T23:02:01.4229119Z test_revision_provenance_structure_fails_closed (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_revision_provenance_structure_fails_closed) ... ok
+2026-11-09T23:02:01.4236435Z test_same_date_news_roster_mutations_remain_strictly_rejected (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_same_date_news_roster_mutations_remain_strictly_rejected) ... ok
+2026-11-09T23:02:01.4256897Z test_same_day_current_attention_snapshot_requires_exact_parity (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_same_day_current_attention_snapshot_requires_exact_parity) ... ok
+2026-11-09T23:02:01.4274161Z test_same_day_current_claims_query_requires_exact_parity (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_same_day_current_claims_query_requires_exact_parity) ... ok
+2026-11-09T23:02:01.4276527Z test_same_day_news_current_snapshot_still_requires_exact_parity (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_same_day_news_current_snapshot_still_requires_exact_parity) ... ok
+2026-11-09T23:02:01.4294906Z test_same_day_older_attention_projection_is_valid_downstream_lag (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_same_day_older_attention_projection_is_valid_downstream_lag) ... ok
+2026-11-09T23:02:01.4306110Z test_same_day_older_claims_query_is_valid_downstream_lag (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_same_day_older_claims_query_is_valid_downstream_lag) ... ok
+2026-11-09T23:02:01.4318114Z test_same_day_older_news_registry_snapshot_is_valid_downstream_lag (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_same_day_older_news_registry_snapshot_is_valid_downstream_lag) ... ok
+2026-11-09T23:02:01.4333670Z test_signals_15_complete_and_active_projections_reconcile (test_publication_manifest_registry_v2.PublicationManifestRegistryV2Tests.test_signals_15_complete_and_active_projections_reconcile) ... ok
+2026-11-09T23:02:01.4335592Z test_authoritative_generation_and_validation_order (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_authoritative_generation_and_validation_order) ... ok
+2026-11-09T23:02:01.4336394Z test_checkout_is_main_with_complete_history (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_checkout_is_main_with_complete_history) ... ok
+2026-11-09T23:02:01.4337386Z test_complete_suite_runs_before_commit_and_after_rebase (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_complete_suite_runs_before_commit_and_after_rebase) ... ok
+2026-11-09T23:02:01.4338328Z test_cross_family_tests_run_before_commit (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_cross_family_tests_run_before_commit) ... ok
+2026-11-09T23:02:01.4339155Z test_every_complete_pass_checks_the_generators_and_thin_audit (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_every_complete_pass_checks_the_generators_and_thin_audit) ... ok
+2026-11-09T23:02:01.4547508Z test_inline_python_and_shell_syntax (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_inline_python_and_shell_syntax) ... ok
+2026-11-09T23:02:01.4589637Z test_next_news_utc_day_advances_history_without_including_partial_day (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_next_news_utc_day_advances_history_without_including_partial_day) ... ok
+2026-11-09T23:02:01.4590847Z test_no_op_avoids_commit_push_and_pages (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_no_op_avoids_commit_push_and_pages) ... ok
+2026-11-09T23:02:01.4591784Z test_no_other_family_pages_or_source_artifacts_are_generated (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_no_other_family_pages_or_source_artifacts_are_generated) ... ok
+2026-11-09T23:02:01.4592791Z test_pages_request_is_post_push_and_uses_repository_api_contract (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_pages_request_is_post_push_and_uses_repository_api_contract) ... ok
+2026-11-09T23:02:01.4593797Z test_permissions_and_repository_wide_serialization_are_minimal (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_permissions_and_repository_wide_serialization_are_minimal) ... ok
+2026-11-09T23:02:01.4596343Z test_producers_are_exact_and_generated_outputs_cannot_self_trigger (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_producers_are_exact_and_generated_outputs_cannot_self_trigger) ... ok
+2026-11-09T23:02:01.4597819Z test_reconciliation_regenerates_and_can_amend_before_push (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_reconciliation_regenerates_and_can_amend_before_push) ... ok
+2026-11-09T23:02:01.4599108Z test_required_inputs_and_manifest_date_anchor_are_validated (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_required_inputs_and_manifest_date_anchor_are_validated) ... ok
+2026-11-09T23:02:01.4601550Z test_runtime_allowlist_is_exact_and_fail_closed (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_runtime_allowlist_is_exact_and_fail_closed) ... ok
+2026-11-09T23:02:01.5645671Z test_runtime_scope_guard_rejects_forbidden_paths_and_renames (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_runtime_scope_guard_rejects_forbidden_paths_and_renames) ... ok
+2026-11-09T23:02:01.5646852Z test_search_entrypoints_are_not_rebuilt (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_search_entrypoints_are_not_rebuilt) ... ok
+2026-11-09T23:02:01.5647512Z test_second_generation_is_compared_byte_for_byte (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_second_generation_is_compared_byte_for_byte) ... ok
+2026-11-09T23:02:02.3871374Z test_sibling_registry_rebuilds_keep_agenda_routes_and_sitemap (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_sibling_registry_rebuilds_keep_agenda_routes_and_sitemap) ... ok
+2026-11-09T23:02:02.3874639Z test_staging_is_scoped_and_excludes_publication_manifest (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_staging_is_scoped_and_excludes_publication_manifest) ... ok
+2026-11-09T23:02:02.3876233Z test_workflow_exists_and_has_authoritative_triggers (test_agenda_family_automation.AgendaFamilyAutomationContractTests.test_workflow_exists_and_has_authoritative_triggers) ... ok
+2026-11-09T23:02:02.6712047Z test_already_applied_commit_does_not_amend_upstream (test_agenda_push_race.AgendaPushRaceTests.test_already_applied_commit_does_not_amend_upstream) ... ok
+2026-11-09T23:02:02.8770569Z test_changed_contract_stops_before_rebase (test_agenda_push_race.AgendaPushRaceTests.test_changed_contract_stops_before_rebase) ... ok
+2026-11-09T23:02:03.1730293Z test_concurrent_pr_merge_recovers_with_updated_inputs (test_agenda_push_race.AgendaPushRaceTests.test_concurrent_pr_merge_recovers_with_updated_inputs) ... ok
+2026-11-09T23:02:03.4134521Z test_conflict_aborts_without_overwriting_either_commit (test_agenda_push_race.AgendaPushRaceTests.test_conflict_aborts_without_overwriting_either_commit) ... ok
+2026-11-09T23:02:03.6549183Z test_failed_validation_suppresses_push_and_pages (test_agenda_push_race.AgendaPushRaceTests.test_failed_validation_suppresses_push_and_pages) ... ok
+2026-11-09T23:02:03.9592800Z test_invalid_reconciled_input_stops (test_agenda_push_race.AgendaPushRaceTests.test_invalid_reconciled_input_stops) ... ok
+2026-11-09T23:02:04.0614618Z test_noop_never_pushes_or_requests_pages (test_agenda_push_race.AgendaPushRaceTests.test_noop_never_pushes_or_requests_pages) ... ok
+2026-11-09T23:02:04.1093041Z test_production_readiness_and_validation_are_inside_retry (test_agenda_push_race.AgendaPushRaceTests.test_production_readiness_and_validation_are_inside_retry) ... ok
+2026-11-09T23:02:04.1560528Z test_readiness_barriers_stay_equivalent (test_agenda_push_race.AgendaPushRaceTests.test_readiness_barriers_stay_equivalent) ... ok
+2026-11-09T23:02:04.3663604Z test_readiness_is_rechecked (test_agenda_push_race.AgendaPushRaceTests.test_readiness_is_rechecked) ... ok
+2026-11-09T23:02:04.8403771Z test_repeated_collisions_exhaust_budget_without_pages (test_agenda_push_race.AgendaPushRaceTests.test_repeated_collisions_exhaust_budget_without_pages) ... ok
+2026-11-09T23:02:05.2772349Z test_second_collision_also_recovers (test_agenda_push_race.AgendaPushRaceTests.test_second_collision_also_recovers) ... ok
+2026-11-09T23:02:05.5041639Z test_unauthorized_generated_path_stops (test_agenda_push_race.AgendaPushRaceTests.test_unauthorized_generated_path_stops) ... ok
+2026-11-09T23:02:05.6324063Z test_unrelated_push_failure_is_not_retried (test_agenda_push_race.AgendaPushRaceTests.test_unrelated_push_failure_is_not_retried) ... ok
+2026-11-09T23:02:05.6360844Z test_every_discovered_production_writer_uses_max_queue (test_production_publication_queue.ProductionPublicationQueueTests.test_every_discovered_production_writer_uses_max_queue) ... ok
+2026-11-09T23:02:05.6369009Z test_future_member_is_discovered_without_a_filename_list (test_production_publication_queue.ProductionPublicationQueueTests.test_future_member_is_discovered_without_a_filename_list) ... ok
+2026-11-09T23:02:05.6370370Z test_quotes_comments_and_key_order_are_supported (test_production_publication_queue.ProductionPublicationQueueTests.test_quotes_comments_and_key_order_are_supported) ... ok
+2026-11-09T23:02:05.6371630Z 
+2026-11-09T23:02:05.6371779Z ----------------------------------------------------------------------
+2026-11-09T23:02:05.6372094Z Ran 343 tests in 69.864s
+2026-11-09T23:02:05.6372223Z 
+2026-11-09T23:02:05.6372296Z OK
+2026-11-09T23:02:05.6379450Z validated publication_manifest.json (snapshot bca39d5c6c54e6d0189a7813ca9c005ab3b4f3495da0c11de0a79c2bce90a129)
+2026-11-09T23:04:59.9173340Z built Agenda coverage history: 2026-07-23 to 2026-11-08 (109 complete days)
+2026-11-09T23:07:52.0622709Z Agenda coverage history check clean: 109 complete days
+2026-11-09T23:07:52.3842563Z built Agenda pages: 6 public topics, 28 routes
+2026-11-09T23:07:52.6947514Z Agenda page check clean: 6 topics, 28 routes
+2026-11-09T23:07:53.0216583Z Agenda thin-page audit clean
+2026-11-09T23:07:53.4272988Z built route registry: 340 routes across 5 families
+2026-11-09T23:07:53.7998546Z route registry check clean: 340 routes
+2026-11-09T23:07:53.8616146Z built sitemaps: 5 families + index
+2026-11-09T23:07:53.9170790Z sitemap check clean: 340 canonical URLs
+2026-11-09T23:07:54.0133690Z Deterministic regeneration introduced zero additional changes.
+2026-11-09T23:07:54.0163849Z ##[group]Run set -euo pipefail
+2026-11-09T23:07:54.0164058Z [36;1mset -euo pipefail[0m
+2026-11-09T23:07:54.0164192Z [36;1m[0m
+2026-11-09T23:07:54.0164364Z [36;1mif [[ -z "$(git status --porcelain=v1 --untracked-files=all -- \[0m
+2026-11-09T23:07:54.0164621Z [36;1m  agenda_coverage_history.json agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0164844Z [36;1m  agenda en/agenda route_registry.json \[0m
+2026-11-09T23:07:54.0165059Z [36;1m  sitemap.xml sitemap-core.xml sitemap-candidates.xml \[0m
+2026-11-09T23:07:54.0165322Z [36;1m  sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml)" ]]; then[0m
+2026-11-09T23:07:54.0165575Z [36;1m  echo "Agenda publication is already current."[0m
+2026-11-09T23:07:54.0165772Z [36;1m  echo "changed=false" >> "$GITHUB_OUTPUT"[0m
+2026-11-09T23:07:54.0165958Z [36;1m  exit 0[0m
+2026-11-09T23:07:54.0166070Z [36;1mfi[0m
+2026-11-09T23:07:54.0166177Z [36;1m[0m
+2026-11-09T23:07:54.0166341Z [36;1mgit config user.name "github-actions[bot]"[0m
+2026-11-09T23:07:54.0166520Z [36;1mgit config user.email \[0m
+2026-11-09T23:07:54.0166707Z [36;1m  "41898282+github-actions[bot]@users.noreply.github.com"[0m
+2026-11-09T23:07:54.0166892Z [36;1m[0m
+2026-11-09T23:07:54.0167005Z [36;1mgit add -- \[0m
+2026-11-09T23:07:54.0167177Z [36;1m  agenda_coverage_history.json agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0167386Z [36;1m  agenda en/agenda route_registry.json \[0m
+2026-11-09T23:07:54.0167596Z [36;1m  sitemap.xml sitemap-core.xml sitemap-candidates.xml \[0m
+2026-11-09T23:07:54.0168020Z [36;1m  sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml[0m
+2026-11-09T23:07:54.0178896Z [36;1mgit diff --cached --check[0m
+2026-11-09T23:07:54.0179135Z [36;1m[0m
+2026-11-09T23:07:54.0179328Z [36;1mif git diff --cached --quiet; then[0m
+2026-11-09T23:07:54.0179559Z [36;1m  echo "Agenda publication has no staged byte change."[0m
+2026-11-09T23:07:54.0179775Z [36;1m  echo "changed=false" >> "$GITHUB_OUTPUT"[0m
+2026-11-09T23:07:54.0179947Z [36;1m  exit 0[0m
+2026-11-09T23:07:54.0180062Z [36;1mfi[0m
+2026-11-09T23:07:54.0180170Z [36;1m[0m
+2026-11-09T23:07:54.0180299Z [36;1mgit commit -m "Refresh Agenda family"[0m
+2026-11-09T23:07:54.0180480Z [36;1mecho "changed=true" >> "$GITHUB_OUTPUT"[0m
+2026-11-09T23:07:54.0222473Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T23:07:54.0222659Z env:
+2026-11-09T23:07:54.0222816Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T23:07:54.0223054Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T23:07:54.0223289Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T23:07:54.0223499Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T23:07:54.0223706Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T23:07:54.0224066Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T23:07:54.0224252Z ##[endgroup]
+2026-11-09T23:07:54.0896122Z [main e9d39a180] Refresh Agenda family
+2026-11-09T23:07:54.0896423Z  28 files changed, 28 insertions(+), 28 deletions(-)
+2026-11-09T23:07:54.0930952Z ##[group]Run set -euo pipefail
+2026-11-09T23:07:54.0931814Z [36;1mset -euo pipefail[0m
+2026-11-09T23:07:54.0931949Z [36;1m[0m
+2026-11-09T23:07:54.0932077Z [36;1massert_allowed_changes() {[0m
+2026-11-09T23:07:54.0932242Z [36;1m  local entry path unexpected=0[0m
+2026-11-09T23:07:54.0932416Z [36;1m  while IFS= read -r -d '' entry; do[0m
+2026-11-09T23:07:54.0932620Z [36;1m    if [[ "${entry:0:2}" == *R* || "${entry:0:2}" == *C* ]]; then[0m
+2026-11-09T23:07:54.0932849Z [36;1m      echo "Unexpected generated rename/copy: $entry" >&2[0m
+2026-11-09T23:07:54.0933041Z [36;1m      return 1[0m
+2026-11-09T23:07:54.0933168Z [36;1m    fi[0m
+2026-11-09T23:07:54.0933294Z [36;1m    path="${entry:3}"[0m
+2026-11-09T23:07:54.0933455Z [36;1m    case "$path" in[0m
+2026-11-09T23:07:54.0933952Z [36;1m      agenda_coverage_history.json|agenda_pages_manifest.json|agenda/*|en/agenda/*|route_registry.json|sitemap.xml|sitemap-core.xml|sitemap-candidates.xml|sitemap-polls.xml|sitemap-issues.xml|sitemap-agenda.xml)[0m
+2026-11-09T23:07:54.0934429Z [36;1m        ;;[0m
+2026-11-09T23:07:54.0934553Z [36;1m      *)[0m
+2026-11-09T23:07:54.0934718Z [36;1m        echo "Unexpected path after reconciliation: $path" >&2[0m
+2026-11-09T23:07:54.0934919Z [36;1m        unexpected=1[0m
+2026-11-09T23:07:54.0935055Z [36;1m        ;;[0m
+2026-11-09T23:07:54.0935172Z [36;1m    esac[0m
+2026-11-09T23:07:54.0935339Z [36;1m  done < <(git status --porcelain=v1 -z --untracked-files=all)[0m
+2026-11-09T23:07:54.0935552Z [36;1m  if [[ "$unexpected" -ne 0 ]]; then[0m
+2026-11-09T23:07:54.0935720Z [36;1m    return 1[0m
+2026-11-09T23:07:54.0935843Z [36;1m  fi[0m
+2026-11-09T23:07:54.0935958Z [36;1m}[0m
+2026-11-09T23:07:54.0936070Z [36;1m[0m
+2026-11-09T23:07:54.0936193Z [36;1msnapshot_generated_state() {[0m
+2026-11-09T23:07:54.0936348Z [36;1m  local label="$1"[0m
+2026-11-09T23:07:54.0936524Z [36;1m  git status --porcelain=v1 -z --untracked-files=all \[0m
+2026-11-09T23:07:54.0936733Z [36;1m    > "$RUNNER_TEMP/agenda-$label.status"[0m
+2026-11-09T23:07:54.0936909Z [36;1m  git diff --binary -- \[0m
+2026-11-09T23:07:54.0937107Z [36;1m    agenda_coverage_history.json agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0937332Z [36;1m    agenda en/agenda route_registry.json \[0m
+2026-11-09T23:07:54.0937545Z [36;1m    sitemap.xml sitemap-core.xml sitemap-candidates.xml \[0m
+2026-11-09T23:07:54.0937792Z [36;1m    sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml \[0m
+2026-11-09T23:07:54.0938008Z [36;1m    > "$RUNNER_TEMP/agenda-$label.diff"[0m
+2026-11-09T23:07:54.0938215Z [36;1m  python -B - "$RUNNER_TEMP/agenda-$label.sha256" <<'PY'[0m
+2026-11-09T23:07:54.0938405Z [36;1mimport hashlib[0m
+2026-11-09T23:07:54.0938539Z [36;1mimport sys[0m
+2026-11-09T23:07:54.0938839Z [36;1mfrom pathlib import Path[0m
+2026-11-09T23:07:54.0938985Z [36;1m[0m
+2026-11-09T23:07:54.0939096Z [36;1mfiles = [][0m
+2026-11-09T23:07:54.0939221Z [36;1mfor name in ([0m
+2026-11-09T23:07:54.0939369Z [36;1m    "agenda_coverage_history.json",[0m
+2026-11-09T23:07:54.0939548Z [36;1m    "agenda_pages_manifest.json",[0m
+2026-11-09T23:07:54.0939714Z [36;1m    "route_registry.json",[0m
+2026-11-09T23:07:54.0939866Z [36;1m    "sitemap.xml",[0m
+2026-11-09T23:07:54.0940009Z [36;1m    "sitemap-core.xml",[0m
+2026-11-09T23:07:54.0940167Z [36;1m    "sitemap-candidates.xml",[0m
+2026-11-09T23:07:54.0940328Z [36;1m    "sitemap-polls.xml",[0m
+2026-11-09T23:07:54.0940484Z [36;1m    "sitemap-issues.xml",[0m
+2026-11-09T23:07:54.0940633Z [36;1m    "sitemap-agenda.xml",[0m
+2026-11-09T23:07:54.0940773Z [36;1m):[0m
+2026-11-09T23:07:54.0940892Z [36;1m    path = Path(name)[0m
+2026-11-09T23:07:54.0941036Z [36;1m    if path.is_file():[0m
+2026-11-09T23:07:54.0941327Z [36;1m        files.append(path)[0m
+2026-11-09T23:07:54.0941508Z [36;1mfor root in (Path("agenda"), Path("en/agenda")):[0m
+2026-11-09T23:07:54.0941695Z [36;1m    if root.is_dir():[0m
+2026-11-09T23:07:54.0942012Z [36;1m        files.extend(path for path in root.rglob("*") if path.is_file())[0m
+2026-11-09T23:07:54.0942226Z [36;1m[0m
+2026-11-09T23:07:54.0942340Z [36;1mlines = [][0m
+2026-11-09T23:07:54.0942511Z [36;1mfor path in sorted(files, key=lambda item: item.as_posix()):[0m
+2026-11-09T23:07:54.0942748Z [36;1m    digest = hashlib.sha256(path.read_bytes()).hexdigest()[0m
+2026-11-09T23:07:54.0942996Z [36;1m    lines.append(f"{digest}  {path.as_posix()}")[0m
+2026-11-09T23:07:54.0943236Z [36;1mPath(sys.argv[1]).write_text("\n".join(lines) + "\n", encoding="utf-8")[0m
+2026-11-09T23:07:54.0943445Z [36;1mPY[0m
+2026-11-09T23:07:54.0943555Z [36;1m}[0m
+2026-11-09T23:07:54.0943671Z [36;1m[0m
+2026-11-09T23:07:54.0943856Z [36;1m# Every recovery traverses the same complete validation body below.[0m
+2026-11-09T23:07:54.0944116Z [36;1mvalidated_base="$(git merge-base HEAD origin/main)"[0m
+2026-11-09T23:07:54.0944318Z [36;1mfor publication_attempt in 0 1 2; do[0m
+2026-11-09T23:07:54.0944491Z [36;1mgit fetch origin main[0m
+2026-11-09T23:07:54.0944656Z [36;1mnext_base="$(git rev-parse origin/main)"[0m
+2026-11-09T23:07:54.0944891Z [36;1mif ! git merge-base --is-ancestor "$validated_base" "$next_base"; then[0m
+2026-11-09T23:07:54.0945160Z [36;1m  echo "Remote main history changed unexpectedly; stopping." >&2[0m
+2026-11-09T23:07:54.0945364Z [36;1m  exit 1[0m
+2026-11-09T23:07:54.0945486Z [36;1mfi[0m
+2026-11-09T23:07:54.0945676Z [36;1mif [[ "$publication_attempt" -gt 0 && "$validated_base" == "$next_base" ]]; then[0m
+2026-11-09T23:07:54.0945963Z [36;1m  echo "Rejected push without a forward main advance; stopping." >&2[0m
+2026-11-09T23:07:54.0946169Z [36;1m  exit 1[0m
+2026-11-09T23:07:54.0946282Z [36;1mfi[0m
+2026-11-09T23:07:54.0946436Z [36;1mgit diff --name-status "$validated_base" "$next_base"[0m
+2026-11-09T23:07:54.0946691Z [36;1mchanged_paths="$(git diff --name-only "$validated_base" "$next_base")"[0m
+2026-11-09T23:07:54.0947055Z [36;1mif grep -Eq '\.(py|yml|yaml|js|css|sh|toml|lock)$|(^|/)requirements[^/]*\.txt$|(^|/)package[^/]*\.json$' <<< "$changed_paths"; then[0m
+2026-11-09T23:07:54.0947421Z [36;1m  echo "Publication contract changed on main; start a fresh workflow." >&2[0m
+2026-11-09T23:07:54.0947642Z [36;1m  exit 1[0m
+2026-11-09T23:07:54.0947756Z [36;1mfi[0m
+2026-11-09T23:07:54.0947883Z [36;1mif ! git rebase origin/main; then[0m
+2026-11-09T23:07:54.0948049Z [36;1m  git rebase --abort[0m
+2026-11-09T23:07:54.0948254Z [36;1m  echo "Agenda reconciliation conflict; no push or Pages request." >&2[0m
+2026-11-09T23:07:54.0948466Z [36;1m  exit 1[0m
+2026-11-09T23:07:54.0948710Z [36;1mfi[0m
+2026-11-09T23:07:54.0948847Z [36;1mvalidated_base="$next_base"[0m
+2026-11-09T23:07:54.0948997Z [36;1m[0m
+2026-11-09T23:07:54.0949119Z [36;1m# BEGIN reconciliation readiness[0m
+2026-11-09T23:07:54.0949287Z [36;1mpython -B - <<'PY'[0m
+2026-11-09T23:07:54.0949428Z [36;1mimport json[0m
+2026-11-09T23:07:54.0949555Z [36;1mimport os[0m
+2026-11-09T23:07:54.0949687Z [36;1mimport subprocess[0m
+2026-11-09T23:07:54.0949826Z [36;1mimport sys[0m
+2026-11-09T23:07:54.0949958Z [36;1mfrom pathlib import Path[0m
+2026-11-09T23:07:54.0950099Z [36;1m[0m
+2026-11-09T23:07:54.0950224Z [36;1mfrom build_route_registry import ([0m
+2026-11-09T23:07:54.0950392Z [36;1m    _canonical_url,[0m
+2026-11-09T23:07:54.0950538Z [36;1m    _route_content_hash,[0m
+2026-11-09T23:07:54.0950689Z [36;1m    _route_pair,[0m
+2026-11-09T23:07:54.0950824Z [36;1m    _source_file,[0m
+2026-11-09T23:07:54.0950955Z [36;1m)[0m
+2026-11-09T23:07:54.0951138Z [36;1mfrom candidate_candidacy_status import load_candidate_candidacy_status[0m
+2026-11-09T23:07:54.0951416Z [36;1mfrom candidate_page_contract import project_candidate_route_index[0m
+2026-11-09T23:07:54.0951623Z [36;1m[0m
+2026-11-09T23:07:54.0951847Z [36;1mroot = Path.cwd()[0m
+2026-11-09T23:07:54.0951988Z [36;1mready = True[0m
+2026-11-09T23:07:54.0952122Z [36;1mreasons = [][0m
+2026-11-09T23:07:54.0952249Z [36;1mtry:[0m
+2026-11-09T23:07:54.0952492Z [36;1m    candidacy = load_candidate_candidacy_status([0m
+2026-11-09T23:07:54.0952698Z [36;1m        root / "candidate_candidacy_status.json"[0m
+2026-11-09T23:07:54.0952867Z [36;1m    )[0m
+2026-11-09T23:07:54.0953039Z [36;1m    projection = project_candidate_route_index(candidacy, root)[0m
+2026-11-09T23:07:54.0953249Z [36;1m    registry = json.loads([0m
+2026-11-09T23:07:54.0953449Z [36;1m        (root / "route_registry.json").read_text(encoding="utf-8")[0m
+2026-11-09T23:07:54.0953646Z [36;1m    )[0m
+2026-11-09T23:07:54.0953851Z [36;1m    if not isinstance(registry, dict) or registry.get("schema_version") != "1.0":[0m
+2026-11-09T23:07:54.0954132Z [36;1m        raise ValueError("route registry schema version mismatch")[0m
+2026-11-09T23:07:54.0954348Z [36;1m    routes = registry.get("routes")[0m
+2026-11-09T23:07:54.0954537Z [36;1m    if not isinstance(routes, list) or any([0m
+2026-11-09T23:07:54.0954742Z [36;1m        not isinstance(route, dict) for route in routes[0m
+2026-11-09T23:07:54.0954920Z [36;1m    ):[0m
+2026-11-09T23:07:54.0955091Z [36;1m        raise ValueError("route registry routes must be objects")[0m
+2026-11-09T23:07:54.0955372Z [36;1m    published = [route for route in routes if route.get("family") == "candidates"][0m
+2026-11-09T23:07:54.0955615Z [36;1m    expected = _route_pair([0m
+2026-11-09T23:07:54.0955814Z [36;1m        route_key="candidates", family="candidates", kind="hub",[0m
+2026-11-09T23:07:54.0956021Z [36;1m        entity_id="candidates",[0m
+2026-11-09T23:07:54.0956240Z [36;1m        path_fr=projection["hubs"]["fr"], path_en=projection["hubs"]["en"],[0m
+2026-11-09T23:07:54.0956451Z [36;1m    )[0m
+2026-11-09T23:07:54.0956599Z [36;1m    for candidate in projection["candidates"]:[0m
+2026-11-09T23:07:54.0956796Z [36;1m        expected.extend(_route_pair([0m
+2026-11-09T23:07:54.0957002Z [36;1m            route_key=f"candidate:{candidate['candidate_id']}",[0m
+2026-11-09T23:07:54.0957213Z [36;1m            family="candidates",[0m
+2026-11-09T23:07:54.0957430Z [36;1m            kind=("candidate-detail" if candidate["lifecycle"] == "active"[0m
+2026-11-09T23:07:54.0957660Z [36;1m                  else "candidate-archive"),[0m
+2026-11-09T23:07:54.0957846Z [36;1m            entity_id=candidate["candidate_id"],[0m
+2026-11-09T23:07:54.0958088Z [36;1m            path_fr=candidate["routes"]["fr"], path_en=candidate["routes"]["en"],[0m
+2026-11-09T23:07:54.0958307Z [36;1m        ))[0m
+2026-11-09T23:07:54.0958429Z [36;1m    if ([0m
+2026-11-09T23:07:54.0958802Z [36;1m        len(published) != len(expected)[0m
+2026-11-09T23:07:54.0959022Z [36;1m        or {route.get("route_id") for route in published}[0m
+2026-11-09T23:07:54.0959235Z [36;1m        != {route["route_id"] for route in expected}[0m
+2026-11-09T23:07:54.0959414Z [36;1m    ):[0m
+2026-11-09T23:07:54.0959616Z [36;1m        raise ValueError("candidate routes do not match the published projection")[0m
+2026-11-09T23:07:54.0959892Z [36;1m    by_id = {route["route_id"]: route for route in published}[0m
+2026-11-09T23:07:54.0960102Z [36;1m    for route in expected:[0m
+2026-11-09T23:07:54.0960272Z [36;1m        stored = by_id[route["route_id"]][0m
+2026-11-09T23:07:54.0960497Z [36;1m        if any(stored.get(key) != value for key, value in route.items()):[0m
+2026-11-09T23:07:54.0960795Z [36;1m            raise ValueError(f"candidate route identity is stale: {route['route_id']}")[0m
+2026-11-09T23:07:54.0961044Z [36;1m        for field, path_field in ([0m
+2026-11-09T23:07:54.0961259Z [36;1m            ("canonical_url", "path"), ("alternate_url_fr", "alternate_fr"),[0m
+2026-11-09T23:07:54.0961533Z [36;1m            ("alternate_url_en", "alternate_en"), ("x_default_url", "x_default"),[0m
+2026-11-09T23:07:54.0961746Z [36;1m        ):[0m
+2026-11-09T23:07:54.0962027Z [36;1m            if stored.get(field) != _canonical_url(route[path_field]):[0m
+2026-11-09T23:07:54.0962307Z [36;1m                raise ValueError(f"candidate route URL is stale: {route['route_id']}")[0m
+2026-11-09T23:07:54.0962644Z [36;1m        source = _source_file(route["path"])[0m
+2026-11-09T23:07:54.0962900Z [36;1m        if stored.get("source_file") != source.as_posix() or not (root / source).is_file():[0m
+2026-11-09T23:07:54.0963219Z [36;1m            raise ValueError(f"candidate route source is stale: {route['route_id']}")[0m
+2026-11-09T23:07:54.0963535Z [36;1m        digest = _route_content_hash(route=route, root=root, source_path=root / source)[0m
+2026-11-09T23:07:54.0963796Z [36;1m        if stored.get("content_sha256") != digest:[0m
+2026-11-09T23:07:54.0964042Z [36;1m            raise ValueError(f"candidate route hash is stale: {route['route_id']}")[0m
+2026-11-09T23:07:54.0964330Z [36;1mexcept (OSError, ValueError, KeyError, TypeError) as error:[0m
+2026-11-09T23:07:54.0964538Z [36;1m    ready = False[0m
+2026-11-09T23:07:54.0964686Z [36;1m    reasons.append(str(error))[0m
+2026-11-09T23:07:54.0964837Z [36;1m[0m
+2026-11-09T23:07:54.0964951Z [36;1mif ready:[0m
+2026-11-09T23:07:54.0965142Z [36;1m    # Both CLI checks are read-only; never generate in this barrier.[0m
+2026-11-09T23:07:54.0965352Z [36;1m    for arguments in ([0m
+2026-11-09T23:07:54.0965552Z [36;1m        ["build_candidate_reference.py", "--all-active", "--check"],[0m
+2026-11-09T23:07:54.0965785Z [36;1m        ["build_search_entrypoints.py", "--check"],[0m
+2026-11-09T23:07:54.0965965Z [36;1m    ):[0m
+2026-11-09T23:07:54.0966094Z [36;1m        result = subprocess.run([0m
+2026-11-09T23:07:54.0966275Z [36;1m            [sys.executable, "-B", *arguments],[0m
+2026-11-09T23:07:54.0966478Z [36;1m            text=True, capture_output=True, check=False,[0m
+2026-11-09T23:07:54.0966657Z [36;1m        )[0m
+2026-11-09T23:07:54.0966786Z [36;1m        if result.returncode:[0m
+2026-11-09T23:07:54.0966950Z [36;1m            ready = False[0m
+2026-11-09T23:07:54.0967188Z [36;1m            reasons.append(" ".join(arguments) + ": " + (result.stderr or result.stdout).strip())[0m
+2026-11-09T23:07:54.0967431Z [36;1m[0m
+2026-11-09T23:07:54.0967629Z [36;1mwith Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:[0m
+2026-11-09T23:07:54.0967894Z [36;1m    output.write(f"ready={str(ready).lower()}\n")[0m
+2026-11-09T23:07:54.0968069Z [36;1mif ready:[0m
+2026-11-09T23:07:54.0968263Z [36;1m    print("Candidate publication is ready for downstream publication.")[0m
+2026-11-09T23:07:54.0968478Z [36;1melse:[0m
+2026-11-09T23:07:54.0968806Z [36;1m    message = "Publication deferred: candidate publication is not ready.\n" + "\n".join(reasons)[0m
+2026-11-09T23:07:54.0969074Z [36;1m    print(message)[0m
+2026-11-09T23:07:54.0969238Z [36;1m    if os.environ.get("GITHUB_STEP_SUMMARY"):[0m
+2026-11-09T23:07:54.0969511Z [36;1m        with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:[0m
+2026-11-09T23:07:54.0969776Z [36;1m            summary.write(message + "\n")[0m
+2026-11-09T23:07:54.0969940Z [36;1mif not ready:[0m
+2026-11-09T23:07:54.0970134Z [36;1m    raise SystemExit("Candidate readiness failed after reconciliation")[0m
+2026-11-09T23:07:54.0970349Z [36;1mPY[0m
+2026-11-09T23:07:54.0970476Z [36;1m# END reconciliation readiness[0m
+2026-11-09T23:07:54.0970628Z [36;1m[0m
+2026-11-09T23:07:54.0970772Z [36;1mread -r published_at route_effective_date < <([0m
+2026-11-09T23:07:54.0970957Z [36;1m  python -B - <<'PY'[0m
+2026-11-09T23:07:54.0971103Z [36;1mimport json[0m
+2026-11-09T23:07:54.0971231Z [36;1mimport os[0m
+2026-11-09T23:07:54.0971376Z [36;1mfrom datetime import datetime, timezone[0m
+2026-11-09T23:07:54.0971557Z [36;1mfrom pathlib import Path[0m
+2026-11-09T23:07:54.0971703Z [36;1m[0m
+2026-11-09T23:07:54.0971839Z [36;1mfrom build_publication_manifest import ([0m
+2026-11-09T23:07:54.0972014Z [36;1m    build_manifest,[0m
+2026-11-09T23:07:54.0972268Z [36;1m    validate_manifest,[0m
+2026-11-09T23:07:54.0972407Z [36;1m)[0m
+2026-11-09T23:07:54.0972518Z [36;1m[0m
+2026-11-09T23:07:54.0972636Z [36;1mrequired = ([0m
+2026-11-09T23:07:54.0972771Z [36;1m    "news_wire.json",[0m
+2026-11-09T23:07:54.0973041Z [36;1m    "candidate_agenda_history.json",[0m
+2026-11-09T23:07:54.0973224Z [36;1m    "candidate_candidacy_status.json",[0m
+2026-11-09T23:07:54.0973405Z [36;1m    "poll_pages_manifest.json",[0m
+2026-11-09T23:07:54.0973570Z [36;1m    "issue_pages_manifest.json",[0m
+2026-11-09T23:07:54.0973736Z [36;1m    "route_registry.json",[0m
+2026-11-09T23:07:54.0973895Z [36;1m    "agenda_pages_manifest.json",[0m
+2026-11-09T23:07:54.0974063Z [36;1m    "publication_manifest.json",[0m
+2026-11-09T23:07:54.0974220Z [36;1m)[0m
+2026-11-09T23:07:54.0974334Z [36;1mpayloads = {}[0m
+2026-11-09T23:07:54.0974470Z [36;1mfor name in required:[0m
+2026-11-09T23:07:54.0974617Z [36;1m    path = Path(name)[0m
+2026-11-09T23:07:54.0974802Z [36;1m    if not path.is_file() or not os.access(path, os.R_OK):[0m
+2026-11-09T23:07:54.0975091Z [36;1m        raise SystemExit(f"required readable input is missing after rebase: {name}")[0m
+2026-11-09T23:07:54.0975326Z [36;1m    try:[0m
+2026-11-09T23:07:54.0975506Z [36;1m        payloads[name] = json.loads(path.read_text(encoding="utf-8"))[0m
+2026-11-09T23:07:54.0975776Z [36;1m    except (OSError, UnicodeError, json.JSONDecodeError) as error:[0m
+2026-11-09T23:07:54.0976094Z [36;1m        raise SystemExit(f"required input is not readable JSON after rebase: {name}: {error}")[0m
+2026-11-09T23:07:54.0976345Z [36;1m[0m
+2026-11-09T23:07:54.0976529Z [36;1mfor name in ("index.html", "sondages/index.html", "en/sondages/index.html"):[0m
+2026-11-09T23:07:54.0976757Z [36;1m    path = Path(name)[0m
+2026-11-09T23:07:54.0976937Z [36;1m    if not path.is_file() or not os.access(path, os.R_OK):[0m
+2026-11-09T23:07:54.0977199Z [36;1m        raise SystemExit(f"required readable shell template is missing: {name}")[0m
+2026-11-09T23:07:54.0977448Z [36;1m    path.read_text(encoding="utf-8")[0m
+2026-11-09T23:07:54.0977604Z [36;1m[0m
+2026-11-09T23:07:54.0977752Z [36;1mstored = payloads["publication_manifest.json"][0m
+2026-11-09T23:07:54.0977941Z [36;1mvalidate_manifest(stored)[0m
+2026-11-09T23:07:54.0978112Z [36;1mpublished_at = stored["published_at"][0m
+2026-11-09T23:07:54.0978334Z [36;1mexpected = build_manifest(Path.cwd(), published_at=published_at)[0m
+2026-11-09T23:07:54.0978550Z [36;1mif stored != expected:[0m
+2026-11-09T23:07:54.0978799Z [36;1m    raise SystemExit([0m
+2026-11-09T23:07:54.0978999Z [36;1m        "publication_manifest.json is not synchronized after rebase"[0m
+2026-11-09T23:07:54.0979202Z [36;1m    )[0m
+2026-11-09T23:07:54.0979320Z [36;1m[0m
+2026-11-09T23:07:54.0979446Z [36;1mnormalized = published_at[0m
+2026-11-09T23:07:54.0979607Z [36;1mif normalized.endswith("Z"):[0m
+2026-11-09T23:07:54.0979784Z [36;1m    normalized = normalized[:-1] + "+00:00"[0m
+2026-11-09T23:07:54.0979979Z [36;1minstant = datetime.fromisoformat(normalized)[0m
+2026-11-09T23:07:54.0980168Z [36;1mif instant.tzinfo is None:[0m
+2026-11-09T23:07:54.0980414Z [36;1m    raise SystemExit("publication_manifest.json published_at must be timezone-aware")[0m
+2026-11-09T23:07:54.0980726Z [36;1meffective_date = instant.astimezone(timezone.utc).date().isoformat()[0m
+2026-11-09T23:07:54.0980960Z [36;1mprint(published_at, effective_date)[0m
+2026-11-09T23:07:54.0981122Z [36;1mPY[0m
+2026-11-09T23:07:54.0981235Z [36;1m)[0m
+2026-11-09T23:07:54.0981345Z [36;1m[0m
+2026-11-09T23:07:54.0981484Z [36;1mpython -B build_publication_manifest.py \[0m
+2026-11-09T23:07:54.0981660Z [36;1m  --check \[0m
+2026-11-09T23:07:54.0981800Z [36;1m  --published-at "$published_at"[0m
+2026-11-09T23:07:54.0981951Z [36;1m[0m
+2026-11-09T23:07:54.0982091Z [36;1mpython -B build_agenda_coverage_history.py[0m
+2026-11-09T23:07:54.0982302Z [36;1mpython -B build_agenda_coverage_history.py --check[0m
+2026-11-09T23:07:54.0982478Z [36;1m[0m
+2026-11-09T23:07:54.0982708Z [36;1mpython -B build_agenda_pages.py[0m
+2026-11-09T23:07:54.0982888Z [36;1mpython -B build_agenda_pages.py --check[0m
+2026-11-09T23:07:54.0983083Z [36;1mpython -B build_agenda_pages.py --thin-audit[0m
+2026-11-09T23:07:54.0983251Z [36;1m[0m
+2026-11-09T23:07:54.0983467Z [36;1mpython -B build_route_registry.py \[0m
+2026-11-09T23:07:54.0983668Z [36;1m  --agenda-manifest agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0983877Z [36;1m  --effective-date "$route_effective_date"[0m
+2026-11-09T23:07:54.0984064Z [36;1mpython -B build_route_registry.py \[0m
+2026-11-09T23:07:54.0984259Z [36;1m  --agenda-manifest agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0984443Z [36;1m  --check[0m
+2026-11-09T23:07:54.0984562Z [36;1m[0m
+2026-11-09T23:07:54.0984688Z [36;1mpython -B build_sitemaps.py[0m
+2026-11-09T23:07:54.0984857Z [36;1mpython -B build_sitemaps.py --check[0m
+2026-11-09T23:07:54.0985015Z [36;1m[0m
+2026-11-09T23:07:54.0985138Z [36;1mpython -B -m unittest -v \[0m
+2026-11-09T23:07:54.0985307Z [36;1m  test_agenda_page_contract \[0m
+2026-11-09T23:07:54.0985477Z [36;1m  test_build_agenda_coverage_history \[0m
+2026-11-09T23:07:54.0985651Z [36;1m  test_agenda_pages \[0m
+2026-11-09T23:07:54.0985810Z [36;1m  test_campaign_agenda_evidence \[0m
+2026-11-09T23:07:54.0985996Z [36;1m  test_build_candidate_agenda_history \[0m
+2026-11-09T23:07:54.0986183Z [36;1m  test_candidate_agenda_history_contract \[0m
+2026-11-09T23:07:54.0986360Z [36;1m  test_route_registry \[0m
+2026-11-09T23:07:54.0986515Z [36;1m  test_search_foundation \[0m
+2026-11-09T23:07:54.0986673Z [36;1m  test_publication_manifest \[0m
+2026-11-09T23:07:54.0986846Z [36;1m  test_publication_manifest_registry_v2 \[0m
+2026-11-09T23:07:54.0987025Z [36;1m  test_agenda_family_automation \[0m
+2026-11-09T23:07:54.0987196Z [36;1m  test_production_publication_queue[0m
+2026-11-09T23:07:54.0987354Z [36;1m[0m
+2026-11-09T23:07:54.0987473Z [36;1mgit diff --check[0m
+2026-11-09T23:07:54.0987616Z [36;1massert_allowed_changes[0m
+2026-11-09T23:07:54.0987758Z [36;1m[0m
+2026-11-09T23:07:54.0987891Z [36;1msnapshot_generated_state rebased-first[0m
+2026-11-09T23:07:54.0988050Z [36;1m[0m
+2026-11-09T23:07:54.0988186Z [36;1mpython -B build_agenda_coverage_history.py[0m
+2026-11-09T23:07:54.0988399Z [36;1mpython -B build_agenda_coverage_history.py --check[0m
+2026-11-09T23:07:54.0988674Z [36;1m[0m
+2026-11-09T23:07:54.0988801Z [36;1mpython -B build_agenda_pages.py[0m
+2026-11-09T23:07:54.0988978Z [36;1mpython -B build_agenda_pages.py --check[0m
+2026-11-09T23:07:54.0989179Z [36;1mpython -B build_agenda_pages.py --thin-audit[0m
+2026-11-09T23:07:54.0989347Z [36;1m[0m
+2026-11-09T23:07:54.0989474Z [36;1mpython -B build_route_registry.py \[0m
+2026-11-09T23:07:54.0989670Z [36;1m  --agenda-manifest agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0989872Z [36;1m  --effective-date "$route_effective_date"[0m
+2026-11-09T23:07:54.0990059Z [36;1mpython -B build_route_registry.py \[0m
+2026-11-09T23:07:54.0990256Z [36;1m  --agenda-manifest agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0990437Z [36;1m  --check[0m
+2026-11-09T23:07:54.0990557Z [36;1m[0m
+2026-11-09T23:07:54.0990686Z [36;1mpython -B build_sitemaps.py[0m
+2026-11-09T23:07:54.0990856Z [36;1mpython -B build_sitemaps.py --check[0m
+2026-11-09T23:07:54.0991012Z [36;1m[0m
+2026-11-09T23:07:54.0991130Z [36;1mgit diff --check[0m
+2026-11-09T23:07:54.0991276Z [36;1massert_allowed_changes[0m
+2026-11-09T23:07:54.0991444Z [36;1msnapshot_generated_state rebased-second[0m
+2026-11-09T23:07:54.0991609Z [36;1m[0m
+2026-11-09T23:07:54.0991837Z [36;1mcmp "$RUNNER_TEMP/agenda-rebased-first.status" "$RUNNER_TEMP/agenda-rebased-second.status"[0m
+2026-11-09T23:07:54.0992203Z [36;1mcmp "$RUNNER_TEMP/agenda-rebased-first.diff" "$RUNNER_TEMP/agenda-rebased-second.diff"[0m
+2026-11-09T23:07:54.0992570Z [36;1mcmp "$RUNNER_TEMP/agenda-rebased-first.sha256" "$RUNNER_TEMP/agenda-rebased-second.sha256"[0m
+2026-11-09T23:07:54.0992902Z [36;1mecho "Deterministic regeneration introduced zero additional changes."[0m
+2026-11-09T23:07:54.0993223Z [36;1m[0m
+2026-11-09T23:07:54.0993332Z [36;1m[0m
+2026-11-09T23:07:54.0993445Z [36;1mgit add -- \[0m
+2026-11-09T23:07:54.0993625Z [36;1m  agenda_coverage_history.json agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0993930Z [36;1m  agenda en/agenda route_registry.json \[0m
+2026-11-09T23:07:54.0994149Z [36;1m  sitemap.xml sitemap-core.xml sitemap-candidates.xml \[0m
+2026-11-09T23:07:54.0994401Z [36;1m  sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml[0m
+2026-11-09T23:07:54.0994612Z [36;1mgit diff --cached --check[0m
+2026-11-09T23:07:54.0994755Z [36;1m[0m
+2026-11-09T23:07:54.0994882Z [36;1mif ! git diff --cached --quiet; then[0m
+2026-11-09T23:07:54.0995109Z [36;1m  # Rebase may drop an already-applied publication. Never amend main's[0m
+2026-11-09T23:07:54.0995382Z [36;1m  # commit if fresh inputs still require a new generated publication.[0m
+2026-11-09T23:07:54.0995631Z [36;1m  if [[ "$(git rev-parse HEAD)" == "$validated_base" ]]; then[0m
+2026-11-09T23:07:54.0995851Z [36;1m    git commit -m "Refresh Agenda family"[0m
+2026-11-09T23:07:54.0996021Z [36;1m  else[0m
+2026-11-09T23:07:54.0996152Z [36;1m    git commit --amend --no-edit[0m
+2026-11-09T23:07:54.0996310Z [36;1m  fi[0m
+2026-11-09T23:07:54.0996425Z [36;1mfi[0m
+2026-11-09T23:07:54.0996535Z [36;1m[0m
+2026-11-09T23:07:54.0996663Z [36;1mif ! git diff --quiet origin/main -- \[0m
+2026-11-09T23:07:54.0996879Z [36;1m  agenda_coverage_history.json agenda_pages_manifest.json \[0m
+2026-11-09T23:07:54.0997099Z [36;1m  agenda en/agenda route_registry.json \[0m
+2026-11-09T23:07:54.0997312Z [36;1m  sitemap.xml sitemap-core.xml sitemap-candidates.xml \[0m
+2026-11-09T23:07:54.0997570Z [36;1m  sitemap-polls.xml sitemap-issues.xml sitemap-agenda.xml; then[0m
+2026-11-09T23:07:54.0997774Z [36;1m  :[0m
+2026-11-09T23:07:54.0997887Z [36;1melse[0m
+2026-11-09T23:07:54.0998069Z [36;1m  echo "The reconciled Agenda publication is already present on main."[0m
+2026-11-09T23:07:54.0998307Z [36;1m  echo "pushed=false" >> "$GITHUB_OUTPUT"[0m
+2026-11-09T23:07:54.0998475Z [36;1m  exit 0[0m
+2026-11-09T23:07:54.0998666Z [36;1mfi[0m
+2026-11-09T23:07:54.0998776Z [36;1m[0m
+2026-11-09T23:07:54.0998953Z [36;1mif [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then[0m
+2026-11-09T23:07:54.0999227Z [36;1m  echo "Working tree is not clean after Agenda reconciliation." >&2[0m
+2026-11-09T23:07:54.0999440Z [36;1m  git status --short[0m
+2026-11-09T23:07:54.0999578Z [36;1m  exit 1[0m
+2026-11-09T23:07:54.0999699Z [36;1mfi[0m
+2026-11-09T23:07:54.0999813Z [36;1m[0m
+2026-11-09T23:07:54.1000000Z [36;1m# Porcelain identifies the rejected ref, not an arbitrary stderr phrase.[0m
+2026-11-09T23:07:54.1000287Z [36;1mif push_output="$(git push origin HEAD:main --porcelain 2>&1)"; then[0m
+2026-11-09T23:07:54.1000512Z [36;1m  printf '%s\n' "$push_output"[0m
+2026-11-09T23:07:54.1000685Z [36;1m  echo "pushed=true" >> "$GITHUB_OUTPUT"[0m
+2026-11-09T23:07:54.1000855Z [36;1m  exit 0[0m
+2026-11-09T23:07:54.1000976Z [36;1mfi[0m
+2026-11-09T23:07:54.1001098Z [36;1mprintf '%s\n' "$push_output" >&2[0m
+2026-11-09T23:07:54.1001330Z [36;1mif [[ "$push_output" != *$'!\tHEAD:refs/heads/main\t[rejected] (fetch first)'* &&[0m
+2026-11-09T23:07:54.1001641Z [36;1m      "$push_output" != *$'!\tHEAD:refs/heads/main\t[rejected] (non-fast-forward)'* ]]; then[0m
+2026-11-09T23:07:54.1001966Z [36;1m  echo "Push failed for a reason other than a non-fast-forward race; stopping." >&2[0m
+2026-11-09T23:07:54.1002198Z [36;1m  exit 1[0m
+2026-11-09T23:07:54.1002310Z [36;1mfi[0m
+2026-11-09T23:07:54.1002449Z [36;1mif [[ "$publication_attempt" -eq 2 ]]; then[0m
+2026-11-09T23:07:54.1002691Z [36;1m  echo "Agenda recovery retry budget exhausted (two recovery retries)." >&2[0m
+2026-11-09T23:07:54.1002913Z [36;1m  exit 1[0m
+2026-11-09T23:07:54.1003027Z [36;1mfi[0m
+2026-11-09T23:07:54.1003236Z [36;1mecho "Main advanced during validation; recovery $((publication_attempt + 1))/2." >&2[0m
+2026-11-09T23:07:54.1003577Z [36;1mdone[0m
+2026-11-09T23:07:54.1046703Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T23:07:54.1046912Z env:
+2026-11-09T23:07:54.1047086Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T23:07:54.1047437Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T23:07:54.1047680Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T23:07:54.1047906Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T23:07:54.1048124Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T23:07:54.1048349Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T23:07:54.1048547Z ##[endgroup]
+2026-11-09T23:07:54.3988282Z From https://github.com/openeventbits/france-2027-signal-lab
+2026-11-09T23:07:54.3988833Z  * branch                main       -> FETCH_HEAD
+2026-11-09T23:07:54.4144659Z Current branch main is up to date.
+2026-11-09T23:07:59.7359889Z Candidate readiness failed after reconciliation
+2026-11-09T23:07:59.7360316Z Publication deferred: candidate publication is not ready.
+2026-11-09T23:07:59.7361092Z build_candidate_reference.py --all-active --check: stale generated candidate artifact: /home/runner/work/france-2027-signal-lab/france-2027-signal-lab/candidates/anasse-kazib/data.json
+2026-11-09T23:07:59.7498044Z ##[error]Process completed with exit code 1.
+2026-11-09T23:07:59.7608726Z Post job cleanup.
+2026-11-09T23:07:59.8165410Z [command]/usr/bin/git version
+2026-11-09T23:07:59.8202102Z git version 2.56.0
+2026-11-09T23:07:59.8224595Z Temporarily overriding HOME='/home/runner/work/_temp/d64d6cb9-b03e-40b5-9706-787aedf289dd' before making global git config changes
+2026-11-09T23:07:59.8225380Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T23:07:59.8228181Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/france-2027-signal-lab/france-2027-signal-lab
+2026-11-09T23:07:59.8262581Z Removing SSH command configuration
+2026-11-09T23:07:59.8267301Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T23:07:59.8301050Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T23:07:59.8556045Z Removing HTTP extra header
+2026-11-09T23:07:59.8561905Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T23:07:59.8609223Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T23:07:59.8863574Z Removing includeIf entries pointing to credentials config files
+2026-11-09T23:07:59.8869442Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T23:07:59.8893759Z includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git.path
+2026-11-09T23:07:59.8894383Z includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/worktrees/*.path
+2026-11-09T23:07:59.8894682Z includeif.gitdir:/github/workspace/.git.path
+2026-11-09T23:07:59.8894891Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-09T23:07:59.8901383Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git.path
+2026-11-09T23:07:59.8922517Z /home/runner/work/_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config
+2026-11-09T23:07:59.8930405Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-1ce59008\-de3a\-44bd\-9e31\-e3f87ed7802f\.config
+2026-11-09T23:07:59.8985094Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/worktrees/*.path
+2026-11-09T23:07:59.9006536Z /home/runner/work/_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config
+2026-11-09T23:07:59.9011647Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-1ce59008\-de3a\-44bd\-9e31\-e3f87ed7802f\.config
+2026-11-09T23:07:59.9039810Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-09T23:07:59.9059282Z /github/runner_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config
+2026-11-09T23:07:59.9064426Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-1ce59008\-de3a\-44bd\-9e31\-e3f87ed7802f\.config
+2026-11-09T23:07:59.9093160Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-09T23:07:59.9112866Z /github/runner_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config
+2026-11-09T23:07:59.9118723Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-1ce59008\-de3a\-44bd\-9e31\-e3f87ed7802f\.config
+2026-11-09T23:07:59.9147286Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T23:07:59.9370067Z Removing credentials config '/home/runner/work/_temp/git-credentials-1ce59008-de3a-44bd-9e31-e3f87ed7802f.config'
+2026-11-09T23:07:59.9513345Z Cleaning up orphan processes

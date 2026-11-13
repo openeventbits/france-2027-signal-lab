@@ -1,0 +1,24 @@
+SCOPE current 360 111 477891d062ad09091ff37738b0baae41da85a4ed79a228421436ab6984fe4492
+current 240490172 SourceDriftError widespread first_round extraction loss: 284 rows; expected at least 90% of 316
+current 240498648 SourceDriftError widespread first_round extraction loss: 284 rows; expected at least 90% of 316
+current 240522402 SourceDriftError widespread first_round extraction loss: 284 rows; expected at least 90% of 316
+current 240570516 SUCCESS 360 111 same True
+SCOPE original-review 349 108 81a0e16c95391506b093d6d37137e608dd79d2a1fecb3bab344317022a5544fd
+original-review 240490172 SourceDriftError widespread second_round extraction loss: 95 rows; expected at least 90% of 106
+original-review 240498648 SourceDriftError widespread second_round extraction loss: 95 rows; expected at least 90% of 106
+original-review 240522402 SourceDriftError widespread second_round extraction loss: 95 rows; expected at least 90% of 106
+original-review 240570516 SUCCESS 349 108 same True
+SCOPE phase1 326 97 3e3c259f8a80d9ee2bd972b8b8e424c1867544a06f054c9af3c83740816280c7
+phase1 240490172 SUCCESS 326 97 same True
+phase1 240498648 SUCCESS 326 97 same True
+phase1 240522402 SUCCESS 326 97 same True
+phase1 240570516 ValueError Batch 1 prior event facts/provenance changed or missing
+SCOPE approved-runner 337 102 b1cd5c4b2e2f30ecb83da591349e4791a9c10ab8dfc1c81ed023601af68233aa
+approved-runner 240490172 SUCCESS 337 102 same True
+approved-runner 240498648 SUCCESS 337 102 same True
+approved-runner 240522402 SUCCESS 337 102 same True
+approved-runner 240570516 SUCCESS 337 102 same True
+ORIGINAL FIRST objects unchanged True
+ORIGINAL SECOND objects unchanged True
+COMMIT ADDITIONS 86d1b843a2a42abc778d853f6bef37b93c49c060 358 359 [('69f7241d24aabd2bf280de440307b81cb09ef98721cb4b11845312165b2674a5', 'Cluster17', '2026-11-10')]
+COMMIT ADDITIONS 57ea0363e27bd5c771a629eda232edac9af682bd 359 360 [('42b2db1a5afeb28d8e0d6ce328a3242888274e46422f9aacdf819ef13ddf5c9d', 'Cluster17', '2026-11-10')]

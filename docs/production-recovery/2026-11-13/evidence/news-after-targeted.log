@@ -1,0 +1,36 @@
+test_current_hubs_share_canonical_ids_and_a_single_projection_per_family (test_live_projections.LiveMarkupTests.test_current_hubs_share_canonical_ids_and_a_single_projection_per_family) ... ok
+test_history_and_details_keep_static_fetch_isolation (test_live_projections.LiveMarkupTests.test_history_and_details_keep_static_fetch_isolation) ... ok
+test_news_shell_syntax_and_generated_scope_guard (test_live_projections.LiveMarkupTests.test_news_shell_syntax_and_generated_scope_guard) ... FAIL
+test_atomic_write_keeps_existing_output_on_replace_failure (test_live_projections.LiveProjectionTests.test_atomic_write_keeps_existing_output_on_replace_failure) ... ok
+test_counts_reconcile_and_metric_semantics_are_preserved (test_live_projections.LiveProjectionTests.test_counts_reconcile_and_metric_semantics_are_preserved) ... ok
+test_deterministic_source_identity_canonical_membership_and_no_mutation (test_live_projections.LiveProjectionTests.test_deterministic_source_identity_canonical_membership_and_no_mutation) ... ok
+test_explicit_cli_paths_check_and_failed_build_leave_output_untouched (test_live_projections.LiveProjectionTests.test_explicit_cli_paths_check_and_failed_build_leave_output_untouched) ... ok
+test_malformed_structures_counts_and_ids_fail_closed (test_live_projections.LiveProjectionTests.test_malformed_structures_counts_and_ids_fail_closed) ... ok
+test_multilabel_shares_can_sum_above_one (test_live_projections.LiveProjectionTests.test_multilabel_shares_can_sum_above_one) ... ok
+test_no_network_clock_classification_or_git_reconstruction (test_live_projections.LiveProjectionTests.test_no_network_clock_classification_or_git_reconstruction) ... ok
+test_source_mismatch_and_projection_tampering_fail (test_live_projections.LiveProjectionTests.test_source_mismatch_and_projection_tampering_fail) ... ok
+test_source_timestamp_and_rolling_day_are_required (test_live_projections.LiveProjectionTests.test_source_timestamp_and_rolling_day_are_required) ... ok
+test_synthetic_fetch_bookkeeping_at_utc_schedule_boundaries (test_live_projections.LiveProjectionTests.test_synthetic_fetch_bookkeeping_at_utc_schedule_boundaries) ... ok
+test_executed_promotion_matches_promoted_source (test_live_projections.LiveWorkflowTests.test_executed_promotion_matches_promoted_source) ... ok
+test_executed_semantic_noop_has_zero_projection_churn (test_live_projections.LiveWorkflowTests.test_executed_semantic_noop_has_zero_projection_churn) ... ok
+test_executed_stale_artifact_repair_uses_committed_source (test_live_projections.LiveWorkflowTests.test_executed_stale_artifact_repair_uses_committed_source) ... ok
+test_family_fanout_daily_refresh_candidate_and_global_queue (test_live_projections.LiveWorkflowTests.test_family_fanout_daily_refresh_candidate_and_global_queue) ... ok
+test_invalid_projection_prevents_source_promotion (test_live_projections.LiveWorkflowTests.test_invalid_projection_prevents_source_promotion) ... ok
+test_inventory_bookkeeping_and_stale_repair_preserve_public_snapshot (test_live_projections.LiveWorkflowTests.test_inventory_bookkeeping_and_stale_repair_preserve_public_snapshot) ... ok
+test_inventory_bookkeeping_preserves_public_snapshot (test_live_projections.LiveWorkflowTests.test_inventory_bookkeeping_preserves_public_snapshot) ... ok
+test_workflow_builds_checks_promotes_stages_reconciles_and_serializes (test_live_projections.LiveWorkflowTests.test_workflow_builds_checks_promotes_stages_reconciles_and_serializes) ... ok
+
+======================================================================
+FAIL: test_news_shell_syntax_and_generated_scope_guard (test_live_projections.LiveMarkupTests.test_news_shell_syntax_and_generated_scope_guard)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\Tanya\.codex\worktrees\recovery-news-nov13\france-2027-signal-lab\test_live_projections.py", line 334, in test_news_shell_syntax_and_generated_scope_guard
+    self.assertEqual(result.returncode, 0, result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 3221225794 != 0 :       1 [main] bash (27980) C:\Program Files\Git\bin\..\usr\bin\bash.exe: *** fatal error - NtCreateDirectoryObject(\BaseNamedObjects\msys-2.0S5-1888ae32e00d56aa): 0xC0000022
+
+
+----------------------------------------------------------------------
+Ran 21 tests in 258.823s
+
+FAILED (failures=1)

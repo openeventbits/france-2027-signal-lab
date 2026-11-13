@@ -1,0 +1,1056 @@
+﻿2026-11-13T09:42:56.6053254Z Current runner version: '2.338.2'
+2026-11-13T09:42:56.6077142Z ##[group]Runner Image Provisioner
+2026-11-13T09:42:56.6078454Z Hosted Compute Agent
+2026-11-13T09:42:56.6079058Z Version: 20261028.624
+2026-11-13T09:42:56.6079713Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-13T09:42:56.6080411Z Build Date: 2026-10-28T21:51:42Z
+2026-11-13T09:42:56.6081118Z Worker ID: {ef56cb76-020d-44f1-8245-68ad875fd608}
+2026-11-13T09:42:56.6081805Z Region: westus2
+2026-11-13T09:42:56.6082354Z Cloud: Azure
+2026-11-13T09:42:56.6082886Z ##[endgroup]
+2026-11-13T09:42:56.6084191Z ##[group]Operating System
+2026-11-13T09:42:56.6085082Z Ubuntu
+2026-11-13T09:42:56.6085627Z 26.04.1
+2026-11-13T09:42:56.6086148Z LTS
+2026-11-13T09:42:56.6086663Z ##[endgroup]
+2026-11-13T09:42:56.6087183Z ##[group]Runner Image
+2026-11-13T09:42:56.6087950Z Image: ubuntu-26.04
+2026-11-13T09:42:56.6088605Z Version: 20261101.186.1
+2026-11-13T09:42:56.6089871Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261101.186/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-13T09:42:56.6091377Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261101.186
+2026-11-13T09:42:56.6092279Z ##[endgroup]
+2026-11-13T09:42:56.6093543Z ##[group]GITHUB_TOKEN Permissions
+2026-11-13T09:42:56.6095768Z Contents: write
+2026-11-13T09:42:56.6096366Z Metadata: read
+2026-11-13T09:42:56.6096898Z Pages: write
+2026-11-13T09:42:56.6097424Z ##[endgroup]
+2026-11-13T09:42:56.6099835Z Secret source: Actions
+2026-11-13T09:42:56.6100706Z Cache mode: write
+2026-11-13T09:42:56.6101375Z Prepare workflow directory
+2026-11-13T09:42:56.6415547Z Prepare all required actions
+2026-11-13T09:42:56.6467000Z Getting action download info
+2026-11-13T09:42:56.9881299Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-13T09:42:57.0853929Z Download action repository 'actions/setup-python@v6' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-11-13T09:42:57.2272358Z Complete job name: update-news-wire
+2026-11-13T09:42:57.3224921Z ##[group]Run actions/checkout@v7
+2026-11-13T09:42:57.3225788Z with:
+2026-11-13T09:42:57.3226278Z   ref: main
+2026-11-13T09:42:57.3226760Z   fetch-depth: 0
+2026-11-13T09:42:57.3227358Z   repository: openeventbits/france-2027-signal-lab
+2026-11-13T09:42:57.3231883Z   token: ***
+2026-11-13T09:42:57.3232402Z   ssh-strict: true
+2026-11-13T09:42:57.3232908Z   ssh-user: git
+2026-11-13T09:42:57.3233410Z   persist-credentials: true
+2026-11-13T09:42:57.3233976Z   clean: true
+2026-11-13T09:42:57.3234484Z   sparse-checkout-cone-mode: true
+2026-11-13T09:42:57.3235119Z   fetch-tags: false
+2026-11-13T09:42:57.3235635Z   show-progress: true
+2026-11-13T09:42:57.3236137Z   lfs: false
+2026-11-13T09:42:57.3236630Z   submodules: false
+2026-11-13T09:42:57.3237258Z   set-safe-directory: true
+2026-11-13T09:42:57.3238010Z   allow-unsafe-pr-checkout: false
+2026-11-13T09:42:57.3238838Z ##[endgroup]
+2026-11-13T09:42:57.6234511Z Syncing repository: openeventbits/france-2027-signal-lab
+2026-11-13T09:42:57.6236593Z ##[group]Getting Git version info
+2026-11-13T09:42:57.6237467Z Working directory is '/home/runner/work/france-2027-signal-lab/france-2027-signal-lab'
+2026-11-13T09:42:57.6239235Z [command]/usr/bin/git version
+2026-11-13T09:42:57.6269347Z git version 2.56.0
+2026-11-13T09:42:57.6292523Z ##[endgroup]
+2026-11-13T09:42:57.6304989Z Temporarily overriding HOME='/home/runner/work/_temp/5979a641-a0a2-4512-8edd-e61ec30b67e9' before making global git config changes
+2026-11-13T09:42:57.6310636Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-13T09:42:57.6312162Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/france-2027-signal-lab/france-2027-signal-lab
+2026-11-13T09:42:57.6382388Z Deleting the contents of '/home/runner/work/france-2027-signal-lab/france-2027-signal-lab'
+2026-11-13T09:42:57.6384570Z ##[group]Determining repository object format
+2026-11-13T09:42:58.1178578Z ##[endgroup]
+2026-11-13T09:42:58.1180109Z ##[group]Initializing the repository
+2026-11-13T09:42:58.1186711Z [command]/usr/bin/git init /home/runner/work/france-2027-signal-lab/france-2027-signal-lab
+2026-11-13T09:42:58.1721481Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-13T09:42:58.1723280Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-13T09:42:58.1724747Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-13T09:42:58.1726258Z hint: call:
+2026-11-13T09:42:58.1727071Z hint:
+2026-11-13T09:42:58.1728346Z hint: 	git config --global init.defaultBranch <name>
+2026-11-13T09:42:58.1729598Z hint:
+2026-11-13T09:42:58.1731510Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-13T09:42:58.1733109Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-13T09:42:58.1734317Z hint:
+2026-11-13T09:42:58.1735127Z hint: 	git branch -m <name>
+2026-11-13T09:42:58.1736350Z hint:
+2026-11-13T09:42:58.1737157Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-13T09:42:58.1738938Z Initialized empty Git repository in /home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/
+2026-11-13T09:42:58.1742366Z [command]/usr/bin/git remote add origin https://github.com/openeventbits/france-2027-signal-lab
+2026-11-13T09:42:58.1750086Z ##[endgroup]
+2026-11-13T09:42:58.1751420Z ##[group]Disabling automatic garbage collection
+2026-11-13T09:42:58.1755170Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-13T09:42:58.1795563Z ##[endgroup]
+2026-11-13T09:42:58.1796885Z ##[group]Setting up auth
+2026-11-13T09:42:58.1797650Z Removing SSH command configuration
+2026-11-13T09:42:58.1802252Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-13T09:42:58.1837418Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-13T09:42:58.2241143Z Removing HTTP extra header
+2026-11-13T09:42:58.2246353Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-13T09:42:58.2278944Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-13T09:42:58.2504703Z Removing includeIf entries pointing to credentials config files
+2026-11-13T09:42:58.2508567Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-13T09:42:58.2540857Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-13T09:42:58.2765985Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-13T09:42:58.2807153Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git.path /home/runner/work/_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config
+2026-11-13T09:42:58.2837980Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config
+2026-11-13T09:42:58.2871524Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config
+2026-11-13T09:42:58.2904188Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config
+2026-11-13T09:42:58.2933138Z ##[endgroup]
+2026-11-13T09:42:58.2935796Z ##[group]Fetching the repository
+2026-11-13T09:42:58.2940973Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-11-13T09:44:36.4795828Z From https://github.com/openeventbits/france-2027-signal-lab
+2026-11-13T09:44:36.4797549Z  * [new branch]          architecture/wikipedia-candidate-universe -> origin/architecture/wikipedia-candidate-universe
+2026-11-13T09:44:36.4799145Z  * [new branch]          chore/clean-tools-before-signal-extractor -> origin/chore/clean-tools-before-signal-extractor
+2026-11-13T09:44:36.4800472Z  * [new branch]          chore/french-media-registry-2026-09-04 -> origin/chore/french-media-registry-2026-09-04
+2026-11-13T09:44:36.4801731Z  * [new branch]          ci/pr-dashboard-smoke   -> origin/ci/pr-dashboard-smoke
+2026-11-13T09:44:36.4802730Z  * [new branch]          codex/agenda-push-race-b1 -> origin/codex/agenda-push-race-b1
+2026-11-13T09:44:36.4803819Z  * [new branch]          codex/baseline-ci-auth-metrics -> origin/codex/baseline-ci-auth-metrics
+2026-11-13T09:44:36.4805041Z  * [new branch]          codex/campaign-events-2026-11-05 -> origin/codex/campaign-events-2026-11-05
+2026-11-13T09:44:36.4806146Z  * [new branch]          codex/candidate-bluesky-parity -> origin/codex/candidate-bluesky-parity
+2026-11-13T09:44:36.4807247Z  * [new branch]          codex/candidate-events-2026-10-29 -> origin/codex/candidate-events-2026-10-29
+2026-11-13T09:44:36.4808542Z  * [new branch]          codex/candidate-family-size-budget -> origin/codex/candidate-family-size-budget
+2026-11-13T09:44:36.4809866Z  * [new branch]          codex/candidate-publication-hash-pass -> origin/codex/candidate-publication-hash-pass
+2026-11-13T09:44:36.4810866Z  * [new branch]          codex/candidate-universe-dependencies -> origin/codex/candidate-universe-dependencies
+2026-11-13T09:44:36.4811827Z  * [new branch]          codex/ci-candidate-midnight-5f4cbdf743eb -> origin/codex/ci-candidate-midnight-5f4cbdf743eb
+2026-11-13T09:44:36.4813191Z  * [new branch]          codex/cluster17-10339-source-retention -> origin/codex/cluster17-10339-source-retention
+2026-11-13T09:44:36.4814206Z  * [new branch]          codex/cluster17-study-gate1 -> origin/codex/cluster17-study-gate1
+2026-11-13T09:44:36.4815388Z  * [new branch]          codex/commission-10205-composite-rn -> origin/codex/commission-10205-composite-rn
+2026-11-13T09:44:36.4816295Z  * [new branch]          codex/commission-10260-documentary -> origin/codex/commission-10260-documentary
+2026-11-13T09:44:36.4817166Z  * [new branch]          codex/commission-10264-documentary -> origin/codex/commission-10264-documentary
+2026-11-13T09:44:36.4818110Z  * [new branch]          codex/commission-10333-coverage -> origin/codex/commission-10333-coverage
+2026-11-13T09:44:36.4818896Z  * [new branch]          codex/commission-10342-registry-extension -> origin/codex/commission-10342-registry-extension
+2026-11-13T09:44:36.4819760Z  * [new branch]          codex/commission-barometer-classifier -> origin/codex/commission-barometer-classifier
+2026-11-13T09:44:36.4820600Z  * [new branch]          codex/commission-historical-baseline-repair -> origin/codex/commission-historical-baseline-repair
+2026-11-13T09:44:36.4821520Z  * [new branch]          codex/commission-notice-reconciliation-20261026 -> origin/codex/commission-notice-reconciliation-20261026
+2026-11-13T09:44:36.4822633Z  * [new branch]          codex/elabe-reviewed-provenance -> origin/codex/elabe-reviewed-provenance
+2026-11-13T09:44:36.4823584Z  * [new branch]          codex/exceptional-source-tables-integration -> origin/codex/exceptional-source-tables-integration
+2026-11-13T09:44:36.4824372Z  * [new branch]          codex/fix-og-cover-lxml -> origin/codex/fix-og-cover-lxml
+2026-11-13T09:44:36.4825039Z  * [new branch]          codex/fix-polls-selection-contract -> origin/codex/fix-polls-selection-contract
+2026-11-13T09:44:36.4825708Z  * [new branch]          codex/fr27-audit-nov2   -> origin/codex/fr27-audit-nov2
+2026-11-13T09:44:36.4826554Z  * [new branch]          codex/fr27-campaign-event-grouping -> origin/codex/fr27-campaign-event-grouping
+2026-11-13T09:44:36.4827479Z  * [new branch]          codex/fr27-cnews-lab-browsing -> origin/codex/fr27-cnews-lab-browsing
+2026-11-13T09:44:36.4828490Z  * [new branch]          codex/fr27-cnews-source-evidence -> origin/codex/fr27-cnews-source-evidence
+2026-11-13T09:44:36.4829177Z  * [new branch]          codex/fr27-coverage-diagnostic -> origin/codex/fr27-coverage-diagnostic
+2026-11-13T09:44:36.4829909Z  * [new branch]          codex/fr27-french-migration-phase1 -> origin/codex/fr27-french-migration-phase1
+2026-11-13T09:44:36.4830627Z  * [new branch]          codex/fr27-news-change-integrity -> origin/codex/fr27-news-change-integrity
+2026-11-13T09:44:36.4831279Z  * [new branch]          codex/fr27-news-wire-lxml -> origin/codex/fr27-news-wire-lxml
+2026-11-13T09:44:36.4831907Z  * [new branch]          codex/fr27-phase1-stability -> origin/codex/fr27-phase1-stability
+2026-11-13T09:44:36.4832670Z  * [new branch]          codex/fr27-pr1-historical-polling-scope -> origin/codex/fr27-pr1-historical-polling-scope
+2026-11-13T09:44:36.4833539Z  * [new branch]          codex/freeze-polling-regressions -> origin/codex/freeze-polling-regressions
+2026-11-13T09:44:36.4834267Z  * [new branch]          codex/historical-replay-isolation -> origin/codex/historical-replay-isolation
+2026-11-13T09:44:36.4835007Z  * [new branch]          codex/homepage-completeness-parity -> origin/codex/homepage-completeness-parity
+2026-11-13T09:44:36.4835799Z  * [new branch]          codex/news-wire-audit-rounding-nov08 -> origin/codex/news-wire-audit-rounding-nov08
+2026-11-13T09:44:36.4836522Z  * [new branch]          codex/news-wire-dependencies -> origin/codex/news-wire-dependencies
+2026-11-13T09:44:36.4837281Z  * [new branch]          codex/og-cover-document-allowlist -> origin/codex/og-cover-document-allowlist
+2026-11-13T09:44:36.4838198Z  * [new branch]          codex/polling-accuracy-batch1 -> origin/codex/polling-accuracy-batch1
+2026-11-13T09:44:36.4839151Z  * [new branch]          codex/polling-ci-historical-snapshot-followup -> origin/codex/polling-ci-historical-snapshot-followup
+2026-11-13T09:44:36.4839970Z  * [new branch]          codex/polling-ci-hotfix -> origin/codex/polling-ci-hotfix
+2026-11-13T09:44:36.4840644Z  * [new branch]          codex/polling-commission-batch2 -> origin/codex/polling-commission-batch2
+2026-11-13T09:44:36.4841472Z  * [new branch]          codex/polling-live-review-anchor-diagnosis -> origin/codex/polling-live-review-anchor-diagnosis
+2026-11-13T09:44:36.4842358Z  * [new branch]          codex/polls-french-source-drift-v1 -> origin/codex/polls-french-source-drift-v1
+2026-11-13T09:44:36.4843037Z  * [new branch]          codex/remove-x-publisher -> origin/codex/remove-x-publisher
+2026-11-13T09:44:36.4843726Z  * [new branch]          codex/repair-polling-test-scopes -> origin/codex/repair-polling-test-scopes
+2026-11-13T09:44:36.4844494Z  * [new branch]          codex/repair-publication-contracts -> origin/codex/repair-publication-contracts
+2026-11-13T09:44:36.4845283Z  * [new branch]          codex/repair-publication-manifest-pr310 -> origin/codex/repair-publication-manifest-pr310
+2026-11-13T09:44:36.4846145Z  * [new branch]          codex/wikipedia-primary-section-update -> origin/codex/wikipedia-primary-section-update
+2026-11-13T09:44:36.4846917Z  * [new branch]          cutover/fr27-french-polling -> origin/cutover/fr27-french-polling
+2026-11-13T09:44:36.4847641Z  * [new branch]          design/candidate-explore-further-v1 -> origin/design/candidate-explore-further-v1
+2026-11-13T09:44:36.4848638Z  * [new branch]          design/color-contract-lab-v1 -> origin/design/color-contract-lab-v1
+2026-11-13T09:44:36.4849329Z  * [new branch]          design/race-prior-observation-v1 -> origin/design/race-prior-observation-v1
+2026-11-13T09:44:36.4850034Z  * [new branch]          design/signal-console-v1 -> origin/design/signal-console-v1
+2026-11-13T09:44:36.4850715Z  * [new branch]          design/typography-architecture-v2 -> origin/design/typography-architecture-v2
+2026-11-13T09:44:36.4851458Z  * [new branch]          docs/poll-semantics-sync -> origin/docs/poll-semantics-sync
+2026-11-13T09:44:36.4852187Z  * [new branch]          docs/readme-fr          -> origin/docs/readme-fr
+2026-11-13T09:44:36.4852771Z  * [new branch]          experiment/event-leads-v0-1 -> origin/experiment/event-leads-v0-1
+2026-11-13T09:44:36.4853459Z  * [new branch]          feat/agenda-policy-issues-v2 -> origin/feat/agenda-policy-issues-v2
+2026-11-13T09:44:36.4854197Z  * [new branch]          feat/candidate-analysis-history-v1 -> origin/feat/candidate-analysis-history-v1
+2026-11-13T09:44:36.4855061Z  * [new branch]          feat/candidate-scrutiny-popover -> origin/feat/candidate-scrutiny-popover
+2026-11-13T09:44:36.4856007Z  * [new branch]          feat/cloudflare-traffic-v1 -> origin/feat/cloudflare-traffic-v1
+2026-11-13T09:44:36.4856921Z  * [new branch]          feat/first-party-discovery-architecture -> origin/feat/first-party-discovery-architecture
+2026-11-13T09:44:36.4858008Z  * [new branch]          feat/selected-analysis-history-v1 -> origin/feat/selected-analysis-history-v1
+2026-11-13T09:44:36.4858874Z  * [new branch]          feat/x-publishing-automation-v1 -> origin/feat/x-publishing-automation-v1
+2026-11-13T09:44:36.4860035Z  * [new branch]          feat/x-publishing-signal-engine-v2 -> origin/feat/x-publishing-signal-engine-v2
+2026-11-13T09:44:36.4860875Z  * [new branch]          feat/x-publishing-v2-1-newsroom -> origin/feat/x-publishing-v2-1-newsroom
+2026-11-13T09:44:36.4861717Z  * [new branch]          feature/agenda-url-family-v1 -> origin/feature/agenda-url-family-v1
+2026-11-13T09:44:36.4862600Z  * [new branch]          feature/analytics-foundation-v1 -> origin/feature/analytics-foundation-v1
+2026-11-13T09:44:36.4863497Z  * [new branch]          feature/campaign-events-adapters-v1 -> origin/feature/campaign-events-adapters-v1
+2026-11-13T09:44:36.4864339Z  * [new branch]          feature/campaign-events-frontend-v1 -> origin/feature/campaign-events-frontend-v1
+2026-11-13T09:44:36.4865934Z  * [new branch]          feature/campaign-events-rn-agenda-v1 -> origin/feature/campaign-events-rn-agenda-v1
+2026-11-13T09:44:36.4867000Z  * [new branch]          feature/dashboard-internal-navigation-v1 -> origin/feature/dashboard-internal-navigation-v1
+2026-11-13T09:44:36.4868280Z  * [new branch]          feature/dashboard-internal-navigation-v1-final -> origin/feature/dashboard-internal-navigation-v1-final
+2026-11-13T09:44:36.4869085Z  * [new branch]          feature/fr-localization-v1 -> origin/feature/fr-localization-v1
+2026-11-13T09:44:36.4870329Z  * [new branch]          feature/global-section-launcher-agenda-v2 -> origin/feature/global-section-launcher-agenda-v2
+2026-11-13T09:44:36.4871154Z  * [new branch]          feature/global-ui-consistency-v1 -> origin/feature/global-ui-consistency-v1
+2026-11-13T09:44:36.4871989Z  * [new branch]          feature/global-ui-navigation-polish-v1 -> origin/feature/global-ui-navigation-polish-v1
+2026-11-13T09:44:36.4873328Z  * [new branch]          feature/live-agenda-issues-v1 -> origin/feature/live-agenda-issues-v1
+2026-11-13T09:44:36.4873983Z  * [new branch]          feature/manual-og-refresh -> origin/feature/manual-og-refresh
+2026-11-13T09:44:36.4874640Z  * [new branch]          feature/menu-footer-polish-v1 -> origin/feature/menu-footer-polish-v1
+2026-11-13T09:44:36.4875364Z  * [new branch]          feature/publication-orchestration-v1 -> origin/feature/publication-orchestration-v1
+2026-11-13T09:44:36.4876092Z  * [new branch]          feature/search-foundation-v1 -> origin/feature/search-foundation-v1
+2026-11-13T09:44:36.4876766Z  * [new branch]          feature/semantic-snapshot-v1 -> origin/feature/semantic-snapshot-v1
+2026-11-13T09:44:36.4877416Z  * [new branch]          feature/social-share-cards -> origin/feature/social-share-cards
+2026-11-13T09:44:36.4878240Z  * [new branch]          feature/trace-candidate-v1 -> origin/feature/trace-candidate-v1
+2026-11-13T09:44:36.4878932Z  * [new branch]          feature/trace-coverage-anatomy-v1 -> origin/feature/trace-coverage-anatomy-v1
+2026-11-13T09:44:36.4879711Z  * [new branch]          feature/trace-flash-shift-v1 -> origin/feature/trace-flash-shift-v1
+2026-11-13T09:44:36.4880382Z  * [new branch]          feature/trace-rendering-v1 -> origin/feature/trace-rendering-v1
+2026-11-13T09:44:36.4880989Z  * [new branch]          feature/trace-v1        -> origin/feature/trace-v1
+2026-11-13T09:44:36.4881816Z  * [new branch]          feature/wikimedia-candidate-attention-backend-v1 -> origin/feature/wikimedia-candidate-attention-backend-v1
+2026-11-13T09:44:36.4882735Z  * [new branch]          feature/x-buffer-scheduled-core-v1 -> origin/feature/x-buffer-scheduled-core-v1
+2026-11-13T09:44:36.4883454Z  * [new branch]          feature/x-visibility-content-v1 -> origin/feature/x-visibility-content-v1
+2026-11-13T09:44:36.4884214Z  * [new branch]          fix/agenda-bar-precision-contract-v1 -> origin/fix/agenda-bar-precision-contract-v1
+2026-11-13T09:44:36.4884943Z  * [new branch]          fix/bing-meta-description -> origin/fix/bing-meta-description
+2026-11-13T09:44:36.4885762Z  * [new branch]          fix/candidate-attention-aggregate-preflight -> origin/fix/candidate-attention-aggregate-preflight
+2026-11-13T09:44:36.4886635Z  * [new branch]          fix/candidate-attention-availability-lag -> origin/fix/candidate-attention-availability-lag
+2026-11-13T09:44:36.4887502Z  * [new branch]          fix/candidate-attention-incomplete-200-retry -> origin/fix/candidate-attention-incomplete-200-retry
+2026-11-13T09:44:36.4888573Z  * [new branch]          fix/candidate-attention-manifest-schema-guard -> origin/fix/candidate-attention-manifest-schema-guard
+2026-11-13T09:44:36.4889477Z  * [new branch]          fix/candidate-attention-sparse-zero-days -> origin/fix/candidate-attention-sparse-zero-days
+2026-11-13T09:44:36.4890346Z  * [new branch]          fix/candidate-attention-wikimedia-availability -> origin/fix/candidate-attention-wikimedia-availability
+2026-11-13T09:44:36.4891470Z  * [new branch]          fix/candidate-dossier-photos-runoff-issues-sort-v1 -> origin/fix/candidate-dossier-photos-runoff-issues-sort-v1
+2026-11-13T09:44:36.4892365Z  * [new branch]          fix/candidate-identity-normalization -> origin/fix/candidate-identity-normalization
+2026-11-13T09:44:36.4893277Z  * [new branch]          fix/candidate-latest-news-duplicate-headline-v1 -> origin/fix/candidate-latest-news-duplicate-headline-v1
+2026-11-13T09:44:36.4894150Z  * [new branch]          fix/candidate-midnight-reference-date -> origin/fix/candidate-midnight-reference-date
+2026-11-13T09:44:36.4894865Z  * [new branch]          fix/candidate-poll-locale-v1 -> origin/fix/candidate-poll-locale-v1
+2026-11-13T09:44:36.4895574Z  * [new branch]          fix/candidate-poll-status-copy -> origin/fix/candidate-poll-status-copy
+2026-11-13T09:44:36.4896378Z  * [new branch]          fix/candidate-reference-featured-poll-v1 -> origin/fix/candidate-reference-featured-poll-v1
+2026-11-13T09:44:36.4897284Z  * [new branch]          fix/candidate-runoff-localization-contract-v1 -> origin/fix/candidate-runoff-localization-contract-v1
+2026-11-13T09:44:36.4898305Z  * [new branch]          fix/candidate-signals-102-contract-v1 -> origin/fix/candidate-signals-102-contract-v1
+2026-11-13T09:44:36.4899112Z  * [new branch]          fix/candidate-signals-dynamic-board-test -> origin/fix/candidate-signals-dynamic-board-test
+2026-11-13T09:44:36.4900055Z  * [new branch]          fix/candidate-signals-equal-poll-range-display-v1 -> origin/fix/candidate-signals-equal-poll-range-display-v1
+2026-11-13T09:44:36.4901010Z  * [new branch]          fix/candidate-signals-schema15-contracts-v1 -> origin/fix/candidate-signals-schema15-contracts-v1
+2026-11-13T09:44:36.4901950Z  * [new branch]          fix/candidate-signals-stale-live-contracts-v1 -> origin/fix/candidate-signals-stale-live-contracts-v1
+2026-11-13T09:44:36.4902794Z  * [new branch]          fix/candidate-signals-test-maintenance -> origin/fix/candidate-signals-test-maintenance
+2026-11-13T09:44:36.4903768Z  * [new branch]          fix/candidate-universe-attention-parity -> origin/fix/candidate-universe-attention-parity
+2026-11-13T09:44:36.4904685Z  * [new branch]          fix/candidate-universe-claims-parity -> origin/fix/candidate-universe-claims-parity
+2026-11-13T09:44:36.4905478Z  * [new branch]          fix/candidate-universe-full-suite-tests -> origin/fix/candidate-universe-full-suite-tests
+2026-11-13T09:44:36.4906402Z  * [new branch]          fix/candidate-universe-reviewed-missing-v1 -> origin/fix/candidate-universe-reviewed-missing-v1
+2026-11-13T09:44:36.4907266Z  * [new branch]          fix/candidate-universe-row-parser-review-v1 -> origin/fix/candidate-universe-row-parser-review-v1
+2026-11-13T09:44:36.4908229Z  * [new branch]          fix/candidate-universe-schema-sync -> origin/fix/candidate-universe-schema-sync
+2026-11-13T09:44:36.4909258Z  * [new branch]          fix/candidate-universe-socialist-source-v1 -> origin/fix/candidate-universe-socialist-source-v1
+2026-11-13T09:44:36.4910124Z  * [new branch]          fix/candidate-universe-temporal-parity -> origin/fix/candidate-universe-temporal-parity
+2026-11-13T09:44:36.4910977Z  * [new branch]          fix/candidate-universe-trigger-contract-v1 -> origin/fix/candidate-universe-trigger-contract-v1
+2026-11-13T09:44:36.4912024Z  * [new branch]          fix/candidate-universe-visibility-history -> origin/fix/candidate-universe-visibility-history
+2026-11-13T09:44:36.4912853Z  * [new branch]          fix/candidate-universe-wikipedia-source -> origin/fix/candidate-universe-wikipedia-source
+2026-11-13T09:44:36.4913643Z  * [new branch]          fix/candidate-workspace-polish -> origin/fix/candidate-workspace-polish
+2026-11-13T09:44:36.4914370Z  * [new branch]          fix/commission-coverage-completion -> origin/fix/commission-coverage-completion
+2026-11-13T09:44:36.4915242Z  * [new branch]          fix/commission-live-evidence-contract-v1 -> origin/fix/commission-live-evidence-contract-v1
+2026-11-13T09:44:36.4916150Z  * [new branch]          fix/commission-transient-retries-v1 -> origin/fix/commission-transient-retries-v1
+2026-11-13T09:44:36.4917247Z  * [new branch]          fix/compact-hero-top-gap-v1 -> origin/fix/compact-hero-top-gap-v1
+2026-11-13T09:44:36.4918522Z  * [new branch]          fix/conditional-scrollbars -> origin/fix/conditional-scrollbars
+2026-11-13T09:44:36.4919486Z  * [new branch]          fix/coverage-percentage-semantics -> origin/fix/coverage-percentage-semantics
+2026-11-13T09:44:36.4920164Z  * [new branch]          fix/daily-og-cover-v1   -> origin/fix/daily-og-cover-v1
+2026-11-13T09:44:36.4920822Z  * [new branch]          fix/desktop-layout-stabilization -> origin/fix/desktop-layout-stabilization
+2026-11-13T09:44:36.4921504Z  * [new branch]          fix/dynamic-route-census-v1 -> origin/fix/dynamic-route-census-v1
+2026-11-13T09:44:36.4922296Z  * [new branch]          fix/footer-live-metrics -> origin/fix/footer-live-metrics
+2026-11-13T09:44:36.4923308Z  * [new branch]          fix/french-autres-multitable-review-v1 -> origin/fix/french-autres-multitable-review-v1
+2026-11-13T09:44:36.4924097Z  * [new branch]          fix/french-autres-pandas3-review-v1 -> origin/fix/french-autres-pandas3-review-v1
+2026-11-13T09:44:36.4924851Z  * [new branch]          fix/french-notice-10292-review-v1 -> origin/fix/french-notice-10292-review-v1
+2026-11-13T09:44:36.4925562Z  * [new branch]          fix/french-poll-heading-hierarchy -> origin/fix/french-poll-heading-hierarchy
+2026-11-13T09:44:36.4926347Z  * [new branch]          fix/french-poll-schema-drift-2026-09-05 -> origin/fix/french-poll-schema-drift-2026-09-05
+2026-11-13T09:44:36.4927235Z  * [new branch]          fix/french-row-linked-candidate-resolution-v1 -> origin/fix/french-row-linked-candidate-resolution-v1
+2026-11-13T09:44:36.4928530Z  * [new branch]          fix/french-row-review-anchor-drift-v1 -> origin/fix/french-row-review-anchor-drift-v1
+2026-11-13T09:44:36.4929478Z  * [new branch]          fix/french-runoff-heading-order-v1 -> origin/fix/french-runoff-heading-order-v1
+2026-11-13T09:44:36.4930200Z  * [new branch]          fix/frontend-facts-schema-1-3 -> origin/fix/frontend-facts-schema-1-3
+2026-11-13T09:44:36.4931024Z  * [new branch]          fix/frozen-fixture-lf-contract-v1 -> origin/fix/frozen-fixture-lf-contract-v1
+2026-11-13T09:44:36.4931787Z  * [new branch]          fix/ifop-10314-live-source-drift-v1 -> origin/fix/ifop-10314-live-source-drift-v1
+2026-11-13T09:44:36.4932515Z  * [new branch]          fix/issues-incidence-consistency-v1 -> origin/fix/issues-incidence-consistency-v1
+2026-11-13T09:44:36.4933354Z  * [new branch]          fix/issues-policy-subtopic-taxonomy-v1 -> origin/fix/issues-policy-subtopic-taxonomy-v1
+2026-11-13T09:44:36.4934054Z  * [new branch]          fix/le-figaro-source-icon -> origin/fix/le-figaro-source-icon
+2026-11-13T09:44:36.4934886Z  * [new branch]          fix/live-projections-orchestration-contract-v1 -> origin/fix/live-projections-orchestration-contract-v1
+2026-11-13T09:44:36.4935708Z  * [new branch]          fix/media-pulse-window-labels-v1 -> origin/fix/media-pulse-window-labels-v1
+2026-11-13T09:44:36.4936612Z  * [new branch]          fix/navigation-json-deterministic-order-v1 -> origin/fix/navigation-json-deterministic-order-v1
+2026-11-13T09:44:36.4937574Z  * [new branch]          fix/news-wire-checkout-main -> origin/fix/news-wire-checkout-main
+2026-11-13T09:44:36.4938612Z  * [new branch]          fix/news-wire-commit-refs-retry -> origin/fix/news-wire-commit-refs-retry
+2026-11-13T09:44:36.4939621Z  * [new branch]          fix/news-wire-manifest-fixture-v1 -> origin/fix/news-wire-manifest-fixture-v1
+2026-11-13T09:44:36.4940757Z  * [new branch]          fix/news-wire-registry-migration-tests -> origin/fix/news-wire-registry-migration-tests
+2026-11-13T09:44:36.4941589Z  * [new branch]          fix/news-wire-temporarily-missing-roster-v1 -> origin/fix/news-wire-temporarily-missing-roster-v1
+2026-11-13T09:44:36.4942407Z  * [new branch]          fix/odoxa-blank-runoff-sample-v1 -> origin/fix/odoxa-blank-runoff-sample-v1
+2026-11-13T09:44:36.4943093Z  * [new branch]          fix/og-cover-midnight-refresh -> origin/fix/og-cover-midnight-refresh
+2026-11-13T09:44:36.4943953Z  * [new branch]          fix/og-refresh-pwsh     -> origin/fix/og-refresh-pwsh
+2026-11-13T09:44:36.4944529Z  * [new branch]          fix/og-refresh-tzdata-v1 -> origin/fix/og-refresh-tzdata-v1
+2026-11-13T09:44:36.4945100Z  * [new branch]          fix/poll-autres-drift-v1 -> origin/fix/poll-autres-drift-v1
+2026-11-13T09:44:36.4945846Z  * [new branch]          fix/poll-candidate-expansion-20261018-v2 -> origin/fix/poll-candidate-expansion-20261018-v2
+2026-11-13T09:44:36.4946617Z  * [new branch]          fix/poll-coverage-reconciliation -> origin/fix/poll-coverage-reconciliation
+2026-11-13T09:44:36.4947333Z  * [new branch]          fix/poll-evidence-fallback-v1 -> origin/fix/poll-evidence-fallback-v1
+2026-11-13T09:44:36.4948271Z  * [new branch]          fix/poll-fixture-lf-contract-v1 -> origin/fix/poll-fixture-lf-contract-v1
+2026-11-13T09:44:36.4949047Z  * [new branch]          fix/poll-fr-t0r1-duplicate-candidates-v1 -> origin/fix/poll-fr-t0r1-duplicate-candidates-v1
+2026-11-13T09:44:36.4949862Z  * [new branch]          fix/poll-frozen-post-audit-baseline -> origin/fix/poll-frozen-post-audit-baseline
+2026-11-13T09:44:36.4950576Z  * [new branch]          fix/poll-history-persistence -> origin/fix/poll-history-persistence
+2026-11-13T09:44:36.4951277Z  * [new branch]          fix/poll-lxml-lazy-import -> origin/fix/poll-lxml-lazy-import
+2026-11-13T09:44:36.4952035Z  * [new branch]          fix/poll-migration-frozen-baseline-tests -> origin/fix/poll-migration-frozen-baseline-tests
+2026-11-13T09:44:36.4952878Z  * [new branch]          fix/poll-page-dynamic-related-test-v1 -> origin/fix/poll-page-dynamic-related-test-v1
+2026-11-13T09:44:36.4953908Z  * [new branch]          fix/poll-pandas3-header-compat -> origin/fix/poll-pandas3-header-compat
+2026-11-13T09:44:36.4954569Z  * [new branch]          fix/poll-post-cutover-tests -> origin/fix/poll-post-cutover-tests
+2026-11-13T09:44:36.4955256Z  * [new branch]          fix/poll-registry-line-endings -> origin/fix/poll-registry-line-endings
+2026-11-13T09:44:36.4956094Z  * [new branch]          fix/poll-runoff-philippe-melenchon-v1 -> origin/fix/poll-runoff-philippe-melenchon-v1
+2026-11-13T09:44:36.4956810Z  * [new branch]          fix/poll-semantic-runoff-churn -> origin/fix/poll-semantic-runoff-churn
+2026-11-13T09:44:36.4957950Z  * [new branch]          fix/poll-wave-provenance-v1 -> origin/fix/poll-wave-provenance-v1
+2026-11-13T09:44:36.4958763Z  * [new branch]          fix/poll-workflow-pin-main -> origin/fix/poll-workflow-pin-main
+2026-11-13T09:44:36.4959462Z  * [new branch]          fix/polling-hub-static-links-v1 -> origin/fix/polling-hub-static-links-v1
+2026-11-13T09:44:36.4960108Z  * [new branch]          fix/polling-hud-purple  -> origin/fix/polling-hud-purple
+2026-11-13T09:44:36.4960710Z  * [new branch]          fix/polling-hud-wave-count -> origin/fix/polling-hud-wave-count
+2026-11-13T09:44:36.4961475Z  * [new branch]          fix/polling-second-round-evidence-drift-v1 -> origin/fix/polling-second-round-evidence-drift-v1
+2026-11-13T09:44:36.4962324Z  * [new branch]          fix/polling-second-run-idempotence-v1 -> origin/fix/polling-second-run-idempotence-v1
+2026-11-13T09:44:36.4963023Z  * [new branch]          fix/polls-fixture-lf-hash-v1 -> origin/fix/polls-fixture-lf-hash-v1
+2026-11-13T09:44:36.4964054Z  * [new branch]          fix/pollster-icons-v1   -> origin/fix/pollster-icons-v1
+2026-11-13T09:44:36.4964891Z  * [new branch]          fix/publication-manifest-null-scrutiny-date -> origin/fix/publication-manifest-null-scrutiny-date
+2026-11-13T09:44:36.4965706Z  * [new branch]          fix/publication-orchestration-v1 -> origin/fix/publication-orchestration-v1
+2026-11-13T09:44:36.4966440Z  * [new branch]          fix/race-attention-scope-v1 -> origin/fix/race-attention-scope-v1
+2026-11-13T09:44:36.4967139Z  * [new branch]          fix/race-coverage-contract-migration -> origin/fix/race-coverage-contract-migration
+2026-11-13T09:44:36.4968219Z  * [new branch]          fix/race-coverage-post-merge-tests -> origin/fix/race-coverage-post-merge-tests
+2026-11-13T09:44:36.4969024Z  * [new branch]          fix/race-glance-tab-regression -> origin/fix/race-glance-tab-regression
+2026-11-13T09:44:36.4969696Z  * [new branch]          fix/race-news-relevance-v2 -> origin/fix/race-news-relevance-v2
+2026-11-13T09:44:36.4970320Z  * [new branch]          fix/recent-changes-dedup -> origin/fix/recent-changes-dedup
+2026-11-13T09:44:36.4971048Z  * [new branch]          fix/recent-changes-duplicate-headline -> origin/fix/recent-changes-duplicate-headline
+2026-11-13T09:44:36.4971795Z  * [new branch]          fix/registry-snapshot-provenance -> origin/fix/registry-snapshot-provenance
+2026-11-13T09:44:36.4972525Z  * [new branch]          fix/rolling-snapshot-reconciliation -> origin/fix/rolling-snapshot-reconciliation
+2026-11-13T09:44:36.4973287Z  * [new branch]          fix/runoff-active-load-isolation -> origin/fix/runoff-active-load-isolation
+2026-11-13T09:44:36.4974039Z  * [new branch]          fix/runoff-common-matchup-line-break-v1 -> origin/fix/runoff-common-matchup-line-break-v1
+2026-11-13T09:44:36.4974789Z  * [new branch]          fix/runoff-stale-live-contracts-v1 -> origin/fix/runoff-stale-live-contracts-v1
+2026-11-13T09:44:36.4975561Z  * [new branch]          fix/small-fr27-updates-2026-08-25 -> origin/fix/small-fr27-updates-2026-08-25
+2026-11-13T09:44:36.4976315Z  * [new branch]          fix/status-band-publication-metadata-v6 -> origin/fix/status-band-publication-metadata-v6
+2026-11-13T09:44:36.4977105Z  * [new branch]          fix/topic-modal-mobile-close-v1 -> origin/fix/topic-modal-mobile-close-v1
+2026-11-13T09:44:36.4978139Z  * [new branch]          fix/update-polls-french-heading-drift-v1 -> origin/fix/update-polls-french-heading-drift-v1
+2026-11-13T09:44:36.4978902Z  * [new branch]          fix/what-changed-loading-handoff -> origin/fix/what-changed-loading-handoff
+2026-11-13T09:44:36.4979618Z  * [new branch]          fix/x-buffer-delivery-safety-v1 -> origin/fix/x-buffer-delivery-safety-v1
+2026-11-13T09:44:36.4980301Z  * [new branch]          fix/x-buffer-exact-reconcile-v1 -> origin/fix/x-buffer-exact-reconcile-v1
+2026-11-13T09:44:36.4981181Z  * [new branch]          fix/x-planner-trigger-reliability-v1 -> origin/fix/x-planner-trigger-reliability-v1
+2026-11-13T09:44:36.4981881Z  * [new branch]          fix/x-scheduler-heartbeat-v1 -> origin/fix/x-scheduler-heartbeat-v1
+2026-11-13T09:44:36.4982459Z  * [new branch]          footer-polish           -> origin/footer-polish
+2026-11-13T09:44:36.4983144Z  * [new branch]          foundation/campaign-events-data-audit -> origin/foundation/campaign-events-data-audit
+2026-11-13T09:44:36.4983937Z  * [new branch]          foundation/commission-notice-discovery-v1 -> origin/foundation/commission-notice-discovery-v1
+2026-11-13T09:44:36.4984740Z  * [new branch]          frontend/candidate-signals-workspace -> origin/frontend/candidate-signals-workspace
+2026-11-13T09:44:36.4985493Z  * [new branch]          frontend/status-band-redesign -> origin/frontend/status-band-redesign
+2026-11-13T09:44:36.4986263Z  * [new branch]          integrate/candidate-public-signals-20261018-v2 -> origin/integrate/candidate-public-signals-20261018-v2
+2026-11-13T09:44:36.4987192Z  * [new branch]          integration/campaign-events-rn-current-main-v1 -> origin/integration/campaign-events-rn-current-main-v1
+2026-11-13T09:44:36.4987979Z  * [new branch]          main                    -> origin/main
+2026-11-13T09:44:36.4988773Z  * [new branch]          maintenance/dashboard-publication-workflow-v1 -> origin/maintenance/dashboard-publication-workflow-v1
+2026-11-13T09:44:36.4989571Z  * [new branch]          manual/campaign-events-2026-10-23 -> origin/manual/campaign-events-2026-10-23
+2026-11-13T09:44:36.4990385Z  * [new branch]          manual/candidate-events-deep-audit-2026-10-26 -> origin/manual/candidate-events-deep-audit-2026-10-26
+2026-11-13T09:44:36.4991278Z  * [new branch]          manual/unhidden-candidate-events-2026-10-26 -> origin/manual/unhidden-candidate-events-2026-10-26
+2026-11-13T09:44:36.4992130Z  * [new branch]          polish/candidate-portraits-v1 -> origin/polish/candidate-portraits-v1
+2026-11-13T09:44:36.4992822Z  * [new branch]          polish/candidates-empty-state-v1 -> origin/polish/candidates-empty-state-v1
+2026-11-13T09:44:36.4993566Z  * [new branch]          polish/countdown-freshness-tooltip-v1 -> origin/polish/countdown-freshness-tooltip-v1
+2026-11-13T09:44:36.4994271Z  * [new branch]          polish/first-round-poll-tabs -> origin/polish/first-round-poll-tabs
+2026-11-13T09:44:36.4994961Z  * [new branch]          polish/hud-metric-tooltips-v1 -> origin/polish/hud-metric-tooltips-v1
+2026-11-13T09:44:36.4995666Z  * [new branch]          polish/media-pulse-density -> origin/polish/media-pulse-density
+2026-11-13T09:44:36.4996493Z  * [new branch]          polish/poll-ui-semantics -> origin/polish/poll-ui-semantics
+2026-11-13T09:44:36.4997293Z  * [new branch]          polish/race-at-a-glance-tabs -> origin/polish/race-at-a-glance-tabs
+2026-11-13T09:44:36.4998302Z  * [new branch]          polish/runoff-neutral-status-v1 -> origin/polish/runoff-neutral-status-v1
+2026-11-13T09:44:36.4999251Z  * [new branch]          polish/runoff-other-matchups-typography-v1 -> origin/polish/runoff-other-matchups-typography-v1
+2026-11-13T09:44:36.5000210Z  * [new branch]          polish/runoff-workspace-final-v1 -> origin/polish/runoff-workspace-final-v1
+2026-11-13T09:44:36.5001039Z  * [new branch]          polish/runoff-workspace-v1 -> origin/polish/runoff-workspace-v1
+2026-11-13T09:44:36.5001951Z  * [new branch]          polish/source-network-status-tile -> origin/polish/source-network-status-tile
+2026-11-13T09:44:36.5002769Z  * [new branch]          polish/tooltips-loading -> origin/polish/tooltips-loading
+2026-11-13T09:44:36.5003802Z  * [new branch]          polish/wikipedia-trendline-hover-v1 -> origin/polish/wikipedia-trendline-hover-v1
+2026-11-13T09:44:36.5004618Z  * [new branch]          polish/workspace-order-v1 -> origin/polish/workspace-order-v1
+2026-11-13T09:44:36.5005438Z  * [new branch]          prototype/marine-le-pen-candidate-page -> origin/prototype/marine-le-pen-candidate-page
+2026-11-13T09:44:36.5006415Z  * [new branch]          prototype/polling-lab   -> origin/prototype/polling-lab
+2026-11-13T09:44:36.5007201Z  * [new branch]          redesign/recent-changes-ledger-manual -> origin/redesign/recent-changes-ledger-manual
+2026-11-13T09:44:36.5008403Z  * [new branch]          refactor/remove-claim-scrutiny-workspace -> origin/refactor/remove-claim-scrutiny-workspace
+2026-11-13T09:44:36.5009354Z  * [new branch]          repair/recent-changes-semantic-precision -> origin/repair/recent-changes-semantic-precision
+2026-11-13T09:44:36.5010254Z  * [new branch]          restore/pre-race-coverage-20260815 -> origin/restore/pre-race-coverage-20260815
+2026-11-13T09:44:36.5011323Z  * [new branch]          seo/candidate-poll-reciprocal-links-v1 -> origin/seo/candidate-poll-reciprocal-links-v1
+2026-11-13T09:44:36.5012093Z  * [new branch]          social-assets           -> origin/social-assets
+2026-11-13T09:44:36.5012861Z  * [new branch]          stage2-freshness-watch  -> origin/stage2-freshness-watch
+2026-11-13T09:44:36.5013600Z  * [new branch]          stage3-hero-briefing    -> origin/stage3-hero-briefing
+2026-11-13T09:44:36.5014493Z  * [new branch]          transfer/candidate-visibility-history-20260817 -> origin/transfer/candidate-visibility-history-20260817
+2026-11-13T09:44:36.5015561Z  * [new branch]          upgrade/cross-publisher-discovery -> origin/upgrade/cross-publisher-discovery
+2026-11-13T09:44:36.5016490Z  * [new branch]          upgrade/recent-changes-ledger-data -> origin/upgrade/recent-changes-ledger-data
+2026-11-13T09:44:36.5018974Z ##[endgroup]
+2026-11-13T09:44:36.5019711Z ##[group]Determining the checkout info
+2026-11-13T09:44:36.5020233Z [command]/usr/bin/git branch --list --remote origin/main
+2026-11-13T09:44:36.5020784Z   origin/main
+2026-11-13T09:44:36.5021974Z ##[endgroup]
+2026-11-13T09:44:36.5022353Z [command]/usr/bin/git sparse-checkout disable
+2026-11-13T09:44:36.5023848Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-13T09:44:36.5025136Z ##[group]Checking out the ref
+2026-11-13T09:44:36.5025658Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-13T09:44:37.0752053Z Switched to a new branch 'main'
+2026-11-13T09:44:37.0755289Z branch 'main' set up to track 'origin/main'.
+2026-11-13T09:44:37.0810585Z ##[endgroup]
+2026-11-13T09:44:37.0858598Z [command]/usr/bin/git log -1 --format=%H
+2026-11-13T09:44:37.0886165Z caada6984cdb4719ac2cab5310c4d27b5ac7d093
+2026-11-13T09:44:37.1146200Z ##[group]Run actions/setup-python@v6
+2026-11-13T09:44:37.1146587Z with:
+2026-11-13T09:44:37.1146881Z   python-version: 3.12
+2026-11-13T09:44:37.1147250Z   check-latest: false
+2026-11-13T09:44:37.1150174Z   token: ***
+2026-11-13T09:44:37.1150524Z   update-environment: true
+2026-11-13T09:44:37.1150872Z   allow-prereleases: false
+2026-11-13T09:44:37.1151251Z   freethreaded: false
+2026-11-13T09:44:37.1151582Z ##[endgroup]
+2026-11-13T09:44:37.2495128Z ##[group]Installed versions
+2026-11-13T09:44:37.2641214Z Successfully set up CPython (3.12.16)
+2026-11-13T09:44:37.2642189Z ##[endgroup]
+2026-11-13T09:44:37.2825525Z ##[group]Run python -m pip install --disable-pip-version-check pandas lxml pypdf
+2026-11-13T09:44:37.2826605Z [36;1mpython -m pip install --disable-pip-version-check pandas lxml pypdf[0m
+2026-11-13T09:44:37.2901506Z shell: /usr/bin/bash -e {0}
+2026-11-13T09:44:37.2902237Z env:
+2026-11-13T09:44:37.2902743Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-13T09:44:37.2903561Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-13T09:44:37.2904326Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-13T09:44:37.2905007Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-13T09:44:37.2905918Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-13T09:44:37.2906620Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-13T09:44:37.2907266Z ##[endgroup]
+2026-11-13T09:44:38.1212961Z Collecting pandas
+2026-11-13T09:44:38.2249485Z   Downloading pandas-3.1.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (16 kB)
+2026-11-13T09:44:38.4418034Z Collecting lxml
+2026-11-13T09:44:38.4497424Z   Downloading lxml-6.1.3-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.3 kB)
+2026-11-13T09:44:38.4751769Z Collecting pypdf
+2026-11-13T09:44:38.4826972Z   Downloading pypdf-7.0.1-py3-none-any.whl.metadata (7.6 kB)
+2026-11-13T09:44:38.6464831Z Collecting numpy>=2.0.2 (from pandas)
+2026-11-13T09:44:38.6543034Z   Downloading numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+2026-11-13T09:44:38.6708760Z Collecting python-dateutil>=2.9.0 (from pandas)
+2026-11-13T09:44:38.6783931Z   Downloading python_dateutil-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+2026-11-13T09:44:38.6971152Z Collecting tzdata (from python-dateutil>=2.9.0->pandas)
+2026-11-13T09:44:38.7047669Z   Downloading tzdata-2026.6-py2.py3-none-any.whl.metadata (1.4 kB)
+2026-11-13T09:44:38.7157000Z Downloading pandas-3.1.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (12.0 MB)
+2026-11-13T09:44:38.8340278Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.0/12.0 MB 116.7 MB/s  0:00:00
+2026-11-13T09:44:38.8418499Z Downloading lxml-6.1.3-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+2026-11-13T09:44:38.8721879Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 178.8 MB/s  0:00:00
+2026-11-13T09:44:38.8802328Z Downloading pypdf-7.0.1-py3-none-any.whl (416 kB)
+2026-11-13T09:44:38.8912281Z Downloading numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+2026-11-13T09:44:39.0144979Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 136.5 MB/s  0:00:00
+2026-11-13T09:44:39.0222374Z Downloading python_dateutil-4.0.0-py3-none-any.whl (92 kB)
+2026-11-13T09:44:39.0329926Z Downloading tzdata-2026.6-py2.py3-none-any.whl (348 kB)
+2026-11-13T09:44:39.1539292Z Installing collected packages: tzdata, pypdf, numpy, lxml, python-dateutil, pandas
+2026-11-13T09:44:45.9258644Z 
+2026-11-13T09:44:45.9271997Z Successfully installed lxml-6.1.3 numpy-2.5.4 pandas-3.1.1 pypdf-7.0.1 python-dateutil-4.0.0 tzdata-2026.6
+2026-11-13T09:44:45.9997268Z ##[group]Run python -B -m unittest -v \
+2026-11-13T09:44:45.9997935Z [36;1mpython -B -m unittest -v \[0m
+2026-11-13T09:44:45.9998492Z [36;1m  test_http_fetch.py \[0m
+2026-11-13T09:44:45.9998951Z [36;1m  test_source_health.py \[0m
+2026-11-13T09:44:45.9999319Z [36;1m  test_fetch_source_icons.py \[0m
+2026-11-13T09:44:45.9999722Z [36;1m  test_news_wire_relevance.py \[0m
+2026-11-13T09:44:46.0000108Z [36;1m  test_candidate_coverage_scope.py \[0m
+2026-11-13T09:44:46.0000494Z [36;1m  test_candidate_identity_contract.py \[0m
+2026-11-13T09:44:46.0000984Z [36;1m  test_candidate_visibility_history_contract.py \[0m
+2026-11-13T09:44:46.0001425Z [36;1m  test_build_candidate_visibility_history.py \[0m
+2026-11-13T09:44:46.0001913Z [36;1m  test_candidate_agenda_history_contract.py \[0m
+2026-11-13T09:44:46.0002349Z [36;1m  test_build_candidate_agenda_history.py \[0m
+2026-11-13T09:44:46.0002733Z [36;1m  test_campaign_agenda_evidence.py \[0m
+2026-11-13T09:44:46.0003282Z [36;1m  test_news_corpus_ledger.py \[0m
+2026-11-13T09:44:46.0003634Z [36;1m  test_hud_corpus_counts.py \[0m
+2026-11-13T09:44:46.0004029Z [36;1m  test_live_projections.py \[0m
+2026-11-13T09:44:46.0004398Z [36;1m  test_news_workflow_contract.py \[0m
+2026-11-13T09:44:46.0004821Z [36;1m  test_workflow_media_pulse_contract.py \[0m
+2026-11-13T09:44:46.0005220Z [36;1m  test_recent_changes.py \[0m
+2026-11-13T09:44:46.0005585Z [36;1m  test_news_change_integrity.py \[0m
+2026-11-13T09:44:46.0006038Z [36;1m  test_audit_evidence_interpretation.py \[0m
+2026-11-13T09:44:46.0006435Z [36;1m  test_campaign_event_grouping.py \[0m
+2026-11-13T09:44:46.0006845Z [36;1m  test_publication_manifest.py \[0m
+2026-11-13T09:44:46.0007226Z [36;1m  test_frontend_facts.py[0m
+2026-11-13T09:44:46.0043705Z shell: /usr/bin/bash -e {0}
+2026-11-13T09:44:46.0044080Z env:
+2026-11-13T09:44:46.0044620Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-13T09:44:46.0045169Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-13T09:44:46.0045694Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-13T09:44:46.0046212Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-13T09:44:46.0046672Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-13T09:44:46.0047145Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-13T09:44:46.0047579Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-13T09:44:46.0048055Z ##[endgroup]
+2026-11-13T09:44:46.6136589Z test_304_is_successful_and_body_is_not_read (test_http_fetch.HttpFetchTests.test_304_is_successful_and_body_is_not_read) ... ok
+2026-11-13T09:44:46.6137904Z test_backoff_jitter_is_bounded (test_http_fetch.HttpFetchTests.test_backoff_jitter_is_bounded) ... ok
+2026-11-13T09:44:46.6139105Z test_both_validators_may_be_sent_together (test_http_fetch.HttpFetchTests.test_both_validators_may_be_sent_together) ... ok
+2026-11-13T09:44:46.6140456Z test_connection_failure_retries (test_http_fetch.HttpFetchTests.test_connection_failure_retries) ... ok
+2026-11-13T09:44:46.6141628Z test_default_response_limit_is_five_mib (test_http_fetch.HttpFetchTests.test_default_response_limit_is_five_mib) ... ok
+2026-11-13T09:44:46.6142801Z test_etag_is_sent_as_if_none_match (test_http_fetch.HttpFetchTests.test_etag_is_sent_as_if_none_match) ... ok
+2026-11-13T09:44:46.6143592Z test_exact_limit_response_succeeds (test_http_fetch.HttpFetchTests.test_exact_limit_response_succeeds) ... ok
+2026-11-13T09:44:46.6144757Z test_gzip_response_preserves_parser_compatible_bytes (test_http_fetch.HttpFetchTests.test_gzip_response_preserves_parser_compatible_bytes) ... ok
+2026-11-13T09:44:46.6149018Z test_gzip_transfer_bytes_are_also_bounded (test_http_fetch.HttpFetchTests.test_gzip_transfer_bytes_are_also_bounded) ... ok
+2026-11-13T09:44:46.6150204Z test_http_404_does_not_retry (test_http_fetch.HttpFetchTests.test_http_404_does_not_retry) ... ok
+2026-11-13T09:44:46.6151506Z test_http_405_does_not_retry (test_http_fetch.HttpFetchTests.test_http_405_does_not_retry) ... ok
+2026-11-13T09:44:46.6152491Z test_http_429_respects_retry_after (test_http_fetch.HttpFetchTests.test_http_429_respects_retry_after) ... ok
+2026-11-13T09:44:46.6153437Z test_http_503_retries (test_http_fetch.HttpFetchTests.test_http_503_retries) ... ok
+2026-11-13T09:44:46.6154893Z test_invalid_retry_after_is_ignored (test_http_fetch.HttpFetchTests.test_invalid_retry_after_is_ignored) ... ok
+2026-11-13T09:44:46.6155943Z test_large_content_length_fails_before_body_read (test_http_fetch.HttpFetchTests.test_large_content_length_fails_before_body_read) ... ok
+2026-11-13T09:44:46.6157397Z test_last_modified_is_sent_as_if_modified_since (test_http_fetch.HttpFetchTests.test_last_modified_is_sent_as_if_modified_since) ... ok
+2026-11-13T09:44:46.6158767Z test_partial_oversized_body_is_never_returned (test_http_fetch.HttpFetchTests.test_partial_oversized_body_is_never_returned) ... ok
+2026-11-13T09:44:46.6159735Z test_retry_after_is_capped (test_http_fetch.HttpFetchTests.test_retry_after_is_capped) ... ok
+2026-11-13T09:44:46.6160750Z test_retry_limit_is_three_total_attempts (test_http_fetch.HttpFetchTests.test_retry_limit_is_three_total_attempts) ... ok
+2026-11-13T09:44:46.6161861Z test_streaming_response_exceeding_limit_fails (test_http_fetch.HttpFetchTests.test_streaming_response_exceeding_limit_fails) ... ok
+2026-11-13T09:44:46.6162903Z test_successful_200_response (test_http_fetch.HttpFetchTests.test_successful_200_response) ... ok
+2026-11-13T09:44:46.6164104Z test_timeout_retries_and_eventually_succeeds (test_http_fetch.HttpFetchTests.test_timeout_retries_and_eventually_succeeds) ... ok
+2026-11-13T09:44:46.6165530Z test_timeout_while_reading_retries (test_http_fetch.HttpFetchTests.test_timeout_while_reading_retries) ... ok
+2026-11-13T09:44:46.6219294Z test_atomic_output_keeps_last_good_file_on_replace_failure (test_source_health.SourceHealthTests.test_atomic_output_keeps_last_good_file_on_replace_failure) ... ok
+2026-11-13T09:44:46.6221990Z test_disabled_route_remains_in_history (test_source_health.SourceHealthTests.test_disabled_route_remains_in_history) ... ok
+2026-11-13T09:44:46.6224906Z test_failed_request_preserves_prior_validators (test_source_health.SourceHealthTests.test_failed_request_preserves_prior_validators) ... ok
+2026-11-13T09:44:46.6229253Z test_malformed_previous_state_fails_without_overwrite (test_source_health.SourceHealthTests.test_malformed_previous_state_fails_without_overwrite) ... ok
+2026-11-13T09:44:46.6230611Z test_new_route_begins_never_attempted (test_source_health.SourceHealthTests.test_new_route_begins_never_attempted) ... ok
+2026-11-13T09:44:46.6235191Z test_not_modified_resets_prior_failure_and_preserves_validators (test_source_health.SourceHealthTests.test_not_modified_resets_prior_failure_and_preserves_validators) ... ok
+2026-11-13T09:44:46.6236435Z test_one_failure_is_transient (test_source_health.SourceHealthTests.test_one_failure_is_transient) ... ok
+2026-11-13T09:44:46.6239166Z test_output_order_is_deterministic (test_source_health.SourceHealthTests.test_output_order_is_deterministic) ... ok
+2026-11-13T09:44:46.6240541Z test_parsed_without_election_yield_is_healthy (test_source_health.SourceHealthTests.test_parsed_without_election_yield_is_healthy) ... ok
+2026-11-13T09:44:46.7188648Z test_published_bootstrap_without_optional_fields_remains_valid (test_source_health.SourceHealthTests.test_published_bootstrap_without_optional_fields_remains_valid) ... ok
+2026-11-13T09:44:46.7194992Z test_recovery_clears_repeated_failure (test_source_health.SourceHealthTests.test_recovery_clears_repeated_failure) ... ok
+2026-11-13T09:44:46.7197464Z test_removed_route_is_retained_explicitly (test_source_health.SourceHealthTests.test_removed_route_is_retained_explicitly) ... ok
+2026-11-13T09:44:46.7261051Z test_rolling_window_is_bounded_and_deterministic (test_source_health.SourceHealthTests.test_rolling_window_is_bounded_and_deterministic) ... ok
+2026-11-13T09:44:46.7263901Z test_route_not_due_preserves_attempt_history (test_source_health.SourceHealthTests.test_route_not_due_preserves_attempt_history) ... ok
+2026-11-13T09:44:46.7265973Z test_route_not_due_preserves_validators (test_source_health.SourceHealthTests.test_route_not_due_preserves_validators) ... ok
+2026-11-13T09:44:46.7335739Z test_route_types_have_distinct_stable_ids (test_source_health.SourceHealthTests.test_route_types_have_distinct_stable_ids) ... ok
+2026-11-13T09:44:46.7338161Z test_source_health_module_has_no_network_fetch (test_source_health.SourceHealthTests.test_source_health_module_has_no_network_fetch) ... ok
+2026-11-13T09:44:46.7341538Z test_successful_200_clears_omitted_old_validators (test_source_health.SourceHealthTests.test_successful_200_clears_omitted_old_validators) ... ok
+2026-11-13T09:44:46.7344077Z test_successful_changed_url_clears_old_validators (test_source_health.SourceHealthTests.test_successful_changed_url_clears_old_validators) ... ok
+2026-11-13T09:44:46.7346857Z test_successful_response_updates_validators_and_diagnostics (test_source_health.SourceHealthTests.test_successful_response_updates_validators_and_diagnostics) ... ok
+2026-11-13T09:44:46.7349561Z test_successful_route_resets_failures (test_source_health.SourceHealthTests.test_successful_route_resets_failures) ... ok
+2026-11-13T09:44:46.7351185Z test_successful_zero_item_route_is_not_failure (test_source_health.SourceHealthTests.test_successful_zero_item_route_is_not_failure) ... ok
+2026-11-13T09:44:46.7354773Z test_threshold_failure_is_repeated (test_source_health.SourceHealthTests.test_threshold_failure_is_repeated) ... ok
+2026-11-13T09:44:46.7357180Z test_timestamp_only_change_is_not_substantive (test_source_health.SourceHealthTests.test_timestamp_only_change_is_not_substantive) ... ok
+2026-11-13T09:44:46.7359087Z test_validators_are_not_reused_after_request_url_change (test_source_health.SourceHealthTests.test_validators_are_not_reused_after_request_url_change) ... ok
+2026-11-13T09:44:46.7372839Z test_blocked_homepage_uses_same_origin_icon_fallback (test_fetch_source_icons.CacheAndFailureTests.test_blocked_homepage_uses_same_origin_icon_fallback) ... ok
+2026-11-13T09:44:46.7378269Z test_inactive_successful_icon_is_retained (test_fetch_source_icons.CacheAndFailureTests.test_inactive_successful_icon_is_retained) ... ok
+2026-11-13T09:44:46.7384610Z test_one_failed_publisher_does_not_stop_other_targets (test_fetch_source_icons.CacheAndFailureTests.test_one_failed_publisher_does_not_stop_other_targets) ... ok
+2026-11-13T09:44:46.7394162Z test_one_pixel_png_cache_is_invalid (test_fetch_source_icons.CacheAndFailureTests.test_one_pixel_png_cache_is_invalid) ... ok
+2026-11-13T09:44:46.7404165Z test_one_pixel_png_candidate_is_skipped (test_fetch_source_icons.CacheAndFailureTests.test_one_pixel_png_candidate_is_skipped) ... ok
+2026-11-13T09:44:46.7414489Z test_safe_svg_candidate_is_cached (test_fetch_source_icons.CacheAndFailureTests.test_safe_svg_candidate_is_cached) ... ok
+2026-11-13T09:44:46.7423689Z test_valid_cache_causes_no_network_request (test_fetch_source_icons.CacheAndFailureTests.test_valid_cache_causes_no_network_request) ... ok
+2026-11-13T09:44:46.7452296Z test_disabled_and_unknown_publishers_are_not_targets (test_fetch_source_icons.DynamicTargetTests.test_disabled_and_unknown_publishers_are_not_targets) ... ok
+2026-11-13T09:44:46.7454416Z test_ipsos_is_configured_as_pollster_target (test_fetch_source_icons.DynamicTargetTests.test_ipsos_is_configured_as_pollster_target) ... ok
+2026-11-13T09:44:46.7460740Z test_surfaced_publishers_resolve_from_policy (test_fetch_source_icons.DynamicTargetTests.test_surfaced_publishers_resolve_from_policy) ... ok
+2026-11-13T09:44:46.7465095Z test_timestamp_only_change_does_not_rewrite_manifest (test_fetch_source_icons.ManifestTests.test_timestamp_only_change_does_not_rewrite_manifest) ... ok
+2026-11-13T09:44:46.7466985Z test_news_workflow_runs_and_commits_dynamic_icons (test_fetch_source_icons.WorkflowTests.test_news_workflow_runs_and_commits_dynamic_icons) ... ok
+2026-11-13T09:44:46.7488074Z test_audited_publisher_panel_failure (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_audited_publisher_panel_failure) ... ok
+2026-11-13T09:44:46.7499792Z test_comparable_at_locked_boundaries (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_comparable_at_locked_boundaries) ... ok
+2026-11-13T09:44:46.7501711Z test_comparable_periods (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_comparable_periods) ... ok
+2026-11-13T09:44:46.7503597Z test_exact_adjacent_seven_day_boundaries (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_exact_adjacent_seven_day_boundaries) ... ok
+2026-11-13T09:44:46.7505694Z test_insufficient_common_publishers (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_insufficient_common_publishers) ... ok
+2026-11-13T09:44:46.7507718Z test_insufficient_period_publishers (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_insufficient_period_publishers) ... ok
+2026-11-13T09:44:46.7509916Z test_insufficient_period_records (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_insufficient_period_records) ... ok
+2026-11-13T09:44:46.7514084Z test_schema_and_thresholds_are_exact (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_schema_and_thresholds_are_exact) ... ok
+2026-11-13T09:44:46.7525007Z test_validation_rejects_inconsistent_public_contract (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_validation_rejects_inconsistent_public_contract) ... ok
+2026-11-13T09:44:46.7527226Z test_workflow_validation_includes_candidate_visibility (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_workflow_validation_includes_candidate_visibility) ... ok
+2026-11-13T09:44:46.7529481Z test_zero_record_ratio_is_null_and_insufficient (test_news_wire_relevance.CandidateVisibilityComparisonTests.test_zero_record_ratio_is_null_and_insufficient) ... ok
+2026-11-13T09:44:46.7531910Z test_manual_exclusion_blocks_new_entry (test_news_wire_relevance.ManualNewsExclusionTests.test_manual_exclusion_blocks_new_entry) ... ok
+2026-11-13T09:44:46.7534093Z test_manual_exclusion_purges_existing_inventory_item (test_news_wire_relevance.ManualNewsExclusionTests.test_manual_exclusion_purges_existing_inventory_item) ... ok
+2026-11-13T09:44:46.7535933Z test_approved_media_discovery_is_accepted (test_news_wire_relevance.NewsWireRelevanceTests.test_approved_media_discovery_is_accepted) ... ok
+2026-11-13T09:44:46.7582983Z test_bounded_counterfactual_presidential_positioning (test_news_wire_relevance.NewsWireRelevanceTests.test_bounded_counterfactual_presidential_positioning) ... ok
+2026-11-13T09:44:46.7595561Z test_broad_relevance_accepts_campaign_and_party_selection (test_news_wire_relevance.NewsWireRelevanceTests.test_broad_relevance_accepts_campaign_and_party_selection) ... ok
+2026-11-13T09:44:46.7609457Z test_broad_relevance_keeps_current_race_analysis_and_summary_confirmation (test_news_wire_relevance.NewsWireRelevanceTests.test_broad_relevance_keeps_current_race_analysis_and_summary_confirmation) ... ok
+2026-11-13T09:44:46.7614050Z test_broad_relevance_rejects_candidate_lifestyle (test_news_wire_relevance.NewsWireRelevanceTests.test_broad_relevance_rejects_candidate_lifestyle) ... ok
+2026-11-13T09:44:46.7619665Z test_broad_relevance_rejects_generic_candidate_commentary (test_news_wire_relevance.NewsWireRelevanceTests.test_broad_relevance_rejects_generic_candidate_commentary) ... ok
+2026-11-13T09:44:46.7632207Z test_broad_relevance_rejects_routine_government_and_legislation (test_news_wire_relevance.NewsWireRelevanceTests.test_broad_relevance_rejects_routine_government_and_legislation) ... ok
+2026-11-13T09:44:46.7652964Z test_broad_relevance_rejects_weak_presidential_false_positives (test_news_wire_relevance.NewsWireRelevanceTests.test_broad_relevance_rejects_weak_presidential_false_positives) ... ok
+2026-11-13T09:44:46.7657415Z test_broad_relevance_summary_can_confirm_presidential_context (test_news_wire_relevance.NewsWireRelevanceTests.test_broad_relevance_summary_can_confirm_presidential_context) ... ok
+2026-11-13T09:44:46.8233818Z test_build_wire_keeps_direct_source_contract_with_discovery (test_news_wire_relevance.NewsWireRelevanceTests.test_build_wire_keeps_direct_source_contract_with_discovery) ... ok
+2026-11-13T09:44:46.8543597Z test_build_wire_refreshes_retained_semantics_and_keeps_full_input_override (test_news_wire_relevance.NewsWireRelevanceTests.test_build_wire_refreshes_retained_semantics_and_keeps_full_input_override) ... ok
+2026-11-13T09:44:46.8803631Z test_build_wire_reports_empty_parses_as_successful_attempts (test_news_wire_relevance.NewsWireRelevanceTests.test_build_wire_reports_empty_parses_as_successful_attempts) ... ok
+2026-11-13T09:44:46.8805304Z test_candidate_match_combines_headline_and_summary_locations (test_news_wire_relevance.NewsWireRelevanceTests.test_candidate_match_combines_headline_and_summary_locations) ... ok
+2026-11-13T09:44:46.8809002Z test_candidate_match_is_accent_and_punctuation_insensitive (test_news_wire_relevance.NewsWireRelevanceTests.test_candidate_match_is_accent_and_punctuation_insensitive) ... ok
+2026-11-13T09:44:46.8814084Z test_candidate_match_preserves_summary_only_location (test_news_wire_relevance.NewsWireRelevanceTests.test_candidate_match_preserves_summary_only_location) ... ok
+2026-11-13T09:44:46.8819713Z test_candidate_match_rejects_other_people_named_philippe (test_news_wire_relevance.NewsWireRelevanceTests.test_candidate_match_rejects_other_people_named_philippe) ... ok
+2026-11-13T09:44:46.8821645Z test_candidate_match_requires_token_boundaries (test_news_wire_relevance.NewsWireRelevanceTests.test_candidate_match_requires_token_boundaries) ... ok
+2026-11-13T09:44:46.8826098Z test_candidate_matches_are_sorted_and_deduplicated (test_news_wire_relevance.NewsWireRelevanceTests.test_candidate_matches_are_sorted_and_deduplicated) ... ok
+2026-11-13T09:44:46.8827164Z test_contributing_publishers_count_is_media_only (test_news_wire_relevance.NewsWireRelevanceTests.test_contributing_publishers_count_is_media_only) ... ok
+2026-11-13T09:44:46.8916043Z test_core_and_extended_slots_have_exact_cycle_frequency (test_news_wire_relevance.NewsWireRelevanceTests.test_core_and_extended_slots_have_exact_cycle_frequency) ... ok
+2026-11-13T09:44:46.8927171Z test_current_campaign_material_is_not_a_lifestyle_false_negative (test_news_wire_relevance.NewsWireRelevanceTests.test_current_campaign_material_is_not_a_lifestyle_false_negative) ... ok
+2026-11-13T09:44:46.8948523Z test_current_candidacy_summary_controls_remain_relevant (test_news_wire_relevance.NewsWireRelevanceTests.test_current_candidacy_summary_controls_remain_relevant) ... ok
+2026-11-13T09:44:46.8975763Z test_current_corpus_candidate_identity_only_does_not_create_race_relevance (test_news_wire_relevance.NewsWireRelevanceTests.test_current_corpus_candidate_identity_only_does_not_create_race_relevance) ... ok
+2026-11-13T09:44:46.8977514Z test_current_election_signals_reject_historical_presidential_years (test_news_wire_relevance.NewsWireRelevanceTests.test_current_election_signals_reject_historical_presidential_years) ... ok
+2026-11-13T09:44:46.9016706Z test_current_inventory_reclassifies_relevance_without_provenance_churn (test_news_wire_relevance.NewsWireRelevanceTests.test_current_inventory_reclassifies_relevance_without_provenance_churn) ... ok
+2026-11-13T09:44:46.9018949Z test_direct_feed_precedence_and_deterministic_order (test_news_wire_relevance.NewsWireRelevanceTests.test_direct_feed_precedence_and_deterministic_order) ... ok
+2026-11-13T09:44:46.9023074Z test_direct_feed_replaces_retained_discovery_copy (test_news_wire_relevance.NewsWireRelevanceTests.test_direct_feed_replaces_retained_discovery_copy) ... ok
+2026-11-13T09:44:46.9027105Z test_discovery_queries_are_generated_from_stable_candidate_groups (test_news_wire_relevance.NewsWireRelevanceTests.test_discovery_queries_are_generated_from_stable_candidate_groups) ... ok
+2026-11-13T09:44:46.9028858Z test_discovery_query_ids_are_unique (test_news_wire_relevance.NewsWireRelevanceTests.test_discovery_query_ids_are_unique) ... ok
+2026-11-13T09:44:46.9038367Z test_discovery_source_files_are_utf8_without_mojibake (test_news_wire_relevance.NewsWireRelevanceTests.test_discovery_source_files_are_utf8_without_mojibake) ... ok
+2026-11-13T09:44:46.9040300Z test_discovery_static_configuration_contract (test_news_wire_relevance.NewsWireRelevanceTests.test_discovery_static_configuration_contract) ... ok
+2026-11-13T09:44:46.9074941Z test_election_interference_requires_a_bounded_race_relationship (test_news_wire_relevance.NewsWireRelevanceTests.test_election_interference_requires_a_bounded_race_relationship) ... ok
+2026-11-13T09:44:46.9076055Z test_feed_entry_and_concurrency_limits (test_news_wire_relevance.NewsWireRelevanceTests.test_feed_entry_and_concurrency_limits) ... ok
+2026-11-13T09:44:46.9092406Z test_foreign_presidential_races_require_a_french_anchor (test_news_wire_relevance.NewsWireRelevanceTests.test_foreign_presidential_races_require_a_french_anchor) ... ok
+2026-11-13T09:44:46.9275546Z test_fresh_lcp_entry_stays_inventory_and_general_candidate_watch (test_news_wire_relevance.NewsWireRelevanceTests.test_fresh_lcp_entry_stays_inventory_and_general_candidate_watch) ... ok
+2026-11-13T09:44:46.9277233Z test_full_candidate_name_matches_headline_with_provenance (test_news_wire_relevance.NewsWireRelevanceTests.test_full_candidate_name_matches_headline_with_provenance) ... ok
+2026-11-13T09:44:46.9279541Z test_google_news_parser_extracts_actual_publisher (test_news_wire_relevance.NewsWireRelevanceTests.test_google_news_parser_extracts_actual_publisher) ... ok
+2026-11-13T09:44:47.3319678Z test_google_news_semaphore_preserves_deterministic_order (test_news_wire_relevance.NewsWireRelevanceTests.test_google_news_semaphore_preserves_deterministic_order) ... ok
+2026-11-13T09:44:47.3321024Z test_google_news_url_uses_french_parameters (test_news_wire_relevance.NewsWireRelevanceTests.test_google_news_url_uses_french_parameters) ... ok
+2026-11-13T09:44:47.3379696Z test_high_specificity_campaign_relationships_are_bounded (test_news_wire_relevance.NewsWireRelevanceTests.test_high_specificity_campaign_relationships_are_bounded) ... ok
+2026-11-13T09:44:47.3398467Z test_historical_and_foreign_subject_guards_are_bounded (test_news_wire_relevance.NewsWireRelevanceTests.test_historical_and_foreign_subject_guards_are_bounded) ... ok
+2026-11-13T09:44:47.3430606Z test_incidental_summary_campaign_vocabulary_is_rejected (test_news_wire_relevance.NewsWireRelevanceTests.test_incidental_summary_campaign_vocabulary_is_rejected) ... ok
+2026-11-13T09:44:47.3432177Z test_inventory_does_not_store_full_feed_content (test_news_wire_relevance.NewsWireRelevanceTests.test_inventory_does_not_store_full_feed_content) ... ok
+2026-11-13T09:44:47.3433772Z test_inventory_preserves_candidate_matches_beyond_summary_limit (test_news_wire_relevance.NewsWireRelevanceTests.test_inventory_preserves_candidate_matches_beyond_summary_limit) ... ok
+2026-11-13T09:44:47.3436861Z test_inventory_prunes_articles_after_the_window (test_news_wire_relevance.NewsWireRelevanceTests.test_inventory_prunes_articles_after_the_window) ... ok
+2026-11-13T09:44:47.3442196Z test_inventory_retains_article_after_it_leaves_the_feed (test_news_wire_relevance.NewsWireRelevanceTests.test_inventory_retains_article_after_it_leaves_the_feed) ... ok
+2026-11-13T09:44:47.3463580Z test_legal_developments_require_independent_race_qualification (test_news_wire_relevance.NewsWireRelevanceTests.test_legal_developments_require_independent_race_qualification) ... ok
+2026-11-13T09:44:47.3496207Z test_long_and_short_presidential_controls_remain_relevant (test_news_wire_relevance.NewsWireRelevanceTests.test_long_and_short_presidential_controls_remain_relevant) ... ok
+2026-11-13T09:44:47.3561450Z test_long_lcp_retrospective_is_rejected_but_keeps_candidates (test_news_wire_relevance.NewsWireRelevanceTests.test_long_lcp_retrospective_is_rejected_but_keeps_candidates) ... ok
+2026-11-13T09:44:47.3598228Z test_marianne_uses_publisher_site_route_only (test_news_wire_relevance.NewsWireRelevanceTests.test_marianne_uses_publisher_site_route_only) ... ok
+2026-11-13T09:44:47.3605311Z test_material_development_gate_accepts_actions_and_rejects_mentions (test_news_wire_relevance.NewsWireRelevanceTests.test_material_development_gate_accepts_actions_and_rejects_mentions) ... ok
+2026-11-13T09:44:47.3616744Z test_nice_matin_candidate_provenance_survives_relevance_rejection (test_news_wire_relevance.NewsWireRelevanceTests.test_nice_matin_candidate_provenance_survives_relevance_rejection) ... ok
+2026-11-13T09:44:47.3618447Z test_no_unreviewed_candidate_aliases_are_approved (test_news_wire_relevance.NewsWireRelevanceTests.test_no_unreviewed_candidate_aliases_are_approved) ... ok
+2026-11-13T09:44:47.3619794Z test_non_media_discovery_publisher_is_rejected (test_news_wire_relevance.NewsWireRelevanceTests.test_non_media_discovery_publisher_is_rejected) ... ok
+2026-11-13T09:44:47.3843534Z test_not_modified_routes_skip_parsing_and_retain_inventory (test_news_wire_relevance.NewsWireRelevanceTests.test_not_modified_routes_skip_parsing_and_retain_inventory) ... ok
+2026-11-13T09:44:47.3853658Z test_notable_gate_keeps_presidential_actions_and_candidate_legal_outcomes (test_news_wire_relevance.NewsWireRelevanceTests.test_notable_gate_keeps_presidential_actions_and_candidate_legal_outcomes) ... ok
+2026-11-13T09:44:47.3865834Z test_notable_gate_rejects_unrelated_national_politics (test_news_wire_relevance.NewsWireRelevanceTests.test_notable_gate_rejects_unrelated_national_politics) ... ok
+2026-11-13T09:44:47.3874578Z test_old_inventory_migration_recomputes_strict_candidate_matches (test_news_wire_relevance.NewsWireRelevanceTests.test_old_inventory_migration_recomputes_strict_candidate_matches) ... ok
+2026-11-13T09:44:47.3876528Z test_publisher_domain_normalization_and_subdomain_matching (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_domain_normalization_and_subdomain_matching) ... ok
+2026-11-13T09:44:47.3896724Z test_publisher_policy_configuration_contract (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_policy_configuration_contract) ... ok
+2026-11-13T09:44:47.3898781Z test_publisher_site_acceptance_enforces_configured_domain (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_site_acceptance_enforces_configured_domain) ... ok
+2026-11-13T09:44:47.3956347Z test_publisher_site_feed_ids_and_queries_are_stable (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_site_feed_ids_and_queries_are_stable) ... ok
+2026-11-13T09:44:47.3958112Z test_publisher_site_feed_may_return_no_matching_items (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_site_feed_may_return_no_matching_items) ... ok
+2026-11-13T09:44:47.3986379Z test_publisher_site_feed_registry_matches_enabled_media_policy (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_site_feed_registry_matches_enabled_media_policy) ... ok
+2026-11-13T09:44:47.3988122Z test_publisher_site_rejects_different_approved_domain (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_site_rejects_different_approved_domain) ... ok
+2026-11-13T09:44:47.4088449Z test_publisher_site_schedule_covers_every_feed_in_twelve_hours (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_site_schedule_covers_every_feed_in_twelve_hours) ... ok
+2026-11-13T09:44:47.4090208Z test_publisher_site_unresolved_and_unapproved_remain_rejected (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_site_unresolved_and_unapproved_remain_rejected) ... ok
+2026-11-13T09:44:47.4091889Z test_publisher_suffix_removal_is_exact (test_news_wire_relevance.NewsWireRelevanceTests.test_publisher_suffix_removal_is_exact) ... ok
+2026-11-13T09:44:47.4157714Z test_race_year_timing_and_french_institution_anchors_are_bounded (test_news_wire_relevance.NewsWireRelevanceTests.test_race_year_timing_and_french_institution_anchors_are_bounded) ... ok
+2026-11-13T09:44:47.4159549Z test_registry_declares_source_specificity (test_news_wire_relevance.NewsWireRelevanceTests.test_registry_declares_source_specificity) ... ok
+2026-11-13T09:44:47.4382541Z test_retained_foreign_presidential_provenance_is_revalidated (test_news_wire_relevance.NewsWireRelevanceTests.test_retained_foreign_presidential_provenance_is_revalidated) ... ok
+2026-11-13T09:44:47.4415417Z test_routine_title_can_use_bounded_strategy_summary (test_news_wire_relevance.NewsWireRelevanceTests.test_routine_title_can_use_bounded_strategy_summary) ... ok
+2026-11-13T09:44:47.4417270Z test_rss_summary_is_parsed_and_can_supply_election_context (test_news_wire_relevance.NewsWireRelevanceTests.test_rss_summary_is_parsed_and_can_supply_election_context) ... ok
+2026-11-13T09:44:47.4419437Z test_shared_discovery_accepts_any_approved_media_domain (test_news_wire_relevance.NewsWireRelevanceTests.test_shared_discovery_accepts_any_approved_media_domain) ... ok
+2026-11-13T09:44:47.4421040Z test_static_candidate_directory_pages_are_not_articles (test_news_wire_relevance.NewsWireRelevanceTests.test_static_candidate_directory_pages_are_not_articles) ... ok
+2026-11-13T09:44:47.4511164Z test_structured_electoral_support_accepts_electoral_destinations (test_news_wire_relevance.NewsWireRelevanceTests.test_structured_electoral_support_accepts_electoral_destinations) ... ok
+2026-11-13T09:44:47.4614262Z test_structured_electoral_support_rejects_ordinary_destinations (test_news_wire_relevance.NewsWireRelevanceTests.test_structured_electoral_support_rejects_ordinary_destinations) ... ok
+2026-11-13T09:44:47.4627276Z test_structured_summary_selection_controls_remain_relevant (test_news_wire_relevance.NewsWireRelevanceTests.test_structured_summary_selection_controls_remain_relevant) ... ok
+2026-11-13T09:44:47.4633814Z test_summary_campaign_evidence_is_local_and_minimal (test_news_wire_relevance.NewsWireRelevanceTests.test_summary_campaign_evidence_is_local_and_minimal) ... ok
+2026-11-13T09:44:47.4648207Z test_summary_can_establish_presidential_policy_relationship (test_news_wire_relevance.NewsWireRelevanceTests.test_summary_can_establish_presidential_policy_relationship) ... ok
+2026-11-13T09:44:47.4672124Z test_summary_candidate_labels_do_not_override_headline_subject (test_news_wire_relevance.NewsWireRelevanceTests.test_summary_candidate_labels_do_not_override_headline_subject) ... ok
+2026-11-13T09:44:47.4679496Z test_summary_cannot_rescue_historical_presidential_subject (test_news_wire_relevance.NewsWireRelevanceTests.test_summary_cannot_rescue_historical_presidential_subject) ... ok
+2026-11-13T09:44:47.4683420Z test_summary_legal_word_cannot_create_a_notable_change (test_news_wire_relevance.NewsWireRelevanceTests.test_summary_legal_word_cannot_create_a_notable_change) ... ok
+2026-11-13T09:44:47.4685291Z test_transport_priority_is_direct_then_site_then_shared (test_news_wire_relevance.NewsWireRelevanceTests.test_transport_priority_is_direct_then_site_then_shared) ... ok
+2026-11-13T09:44:47.4688069Z test_unknown_discovery_publisher_is_quarantined (test_news_wire_relevance.NewsWireRelevanceTests.test_unknown_discovery_publisher_is_quarantined) ... ok
+2026-11-13T09:44:47.4689686Z test_workflow_validates_candidate_match_contract (test_news_wire_relevance.NewsWireRelevanceTests.test_workflow_validates_candidate_match_contract) ... ok
+2026-11-13T09:44:47.4691212Z test_zero_item_limit_means_unlimited (test_news_wire_relevance.NewsWireRelevanceTests.test_zero_item_limit_means_unlimited) ... ok
+2026-11-13T09:44:47.6860325Z test_active_union_denominators_and_publishers_are_separate (test_candidate_coverage_scope.ActiveFieldVisibilityScopeTests.test_active_union_denominators_and_publishers_are_separate) ... ok
+2026-11-13T09:44:47.6882400Z test_hidden_only_evidence_remains_in_source_records (test_candidate_coverage_scope.ActiveFieldVisibilityScopeTests.test_hidden_only_evidence_remains_in_source_records) ... ok
+2026-11-13T09:44:47.6908335Z test_source_wide_visibility_contract_remains_unchanged (test_candidate_coverage_scope.ActiveFieldVisibilityScopeTests.test_source_wide_visibility_contract_remains_unchanged) ... ok
+2026-11-13T09:44:47.6916660Z test_bare_candidate_support_without_race_evidence_is_general (test_candidate_coverage_scope.CandidateCoverageScopeTests.test_bare_candidate_support_without_race_evidence_is_general) ... ok
+2026-11-13T09:44:47.6919497Z test_concrete_campaign_development_has_campaign_scope (test_candidate_coverage_scope.CandidateCoverageScopeTests.test_concrete_campaign_development_has_campaign_scope) ... ok
+2026-11-13T09:44:47.6921619Z test_current_election_headline_has_election_scope (test_candidate_coverage_scope.CandidateCoverageScopeTests.test_current_election_headline_has_election_scope) ... ok
+2026-11-13T09:44:47.6967298Z test_later_electoral_context_does_not_create_support_scope (test_candidate_coverage_scope.CandidateCoverageScopeTests.test_later_electoral_context_does_not_create_support_scope) ... ok
+2026-11-13T09:44:47.6978518Z test_nice_matin_support_visibility_has_general_scope (test_candidate_coverage_scope.CandidateCoverageScopeTests.test_nice_matin_support_visibility_has_general_scope) ... ok
+2026-11-13T09:44:47.6980362Z test_other_relevant_race_coverage_has_campaign_scope (test_candidate_coverage_scope.CandidateCoverageScopeTests.test_other_relevant_race_coverage_has_campaign_scope) ... ok
+2026-11-13T09:44:47.6982231Z test_routine_candidate_visibility_has_general_scope (test_candidate_coverage_scope.CandidateCoverageScopeTests.test_routine_candidate_visibility_has_general_scope) ... ok
+2026-11-13T09:44:47.6984122Z test_scope_vocabulary_is_locked (test_candidate_coverage_scope.CandidateCoverageScopeTests.test_scope_vocabulary_is_locked) ... ok
+2026-11-13T09:44:47.6986021Z test_metrics_are_sorted_by_records_then_candidate_name (test_candidate_coverage_scope.CandidateVisibilityMetricTests.test_metrics_are_sorted_by_records_then_candidate_name) ... ok
+2026-11-13T09:44:47.6993264Z test_period_metrics_partition_race_and_general_visibility (test_candidate_coverage_scope.CandidateVisibilityMetricTests.test_period_metrics_partition_race_and_general_visibility) ... ok
+2026-11-13T09:44:47.6995331Z test_short_unrelated_headlines_do_not_false_cluster (test_candidate_coverage_scope.CandidateVisibilityMetricTests.test_short_unrelated_headlines_do_not_false_cluster) ... ok
+2026-11-13T09:44:47.7001710Z test_similar_headlines_form_a_supported_story_cluster (test_candidate_coverage_scope.CandidateVisibilityMetricTests.test_similar_headlines_form_a_supported_story_cluster) ... ok
+2026-11-13T09:44:47.7104075Z test_active_news_roster_uses_validated_registry_identities (test_candidate_identity_contract.CandidateIdentityContractTests.test_active_news_roster_uses_validated_registry_identities) ... ok
+2026-11-13T09:44:47.7106425Z test_candidate_identity_contains_no_candidacy_logic (test_candidate_identity_contract.CandidateIdentityContractTests.test_candidate_identity_contains_no_candidacy_logic) ... ok
+2026-11-13T09:44:47.7110832Z test_duplicate_roster_labels_create_one_match_per_person (test_candidate_identity_contract.CandidateIdentityContractTests.test_duplicate_roster_labels_create_one_match_per_person) ... ok
+2026-11-13T09:44:47.7114241Z test_multi_token_variants_remain_exact_news_aliases (test_candidate_identity_contract.CandidateIdentityContractTests.test_multi_token_variants_remain_exact_news_aliases) ... ok
+2026-11-13T09:44:47.7119460Z test_poll_label_variants_collapse_to_full_identities (test_candidate_identity_contract.CandidateIdentityContractTests.test_poll_label_variants_collapse_to_full_identities) ... ok
+2026-11-13T09:44:47.7244352Z test_registry_has_exact_identity_parity_with_candidate_signals (test_candidate_identity_contract.CandidateIdentityContractTests.test_registry_has_exact_identity_parity_with_candidate_signals) ... ok
+2026-11-13T09:44:47.7249986Z test_reviewed_multi_token_short_forms_match_canonical_people (test_candidate_identity_contract.CandidateIdentityContractTests.test_reviewed_multi_token_short_forms_match_canonical_people) ... ok
+2026-11-13T09:44:47.7254947Z test_surname_only_poll_labels_do_not_become_text_aliases (test_candidate_identity_contract.CandidateIdentityContractTests.test_surname_only_poll_labels_do_not_become_text_aliases) ... ok
+2026-11-13T09:44:47.7265168Z test_candidate_order_is_deterministic (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_candidate_order_is_deterministic) ... ok
+2026-11-13T09:44:47.7271682Z test_daily_gap_is_rejected (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_daily_gap_is_rejected) ... ok
+2026-11-13T09:44:47.7280222Z test_expected_candidate_parity_is_exact (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_expected_candidate_parity_is_exact) ... ok
+2026-11-13T09:44:47.7285623Z test_generated_at_is_rejected (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_generated_at_is_rejected) ... ok
+2026-11-13T09:44:47.7292299Z test_inconsistent_share_is_rejected (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_inconsistent_share_is_rejected) ... ok
+2026-11-13T09:44:47.7297274Z test_nonzero_denominator_preserves_real_zero (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_nonzero_denominator_preserves_real_zero) ... ok
+2026-11-13T09:44:47.7299681Z test_rounding_matches_existing_visibility_semantics (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_rounding_matches_existing_visibility_semantics) ... ok
+2026-11-13T09:44:47.7316418Z test_valid_payload_and_serialization (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_valid_payload_and_serialization) ... ok
+2026-11-13T09:44:47.7323436Z test_zero_denominator_requires_null_share (test_candidate_visibility_history_contract.CandidateVisibilityHistoryContractTests.test_zero_denominator_requires_null_share) ... ok
+2026-11-13T09:44:47.7330251Z test_complete_candidate_universe_keeps_zero_history_rows (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_complete_candidate_universe_keeps_zero_history_rows) ... ok
+2026-11-13T09:44:48.8892473Z test_current_day_only_change_does_not_change_serialized_history (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_current_day_only_change_does_not_change_serialized_history) ... ok
+2026-11-13T09:44:48.8897639Z test_current_utc_day_and_partial_leading_day_are_excluded (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_current_utc_day_and_partial_leading_day_are_excluded) ... ok
+2026-11-13T09:44:48.8932344Z test_input_order_does_not_change_serialized_output (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_input_order_does_not_change_serialized_output) ... ok
+2026-11-13T09:44:48.8937622Z test_multi_candidate_record_has_one_denominator (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_multi_candidate_record_has_one_denominator) ... ok
+2026-11-13T09:44:48.8942292Z test_period_is_29_complete_utc_days (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_period_is_29_complete_utc_days) ... ok
+2026-11-13T09:44:48.8947129Z test_previous_name_resolves_published_identity (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_previous_name_resolves_published_identity) ... ok
+2026-11-13T09:44:48.8952525Z test_primary_and_general_denominators_are_separate (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_primary_and_general_denominators_are_separate) ... ok
+2026-11-13T09:44:48.8957109Z test_real_zero_and_null_are_distinct (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_real_zero_and_null_are_distinct) ... ok
+2026-11-13T09:44:48.8958938Z test_retention_shorter_than_30_days_is_rejected (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_retention_shorter_than_30_days_is_rejected) ... ok
+2026-11-13T09:44:48.8963893Z test_three_decimal_rounding_matches_current_visibility (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_three_decimal_rounding_matches_current_visibility) ... ok
+2026-11-13T09:44:48.8965953Z test_unknown_published_match_is_rejected (test_build_candidate_visibility_history.CandidateVisibilityHistoryBuildTests.test_unknown_published_match_is_rejected) ... ok
+2026-11-13T09:44:48.9813111Z test_candidate_registry_parity_is_exact (test_candidate_agenda_history_contract.CandidateAgendaHistoryContractTests.test_candidate_registry_parity_is_exact) ... ok
+2026-11-13T09:44:49.0807971Z test_cumulative_profile_must_reconcile_without_mixed_taxonomies (test_candidate_agenda_history_contract.CandidateAgendaHistoryContractTests.test_cumulative_profile_must_reconcile_without_mixed_taxonomies) ... ok
+2026-11-13T09:44:49.2956052Z test_daily_series_and_full_topic_dictionaries_are_enforced (test_candidate_agenda_history_contract.CandidateAgendaHistoryContractTests.test_daily_series_and_full_topic_dictionaries_are_enforced) ... ok
+2026-11-13T09:44:49.4588449Z test_exact_schema_tracking_and_taxonomies (test_candidate_agenda_history_contract.CandidateAgendaHistoryContractTests.test_exact_schema_tracking_and_taxonomies) ... ok
+2026-11-13T09:44:49.4599425Z test_campaign_classifier_uses_existing_single_topic_semantics (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_campaign_classifier_uses_existing_single_topic_semantics) ... ok
+2026-11-13T09:44:49.4609448Z test_duplicate_published_identity_counts_candidate_once (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_duplicate_published_identity_counts_candidate_once) ... ok
+2026-11-13T09:44:49.4619701Z test_exactly_three_policy_topics_selects_all_policy_topics (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_exactly_three_policy_topics_selects_all_policy_topics) ... ok
+2026-11-13T09:44:49.4629655Z test_exactly_two_policy_topics_falls_back_to_campaign (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_exactly_two_policy_topics_falls_back_to_campaign) ... ok
+2026-11-13T09:44:50.0349931Z test_failed_cli_build_preserves_last_good_output_bytes (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_failed_cli_build_preserves_last_good_output_bytes) ... ok
+2026-11-13T09:44:50.0376594Z test_gap_future_and_malformed_previous_fail_closed (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_gap_future_and_malformed_previous_fail_closed) ... ok
+2026-11-13T09:44:50.0388275Z test_initial_build_starts_at_earliest_reconstructable_complete_day (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_initial_build_starts_at_earliest_reconstructable_complete_day) ... ok
+2026-11-13T09:44:50.0403298Z test_new_candidate_starts_at_earliest_reconstructable_complete_day (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_new_candidate_starts_at_earliest_reconstructable_complete_day) ... ok
+2026-11-13T09:44:50.0468434Z test_new_completed_day_appends_once (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_new_completed_day_appends_once) ... ok
+2026-11-13T09:44:50.0478233Z test_one_and_multi_label_policy_counts_and_two_candidate_linkage (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_one_and_multi_label_policy_counts_and_two_candidate_linkage) ... ok
+2026-11-13T09:44:50.0498272Z test_overlap_is_replaced_and_deleted_evidence_removes_stale_count (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_overlap_is_replaced_and_deleted_evidence_removes_stale_count) ... ok
+2026-11-13T09:44:50.0506937Z test_policy_and_campaign_counts_coexist_in_daily_storage (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_policy_and_campaign_counts_coexist_in_daily_storage) ... ok
+2026-11-13T09:44:50.0528098Z test_rename_preserves_stable_id_history (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_rename_preserves_stable_id_history) ... ok
+2026-11-13T09:44:50.0578712Z test_repeated_same_horizon_is_byte_identical (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_repeated_same_horizon_is_byte_identical) ... ok
+2026-11-13T09:44:50.0599218Z test_settled_days_older_than_recomputable_window_survive (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_settled_days_older_than_recomputable_window_survive) ... ok
+2026-11-13T09:44:50.0602346Z test_uncontrolled_candidate_identity_fails_closed (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_uncontrolled_candidate_identity_fails_closed) ... ok
+2026-11-13T09:44:50.0610201Z test_zero_association_behavior_matches_current_profile (test_build_candidate_agenda_history.CandidateAgendaHistoryBuildTests.test_zero_association_behavior_matches_current_profile) ... ok
+2026-11-13T09:44:50.0620709Z test_agenda_validator_rejects_coverage_count_corruption (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_agenda_validator_rejects_coverage_count_corruption) ... ok
+2026-11-13T09:44:50.0622861Z test_ambiguous_rules_terms_require_presidential_headline (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_ambiguous_rules_terms_require_presidential_headline) ... ok
+2026-11-13T09:44:50.0624235Z test_campaign_financing_phrase_variant_is_classified (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_campaign_financing_phrase_variant_is_classified) ... ok
+2026-11-13T09:44:50.0626110Z test_equal_timestamps_use_stable_tie_breakers (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_equal_timestamps_use_stable_tie_breakers) ... ok
+2026-11-13T09:44:50.0632947Z test_evolution_term_counts_use_complete_classified_set (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_evolution_term_counts_use_complete_classified_set) ... ok
+2026-11-13T09:44:50.0635948Z test_evolution_uses_exact_thirty_calendar_days (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_evolution_uses_exact_thirty_calendar_days) ... ok
+2026-11-13T09:44:50.0641680Z test_evolution_validator_rejects_daily_parity_corruption (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_evolution_validator_rejects_daily_parity_corruption) ... ok
+2026-11-13T09:44:50.0651461Z test_exports_twenty_items_and_reports_omissions (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_exports_twenty_items_and_reports_omissions) ... ok
+2026-11-13T09:44:50.0654037Z test_generic_departure_and_preparation_are_not_topics (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_generic_departure_and_preparation_are_not_topics) ... ok
+2026-11-13T09:44:50.0655571Z test_generic_preparation_is_not_a_notable_development (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_generic_preparation_is_not_a_notable_development) ... ok
+2026-11-13T09:44:50.0660045Z test_nice_matin_support_is_not_endorsement_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_nice_matin_support_is_not_endorsement_evidence) ... ok
+2026-11-13T09:44:50.0662399Z test_notable_development_category_is_authoritative (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_notable_development_category_is_authoritative) ... ok
+2026-11-13T09:44:50.0678681Z test_ordinary_support_and_bare_rallying_are_not_agenda_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_ordinary_support_and_bare_rallying_are_not_agenda_evidence) ... ok
+2026-11-13T09:44:50.0680427Z test_presidential_candidate_preparation_requires_specific_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_presidential_candidate_preparation_requires_specific_evidence) ... ok
+2026-11-13T09:44:50.0683104Z test_smaller_topics_export_all_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_smaller_topics_export_all_evidence) ... ok
+2026-11-13T09:44:50.0697726Z test_structured_electoral_support_is_endorsement_evidence (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_structured_electoral_support_is_endorsement_evidence) ... ok
+2026-11-13T09:44:50.0699742Z test_unclassified_relevant_news_is_omitted_from_topics (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_unclassified_relevant_news_is_omitted_from_topics) ... ok
+2026-11-13T09:44:50.0712849Z test_validator_rejects_contract_corruption (test_campaign_agenda_evidence.CampaignAgendaEvidenceTests.test_validator_rejects_contract_corruption) ... ok
+2026-11-13T09:44:50.0715508Z test_corpus_counts_is_public_projection_only (test_news_corpus_ledger.NewsCorpusLedgerTests.test_corpus_counts_is_public_projection_only) ... ok
+2026-11-13T09:44:50.0717022Z test_counts_must_match_arrays (test_news_corpus_ledger.NewsCorpusLedgerTests.test_counts_must_match_arrays) ... ok
+2026-11-13T09:44:50.0719254Z test_expiry_from_rolling_wire_does_not_reduce_counts (test_news_corpus_ledger.NewsCorpusLedgerTests.test_expiry_from_rolling_wire_does_not_reduce_counts) ... ok
+2026-11-13T09:44:50.0720988Z test_newer_wire_without_new_evidence_is_no_churn (test_news_corpus_ledger.NewsCorpusLedgerTests.test_newer_wire_without_new_evidence_is_no_churn) ... ok
+2026-11-13T09:44:50.0722815Z test_older_wire_does_not_move_updated_at_backwards (test_news_corpus_ledger.NewsCorpusLedgerTests.test_older_wire_does_not_move_updated_at_backwards) ... ok
+2026-11-13T09:44:50.1629140Z test_real_baseline_covers_current_wire (test_news_corpus_ledger.NewsCorpusLedgerTests.test_real_baseline_covers_current_wire) ... ok
+2026-11-13T09:44:50.1630728Z test_repeated_processing_is_idempotent (test_news_corpus_ledger.NewsCorpusLedgerTests.test_repeated_processing_is_idempotent) ... ok
+2026-11-13T09:44:50.1632522Z test_update_is_union_not_rolling_replacement (test_news_corpus_ledger.NewsCorpusLedgerTests.test_update_is_union_not_rolling_replacement) ... ok
+2026-11-13T09:44:50.1633795Z test_valid_baseline (test_news_corpus_ledger.NewsCorpusLedgerTests.test_valid_baseline) ... ok
+2026-11-13T09:44:50.2420169Z test_both_shells_prefer_cumulative_hud_metrics (test_hud_corpus_counts.HudCorpusCountsTests.test_both_shells_prefer_cumulative_hud_metrics) ... ok
+2026-11-13T09:44:50.2421973Z test_hud_cumulative_semantics_are_explained (test_hud_corpus_counts.HudCorpusCountsTests.test_hud_cumulative_semantics_are_explained) ... ok
+2026-11-13T09:44:50.2426116Z test_hybrid_projects_corpus_counts_for_hud_only (test_hud_corpus_counts.HudCorpusCountsTests.test_hybrid_projects_corpus_counts_for_hud_only) ... ok
+2026-11-13T09:44:50.2455692Z test_media_pulse_top_scope_labels_are_explicit_and_compact (test_hud_corpus_counts.HudCorpusCountsTests.test_media_pulse_top_scope_labels_are_explicit_and_compact) ... ok
+2026-11-13T09:44:50.2458747Z test_media_pulse_visible_metrics_remain_rolling (test_hud_corpus_counts.HudCorpusCountsTests.test_media_pulse_visible_metrics_remain_rolling) ... ok
+2026-11-13T09:44:50.2531269Z test_news_wire_exposes_valid_corpus_counts (test_hud_corpus_counts.HudCorpusCountsTests.test_news_wire_exposes_valid_corpus_counts) ... ok
+2026-11-13T09:44:50.2550114Z test_current_hubs_share_canonical_ids_and_a_single_projection_per_family (test_live_projections.LiveMarkupTests.test_current_hubs_share_canonical_ids_and_a_single_projection_per_family) ... ok
+2026-11-13T09:44:50.2643619Z test_history_and_details_keep_static_fetch_isolation (test_live_projections.LiveMarkupTests.test_history_and_details_keep_static_fetch_isolation) ... ok
+2026-11-13T09:44:50.2994070Z test_news_shell_syntax_and_generated_scope_guard (test_live_projections.LiveMarkupTests.test_news_shell_syntax_and_generated_scope_guard) ... ok
+2026-11-13T09:44:50.3768686Z test_atomic_write_keeps_existing_output_on_replace_failure (test_live_projections.LiveProjectionTests.test_atomic_write_keeps_existing_output_on_replace_failure) ... ok
+2026-11-13T09:44:50.3880660Z test_counts_reconcile_and_metric_semantics_are_preserved (test_live_projections.LiveProjectionTests.test_counts_reconcile_and_metric_semantics_are_preserved) ... ok
+2026-11-13T09:44:50.5820028Z test_deterministic_source_identity_canonical_membership_and_no_mutation (test_live_projections.LiveProjectionTests.test_deterministic_source_identity_canonical_membership_and_no_mutation) ... ok
+2026-11-13T09:44:52.8499681Z test_explicit_cli_paths_check_and_failed_build_leave_output_untouched (test_live_projections.LiveProjectionTests.test_explicit_cli_paths_check_and_failed_build_leave_output_untouched) ... ok
+2026-11-13T09:44:55.6267148Z test_malformed_structures_counts_and_ids_fail_closed (test_live_projections.LiveProjectionTests.test_malformed_structures_counts_and_ids_fail_closed) ... ok
+2026-11-13T09:44:55.6324874Z test_multilabel_shares_can_sum_above_one (test_live_projections.LiveProjectionTests.test_multilabel_shares_can_sum_above_one) ... ok
+2026-11-13T09:44:55.6433193Z test_no_network_clock_classification_or_git_reconstruction (test_live_projections.LiveProjectionTests.test_no_network_clock_classification_or_git_reconstruction) ... ok
+2026-11-13T09:44:55.6829524Z test_source_mismatch_and_projection_tampering_fail (test_live_projections.LiveProjectionTests.test_source_mismatch_and_projection_tampering_fail) ... ok
+2026-11-13T09:44:57.1836840Z test_source_timestamp_and_rolling_day_are_required (test_live_projections.LiveProjectionTests.test_source_timestamp_and_rolling_day_are_required) ... ok
+2026-11-13T09:44:59.5519164Z test_executed_promotion_matches_promoted_source (test_live_projections.LiveWorkflowTests.test_executed_promotion_matches_promoted_source) ... FAIL
+2026-11-13T09:45:01.9155462Z test_executed_semantic_noop_has_zero_projection_churn (test_live_projections.LiveWorkflowTests.test_executed_semantic_noop_has_zero_projection_churn) ... FAIL
+2026-11-13T09:45:04.2068686Z test_executed_stale_artifact_repair_uses_committed_source (test_live_projections.LiveWorkflowTests.test_executed_stale_artifact_repair_uses_committed_source) ... FAIL
+2026-11-13T09:45:04.2070947Z test_family_fanout_daily_refresh_candidate_and_global_queue (test_live_projections.LiveWorkflowTests.test_family_fanout_daily_refresh_candidate_and_global_queue) ... ok
+2026-11-13T09:45:06.6930504Z test_invalid_projection_prevents_source_promotion (test_live_projections.LiveWorkflowTests.test_invalid_projection_prevents_source_promotion) ... ok
+2026-11-13T09:45:10.0162838Z test_inventory_bookkeeping_and_stale_repair_preserve_public_snapshot (test_live_projections.LiveWorkflowTests.test_inventory_bookkeeping_and_stale_repair_preserve_public_snapshot) ... FAIL
+2026-11-13T09:45:13.0611329Z test_inventory_bookkeeping_preserves_public_snapshot (test_live_projections.LiveWorkflowTests.test_inventory_bookkeeping_preserves_public_snapshot) ... FAIL
+2026-11-13T09:45:13.0938141Z test_workflow_builds_checks_promotes_stages_reconciles_and_serializes (test_live_projections.LiveWorkflowTests.test_workflow_builds_checks_promotes_stages_reconciles_and_serializes) ... ok
+2026-11-13T09:45:13.0940953Z test_agenda_history_is_transactional_persistent_and_rebase_safe (test_news_workflow_contract.NewsWorkflowContractTests.test_agenda_history_is_transactional_persistent_and_rebase_safe) ... ok
+2026-11-13T09:45:13.0942459Z test_checkout_pins_current_main (test_news_workflow_contract.NewsWorkflowContractTests.test_checkout_pins_current_main) ... ok
+2026-11-13T09:45:13.0943779Z test_corpus_ledger_is_transactional_persistent_and_rebase_safe (test_news_workflow_contract.NewsWorkflowContractTests.test_corpus_ledger_is_transactional_persistent_and_rebase_safe) ... ok
+2026-11-13T09:45:13.0945295Z test_history_is_built_from_temporary_wire_before_promotion (test_news_workflow_contract.NewsWorkflowContractTests.test_history_is_built_from_temporary_wire_before_promotion) ... ok
+2026-11-13T09:45:13.0946616Z test_history_is_committed_with_news_derived_outputs (test_news_workflow_contract.NewsWorkflowContractTests.test_history_is_committed_with_news_derived_outputs) ... ok
+2026-11-13T09:45:13.0947893Z test_hourly_schedule_and_explicit_registry (test_news_workflow_contract.NewsWorkflowContractTests.test_hourly_schedule_and_explicit_registry) ... ok
+2026-11-13T09:45:13.0949182Z test_post_rebase_reconciles_recent_changes_before_derived_outputs (test_news_workflow_contract.NewsWorkflowContractTests.test_post_rebase_reconciles_recent_changes_before_derived_outputs) ... ok
+2026-11-13T09:45:13.0950408Z test_preflight_dependencies_are_installed_before_news_tests (test_news_workflow_contract.NewsWorkflowContractTests.test_preflight_dependencies_are_installed_before_news_tests) ... ok
+2026-11-13T09:45:13.0952242Z test_push_retries_only_transient_commit_refs_failure (test_news_workflow_contract.NewsWorkflowContractTests.test_push_retries_only_transient_commit_refs_failure) ... ok
+2026-11-13T09:45:13.0953372Z test_registry_is_not_published_by_news (test_news_workflow_contract.NewsWorkflowContractTests.test_registry_is_not_published_by_news) ... ok
+2026-11-13T09:45:13.0954521Z test_candidate_visibility_history_stays_downstream_of_news (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_candidate_visibility_history_stays_downstream_of_news) ... ok
+2026-11-13T09:45:13.0955811Z test_candidate_visibility_participates_in_change_detection (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_candidate_visibility_participates_in_change_detection) ... ok
+2026-11-13T09:45:13.0957349Z test_generated_wire_still_uses_canonical_validator (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_generated_wire_still_uses_canonical_validator) ... ok
+2026-11-13T09:45:13.0958973Z test_news_uses_registry_while_active_projection_stays_downstream (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_news_uses_registry_while_active_projection_stays_downstream) ... ok
+2026-11-13T09:45:13.0960508Z test_source_wide_candidate_visibility_contract_is_not_weakened (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_source_wide_candidate_visibility_contract_is_not_weakened) ... ok
+2026-11-13T09:45:13.0961891Z test_workflow_accepts_partitioned_visibility_schema (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_workflow_accepts_partitioned_visibility_schema) ... ok
+2026-11-13T09:45:13.0963066Z test_workflow_runs_analytical_contract_tests (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_workflow_runs_analytical_contract_tests) ... ok
+2026-11-13T09:45:13.0964188Z test_workflow_uses_canonical_inventory_schema (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_workflow_uses_canonical_inventory_schema) ... ok
+2026-11-13T09:45:13.0965946Z test_workflow_validates_agenda_classification_coverage (test_workflow_media_pulse_contract.WorkflowMediaPulseContractTests.test_workflow_validates_agenda_classification_coverage) ... ok
+2026-11-13T09:45:13.1813518Z test_alliance_reports_cluster_as_one_event_with_support (test_recent_changes.RecentChangesTests.test_alliance_reports_cluster_as_one_event_with_support) ... ok
+2026-11-13T09:45:13.1823463Z test_campaign_deduplication_preserves_only_genuine_support (test_recent_changes.RecentChangesTests.test_campaign_deduplication_preserves_only_genuine_support) ... ok
+2026-11-13T09:45:13.1833215Z test_candidate_watch_filter_admits_only_material_changes (test_recent_changes.RecentChangesTests.test_candidate_watch_filter_admits_only_material_changes) ... ok
+2026-11-13T09:45:13.1835653Z test_complaint_clustering_does_not_cross_dates (test_recent_changes.RecentChangesTests.test_complaint_clustering_does_not_cross_dates) ... ok
+2026-11-13T09:45:19.1148930Z test_current_run_time_does_not_change_ids_or_order (test_recent_changes.RecentChangesTests.test_current_run_time_does_not_change_ids_or_order) ... ok
+2026-11-13T09:45:25.1258361Z test_detection_time_never_controls_ordering (test_recent_changes.RecentChangesTests.test_detection_time_never_controls_ordering) ... ok
+2026-11-13T09:45:25.1280587Z test_distinct_ps_events_are_not_clustered_as_support (test_recent_changes.RecentChangesTests.test_distinct_ps_events_are_not_clustered_as_support) ... ok
+2026-11-13T09:45:25.1284841Z test_duplicate_item_across_news_lanes_is_not_repeated (test_recent_changes.RecentChangesTests.test_duplicate_item_across_news_lanes_is_not_repeated) ... ok
+2026-11-13T09:45:25.1297239Z test_electoral_support_dedup_does_not_absorb_process_event (test_recent_changes.RecentChangesTests.test_electoral_support_dedup_does_not_absorb_process_event) ... ok
+2026-11-13T09:45:25.1307398Z test_electoral_support_dedup_keeps_different_destinations_separate (test_recent_changes.RecentChangesTests.test_electoral_support_dedup_keeps_different_destinations_separate) ... ok
+2026-11-13T09:45:25.1316776Z test_electoral_support_dedup_keeps_different_endorsers_separate (test_recent_changes.RecentChangesTests.test_electoral_support_dedup_keeps_different_endorsers_separate) ... ok
+2026-11-13T09:45:25.1319245Z test_fact_checks_of_the_same_claim_cluster_across_publishers (test_recent_changes.RecentChangesTests.test_fact_checks_of_the_same_claim_cluster_across_publishers) ... ok
+2026-11-13T09:45:25.1321379Z test_foreign_presidential_article_is_defensively_rejected (test_recent_changes.RecentChangesTests.test_foreign_presidential_article_is_defensively_rejected) ... ok
+2026-11-13T09:45:25.1330670Z test_frontend_groups_only_by_trusted_change_date (test_recent_changes.RecentChangesTests.test_frontend_groups_only_by_trusted_change_date) ... ok
+2026-11-13T09:45:25.1386539Z test_frontend_reports_source_network_and_aliases_lcp_icon (test_recent_changes.RecentChangesTests.test_frontend_reports_source_network_and_aliases_lcp_icon) ... ok
+2026-11-13T09:45:25.1395222Z test_headline_first_change_classifier_accepts_required_events (test_recent_changes.RecentChangesTests.test_headline_first_change_classifier_accepts_required_events) ... ok
+2026-11-13T09:45:25.1408470Z test_headline_first_change_classifier_rejects_commentary_and_routine_news (test_recent_changes.RecentChangesTests.test_headline_first_change_classifier_rejects_commentary_and_routine_news) ... ok
+2026-11-13T09:45:25.1460326Z test_historical_polls_use_fieldwork_end_not_generator_date (test_recent_changes.RecentChangesTests.test_historical_polls_use_fieldwork_end_not_generator_date) ... ok
+2026-11-13T09:45:25.1462229Z test_lcp_actualites_uses_cached_lcp_icon_key (test_recent_changes.RecentChangesTests.test_lcp_actualites_uses_cached_lcp_icon_key) ... ok
+2026-11-13T09:45:25.1676779Z test_ledger_retains_all_qualifying_changes_in_window (test_recent_changes.RecentChangesTests.test_ledger_retains_all_qualifying_changes_in_window) ... ok
+2026-11-13T09:45:25.1684763Z test_material_candidate_watch_items_enter_news_entries (test_recent_changes.RecentChangesTests.test_material_candidate_watch_items_enter_news_entries) ... ok
+2026-11-13T09:45:28.1248426Z test_newest_and_oldest_metadata_match_displayed_records (test_recent_changes.RecentChangesTests.test_newest_and_oldest_metadata_match_displayed_records) ... ok
+2026-11-13T09:45:28.1251242Z test_news_preserves_supplied_stable_candidate_id (test_recent_changes.RecentChangesTests.test_news_preserves_supplied_stable_candidate_id) ... ok
+2026-11-13T09:45:28.1255925Z test_nice_matin_candidate_watch_item_is_omitted_as_non_material (test_recent_changes.RecentChangesTests.test_nice_matin_candidate_watch_item_is_omitted_as_non_material) ... ok
+2026-11-13T09:45:28.1285444Z test_ordinary_support_is_not_a_campaign_change (test_recent_changes.RecentChangesTests.test_ordinary_support_is_not_a_campaign_change) ... ok
+2026-11-13T09:45:28.1288273Z test_presidential_alliance_proposal_is_a_campaign_change (test_recent_changes.RecentChangesTests.test_presidential_alliance_proposal_is_a_campaign_change) ... ok
+2026-11-13T09:45:31.0856281Z test_repository_data_generates_a_valid_ledger (test_recent_changes.RecentChangesTests.test_repository_data_generates_a_valid_ledger) ... ok
+2026-11-13T09:45:34.0419281Z test_repository_data_omits_nice_matin_false_positive (test_recent_changes.RecentChangesTests.test_repository_data_omits_nice_matin_false_positive) ... ok
+2026-11-13T09:45:34.0421489Z test_retrospective_support_roundup_remains_non_material (test_recent_changes.RecentChangesTests.test_retrospective_support_roundup_remains_non_material) ... ok
+2026-11-13T09:45:36.9711895Z test_runoff_inherits_underlying_poll_evidence_date (test_recent_changes.RecentChangesTests.test_runoff_inherits_underlying_poll_evidence_date) ... ok
+2026-11-13T09:45:36.9713790Z test_runoff_preserves_supplied_stable_candidate_ids (test_recent_changes.RecentChangesTests.test_runoff_preserves_supplied_stable_candidate_ids) ... ok
+2026-11-13T09:45:36.9724344Z test_same_candidate_complaint_clusters_across_publishers (test_recent_changes.RecentChangesTests.test_same_candidate_complaint_clusters_across_publishers) ... ok
+2026-11-13T09:45:36.9727219Z test_same_complaint_can_cluster_across_midnight_within_twelve_hours (test_recent_changes.RecentChangesTests.test_same_complaint_can_cluster_across_midnight_within_twelve_hours) ... ok
+2026-11-13T09:45:36.9754564Z test_same_day_electoral_support_paraphrases_cluster_as_one_event (test_recent_changes.RecentChangesTests.test_same_day_electoral_support_paraphrases_cluster_as_one_event) ... ok
+2026-11-13T09:45:36.9762926Z test_same_day_melenchon_ecologists_reports_cluster (test_recent_changes.RecentChangesTests.test_same_day_melenchon_ecologists_reports_cluster) ... ok
+2026-11-13T09:45:36.9769146Z test_same_pollster_same_hypothesis_count_has_unique_wave_headlines (test_recent_changes.RecentChangesTests.test_same_pollster_same_hypothesis_count_has_unique_wave_headlines) ... ok
+2026-11-13T09:45:36.9816461Z test_six_hypotheses_create_one_poll_wave_item (test_recent_changes.RecentChangesTests.test_six_hypotheses_create_one_poll_wave_item) ... ok
+2026-11-13T09:45:36.9835982Z test_structured_electoral_support_remains_a_campaign_change (test_recent_changes.RecentChangesTests.test_structured_electoral_support_remains_a_campaign_change) ... ok
+2026-11-13T09:45:36.9837506Z test_undated_poll_wave_is_omitted_instead_of_assigned_today (test_recent_changes.RecentChangesTests.test_undated_poll_wave_is_omitted_instead_of_assigned_today) ... ok
+2026-11-13T09:45:36.9840770Z test_upstream_legal_label_cannot_force_commentary_into_ledger (test_recent_changes.RecentChangesTests.test_upstream_legal_label_cannot_force_commentary_into_ledger) ... ok
+2026-11-13T09:45:39.9621331Z test_validator_rejects_duplicate_primary_urls (test_recent_changes.RecentChangesTests.test_validator_rejects_duplicate_primary_urls) ... ok
+2026-11-13T09:45:39.9624356Z test_actual_feed_rows_are_not_material_changes (test_news_change_integrity.NewsChangeIntegrityTests.test_actual_feed_rows_are_not_material_changes) ... ok
+2026-11-13T09:45:39.9629910Z test_fresh_2027_actions_may_reference_2017 (test_news_change_integrity.NewsChangeIntegrityTests.test_fresh_2027_actions_may_reference_2017) ... ok
+2026-11-13T09:45:39.9633936Z test_fresh_feed_date_does_not_make_prior_campaign_label_current (test_news_change_integrity.NewsChangeIntegrityTests.test_fresh_feed_date_does_not_make_prior_campaign_label_current) ... ok
+2026-11-13T09:45:39.9636579Z test_interview_still_has_upstream_support_evidence (test_news_change_integrity.NewsChangeIntegrityTests.test_interview_still_has_upstream_support_evidence) ... ok
+2026-11-13T09:45:39.9641119Z test_legal_and_presidential_procedure_actions_remain_eligible (test_news_change_integrity.NewsChangeIntegrityTests.test_legal_and_presidential_procedure_actions_remain_eligible) ... ok
+2026-11-13T09:45:39.9653003Z test_material_party_endorsements_do_not_require_monitored_candidate (test_news_change_integrity.NewsChangeIntegrityTests.test_material_party_endorsements_do_not_require_monitored_candidate) ... ok
+2026-11-13T09:45:39.9657203Z test_named_candidate_noun_endorsements_remain_material (test_news_change_integrity.NewsChangeIntegrityTests.test_named_candidate_noun_endorsements_remain_material) ... ok
+2026-11-13T09:45:39.9668009Z test_nominal_party_support_in_cultural_profiles_is_not_a_new_action (test_news_change_integrity.NewsChangeIntegrityTests.test_nominal_party_support_in_cultural_profiles_is_not_a_new_action) ... ok
+2026-11-13T09:45:39.9760528Z test_repeated_regeneration_preserves_every_unaffected_object_and_input (test_news_change_integrity.NewsChangeIntegrityTests.test_repeated_regeneration_preserves_every_unaffected_object_and_input) ... ok
+2026-11-13T09:45:39.9769223Z test_upstream_flags_and_rss_summary_cannot_rescue_false_promotions (test_news_change_integrity.NewsChangeIntegrityTests.test_upstream_flags_and_rss_summary_cannot_rescue_false_promotions) ... ok
+2026-11-13T09:45:39.9770913Z test_active_share_rounding_boundaries (test_audit_evidence_interpretation.AuditEvidenceTests.test_active_share_rounding_boundaries) ... ok
+2026-11-13T09:45:40.3071661Z test_non_direct_poll_differences_are_neutral_and_visible (test_audit_evidence_interpretation.AuditEvidenceTests.test_non_direct_poll_differences_are_neutral_and_visible) ... ok
+2026-11-13T09:45:40.3916992Z test_published_active_shares_recompute_from_records (test_audit_evidence_interpretation.AuditEvidenceTests.test_published_active_shares_recompute_from_records) ... ok
+2026-11-13T09:45:40.8648345Z test_python_and_browser_fallback_use_identical_complete_periods (test_audit_evidence_interpretation.AuditEvidenceTests.test_python_and_browser_fallback_use_identical_complete_periods) ... ok
+2026-11-13T09:45:40.9203212Z test_responsive_refresh_keeps_media_popover_attached (test_audit_evidence_interpretation.AuditEvidenceTests.test_responsive_refresh_keeps_media_popover_attached) ... ok
+2026-11-13T09:45:41.6900920Z test_retained_visibility_contract_is_readable_but_new_partial_days_fail (test_audit_evidence_interpretation.AuditEvidenceTests.test_retained_visibility_contract_is_readable_but_new_partial_days_fail) ... ok
+2026-11-13T09:45:41.6902553Z test_seven_day_periods_exclude_incomplete_generation_day (test_audit_evidence_interpretation.AuditEvidenceTests.test_seven_day_periods_exclude_incomplete_generation_day) ... ok
+2026-11-13T09:45:41.6912530Z test_spotlight_places_qualified_window_by_scores (test_audit_evidence_interpretation.AuditEvidenceTests.test_spotlight_places_qualified_window_by_scores) ... ok
+2026-11-13T09:45:41.7172324Z test_tf1_cannot_reenter_public_lanes_from_retained_inventory (test_audit_evidence_interpretation.AuditEvidenceTests.test_tf1_cannot_reenter_public_lanes_from_retained_inventory) ... ok
+2026-11-13T09:45:41.7174266Z test_verified_tf1_date_is_corrected_without_mutating_observation (test_audit_evidence_interpretation.AuditEvidenceTests.test_verified_tf1_date_is_corrected_without_mutating_observation) ... ok
+2026-11-13T09:45:41.7178666Z test_actual_scheduled_announcement_is_kept_as_its_own_development (test_campaign_event_grouping.CampaignEventGroupingTests.test_actual_scheduled_announcement_is_kept_as_its_own_development) ... ok
+2026-11-13T09:45:41.7202592Z test_complete_link_prevents_transitive_bridge_and_is_order_independent (test_campaign_event_grouping.CampaignEventGroupingTests.test_complete_link_prevents_transitive_bridge_and_is_order_independent) ... ok
+2026-11-13T09:45:41.7204302Z test_frozen_incident_contains_all_original_records (test_campaign_event_grouping.CampaignEventGroupingTests.test_frozen_incident_contains_all_original_records) ... ok
+2026-11-13T09:45:41.7211507Z test_generalizes_to_other_actor_place_and_midnight_occurrence (test_campaign_event_grouping.CampaignEventGroupingTests.test_generalizes_to_other_actor_place_and_midnight_occurrence) ... ok
+2026-11-13T09:45:41.7572797Z test_incident_conserves_every_url_publisher_and_publication (test_campaign_event_grouping.CampaignEventGroupingTests.test_incident_conserves_every_url_publisher_and_publication) ... ok
+2026-11-13T09:45:42.1116968Z test_incident_order_independence_and_corrected_prior_replay (test_campaign_event_grouping.CampaignEventGroupingTests.test_incident_order_independence_and_corrected_prior_replay) ... ok
+2026-11-13T09:45:42.1119313Z test_multiple_possible_occurrences_fail_closed (test_campaign_event_grouping.CampaignEventGroupingTests.test_multiple_possible_occurrences_fail_closed) ... ok
+2026-11-13T09:45:42.1221856Z test_negative_launch_cases_cannot_fall_back_to_fuzzy_similarity (test_campaign_event_grouping.CampaignEventGroupingTests.test_negative_launch_cases_cannot_fall_back_to_fuzzy_similarity) ... ok
+2026-11-13T09:45:42.1571324Z test_previews_roundup_and_independent_developments_remain_separate (test_campaign_event_grouping.CampaignEventGroupingTests.test_previews_roundup_and_independent_developments_remain_separate) ... ok
+2026-11-13T09:45:42.1583217Z test_primary_ties_and_earliest_valid_detection_are_deterministic (test_campaign_event_grouping.CampaignEventGroupingTests.test_primary_ties_and_earliest_valid_detection_are_deterministic) ... ok
+2026-11-13T09:45:42.1585643Z test_registry_rejects_duplicates_and_unreviewed_shape (test_campaign_event_grouping.CampaignEventGroupingTests.test_registry_rejects_duplicates_and_unreviewed_shape) ... ok
+2026-11-13T09:45:42.1592357Z test_same_candidate_action_without_occurrence_identity_is_insufficient (test_campaign_event_grouping.CampaignEventGroupingTests.test_same_candidate_action_without_occurrence_identity_is_insufficient) ... ok
+2026-11-13T09:45:42.1603538Z test_same_event_paraphrases_and_bounded_recap (test_campaign_event_grouping.CampaignEventGroupingTests.test_same_event_paraphrases_and_bounded_recap) ... ok
+2026-11-13T09:45:42.2045533Z test_static_bilingual_snapshot_exposes_all_support_links (test_campaign_event_grouping.CampaignEventGroupingTests.test_static_bilingual_snapshot_exposes_all_support_links) ... ok
+2026-11-13T09:45:42.2047173Z test_summary_and_upstream_flag_cannot_supply_missing_place (test_campaign_event_grouping.CampaignEventGroupingTests.test_summary_and_upstream_flag_cannot_supply_missing_place) ... ok
+2026-11-13T09:45:42.2051273Z test_summary_only_candidate_associations_cannot_contaminate_group (test_campaign_event_grouping.CampaignEventGroupingTests.test_summary_only_candidate_associations_cannot_contaminate_group) ... ok
+2026-11-13T09:45:42.2058054Z test_two_articles_from_one_publisher_are_two_source_articles (test_campaign_event_grouping.CampaignEventGroupingTests.test_two_articles_from_one_publisher_are_two_source_articles) ... ok
+2026-11-13T09:45:42.2408428Z test_unanchored_reports_are_not_forced_into_known_occurrence (test_campaign_event_grouping.CampaignEventGroupingTests.test_unanchored_reports_are_not_forced_into_known_occurrence) ... ok
+2026-11-13T09:45:42.5262505Z test_active_field_projection_matches_record_level_news (test_publication_manifest.PublicationManifestTests.test_active_field_projection_matches_record_level_news) ... ok
+2026-11-13T09:45:44.3950713Z test_active_projection_structural_mutations_fail (test_publication_manifest.PublicationManifestTests.test_active_projection_structural_mutations_fail) ... ok
+2026-11-13T09:45:45.1140487Z test_atomic_output_replaces_the_target_only_at_the_end (test_publication_manifest.PublicationManifestTests.test_atomic_output_replaces_the_target_only_at_the_end) ... ok
+2026-11-13T09:45:45.9764538Z test_campaign_events_lane_metadata (test_publication_manifest.PublicationManifestTests.test_campaign_events_lane_metadata) ... ok
+2026-11-13T09:45:46.6855647Z test_candidacy_status_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidacy_status_lane_metadata) ... ok
+2026-11-13T09:45:47.3334921Z test_candidate_agenda_history_candidacy_parity (test_publication_manifest.PublicationManifestTests.test_candidate_agenda_history_candidacy_parity) ... ok
+2026-11-13T09:45:48.0772552Z test_candidate_agenda_history_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidate_agenda_history_lane_metadata) ... ok
+2026-11-13T09:45:48.7486933Z test_candidate_agenda_history_news_horizon_must_match (test_publication_manifest.PublicationManifestTests.test_candidate_agenda_history_news_horizon_must_match) ... ok
+2026-11-13T09:45:49.6040724Z test_candidate_attention_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidate_attention_lane_metadata) ... ok
+2026-11-13T09:45:49.7994650Z test_candidate_attention_parity_ignores_candidacy_state (test_publication_manifest.PublicationManifestTests.test_candidate_attention_parity_ignores_candidacy_state) ... ok
+2026-11-13T09:45:50.0141999Z test_candidate_attention_parity_wraps_bad_registry (test_publication_manifest.PublicationManifestTests.test_candidate_attention_parity_wraps_bad_registry) ... ok
+2026-11-13T09:45:51.2758058Z test_candidate_attention_participates_in_snapshot_id (test_publication_manifest.PublicationManifestTests.test_candidate_attention_participates_in_snapshot_id) ... ok
+2026-11-13T09:45:51.6380982Z test_candidate_count_mismatch_fails (test_publication_manifest.PublicationManifestTests.test_candidate_count_mismatch_fails) ... ok
+2026-11-13T09:45:52.3638384Z test_candidate_evidence_date_uses_latest_non_null_date (test_publication_manifest.PublicationManifestTests.test_candidate_evidence_date_uses_latest_non_null_date) ... ok
+2026-11-13T09:45:53.7560114Z test_candidate_signals_change_changes_snapshot_id (test_publication_manifest.PublicationManifestTests.test_candidate_signals_change_changes_snapshot_id) ... ok
+2026-11-13T09:45:54.4695085Z test_candidate_signals_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidate_signals_lane_metadata) ... ok
+2026-11-13T09:45:54.9585128Z test_candidate_visibility_history_candidacy_parity (test_publication_manifest.PublicationManifestTests.test_candidate_visibility_history_candidacy_parity) ... ok
+2026-11-13T09:45:55.6686227Z test_candidate_visibility_history_lane_metadata (test_publication_manifest.PublicationManifestTests.test_candidate_visibility_history_lane_metadata) ... ok
+2026-11-13T09:45:56.5225894Z test_check_does_not_modify_publication_manifest (test_publication_manifest.PublicationManifestTests.test_check_does_not_modify_publication_manifest) ... ok
+2026-11-13T09:45:57.2327507Z test_claim_data_as_of_uses_latest_valid_review_date (test_publication_manifest.PublicationManifestTests.test_claim_data_as_of_uses_latest_valid_review_date) ... ok
+2026-11-13T09:45:58.4725348Z test_content_change_changes_snapshot_id (test_publication_manifest.PublicationManifestTests.test_content_change_changes_snapshot_id) ... ok
+2026-11-13T09:45:59.8059726Z test_deterministic_snapshot_id (test_publication_manifest.PublicationManifestTests.test_deterministic_snapshot_id) ... ok
+2026-11-13T09:46:00.1681221Z test_duplicate_candidate_ids_fail (test_publication_manifest.PublicationManifestTests.test_duplicate_candidate_ids_fail) ... ok
+2026-11-13T09:46:00.5381639Z test_duplicate_featured_board_candidate_ids_fail (test_publication_manifest.PublicationManifestTests.test_duplicate_featured_board_candidate_ids_fail) ... ok
+2026-11-13T09:46:00.7910367Z test_generated_candidate_signals_passes_public_validation (test_publication_manifest.PublicationManifestTests.test_generated_candidate_signals_passes_public_validation) ... ok
+2026-11-13T09:46:02.7845247Z test_genuine_campaign_events_change_updates_digest_and_snapshot (test_publication_manifest.PublicationManifestTests.test_genuine_campaign_events_change_updates_digest_and_snapshot) ... ok
+2026-11-13T09:46:03.1630853Z test_incorrect_featured_board_score_order_fails (test_publication_manifest.PublicationManifestTests.test_incorrect_featured_board_score_order_fails) ... ok
+2026-11-13T09:46:03.6046265Z test_invalid_candidate_attention_structure_fails_cleanly (test_publication_manifest.PublicationManifestTests.test_invalid_candidate_attention_structure_fails_cleanly) ... ok
+2026-11-13T09:46:03.9682601Z test_invalid_candidate_evidence_date_fails (test_publication_manifest.PublicationManifestTests.test_invalid_candidate_evidence_date_fails) ... ok
+2026-11-13T09:46:04.3440992Z test_invalid_featured_board_source_url_fails (test_publication_manifest.PublicationManifestTests.test_invalid_featured_board_source_url_fails) ... ok
+2026-11-13T09:46:04.5530264Z test_legacy_attention_is_intrinsic_during_registry_v2_migration (test_publication_manifest.PublicationManifestTests.test_legacy_attention_is_intrinsic_during_registry_v2_migration) ... ok
+2026-11-13T09:46:05.2332204Z test_legacy_candidate_attention_id_parity_is_deferred_under_registry_v2 (test_publication_manifest.PublicationManifestTests.test_legacy_candidate_attention_id_parity_is_deferred_under_registry_v2) ... ok
+2026-11-13T09:46:05.9333570Z test_legacy_candidate_attention_name_parity_is_deferred_under_registry_v2 (test_publication_manifest.PublicationManifestTests.test_legacy_candidate_attention_name_parity_is_deferred_under_registry_v2) ... ok
+2026-11-13T09:46:06.7713308Z test_legacy_candidate_attention_order_parity_is_deferred_under_registry_v2 (test_publication_manifest.PublicationManifestTests.test_legacy_candidate_attention_order_parity_is_deferred_under_registry_v2) ... ok
+2026-11-13T09:46:07.5036631Z test_legacy_missing_coverage_keeps_polls_lane_valid_and_warns (test_publication_manifest.PublicationManifestTests.test_legacy_missing_coverage_keeps_polls_lane_valid_and_warns) ... ok
+2026-11-13T09:46:09.6143920Z test_lf_and_crlf_sources_have_identical_manifest_metadata (test_publication_manifest.PublicationManifestTests.test_lf_and_crlf_sources_have_identical_manifest_metadata) ... ok
+2026-11-13T09:46:11.5232481Z test_lone_cr_sources_match_lf_manifest_metadata (test_publication_manifest.PublicationManifestTests.test_lone_cr_sources_match_lf_manifest_metadata) ... ok
+2026-11-13T09:46:12.8832565Z test_malformed_campaign_events_is_isolated_to_its_lane (test_publication_manifest.PublicationManifestTests.test_malformed_campaign_events_is_isolated_to_its_lane) ... ok
+2026-11-13T09:46:13.1954541Z test_malformed_candidate_attention_json_fails (test_publication_manifest.PublicationManifestTests.test_malformed_candidate_attention_json_fails) ... ok
+2026-11-13T09:46:13.5198243Z test_malformed_candidate_signals_json_fails (test_publication_manifest.PublicationManifestTests.test_malformed_candidate_signals_json_fails) ... ok
+2026-11-13T09:46:13.8813437Z test_malformed_candidate_signals_structure_fails (test_publication_manifest.PublicationManifestTests.test_malformed_candidate_signals_structure_fails) ... ok
+2026-11-13T09:46:14.2577535Z test_malformed_featured_board_counts_fail (test_publication_manifest.PublicationManifestTests.test_malformed_featured_board_counts_fail) ... ok
+2026-11-13T09:46:14.9925080Z test_malformed_lane_completes_with_warning (test_publication_manifest.PublicationManifestTests.test_malformed_lane_completes_with_warning) ... ok
+2026-11-13T09:46:15.4490923Z test_malformed_youtube_mapping_fails_closed (test_publication_manifest.PublicationManifestTests.test_malformed_youtube_mapping_fails_closed) ... ok
+2026-11-13T09:46:16.2985668Z test_manifest_construction_does_not_rewrite_sources (test_publication_manifest.PublicationManifestTests.test_manifest_construction_does_not_rewrite_sources) ... ok
+2026-11-13T09:46:25.9115126Z test_manual_workflow_no_churn_sequence_matches_both_tracked_outputs (test_publication_manifest.PublicationManifestTests.test_manual_workflow_no_churn_sequence_matches_both_tracked_outputs) ... ok
+2026-11-13T09:46:26.2954079Z test_mismatched_featured_board_candidate_name_fails (test_publication_manifest.PublicationManifestTests.test_mismatched_featured_board_candidate_name_fails) ... ok
+2026-11-13T09:46:27.6250803Z test_missing_campaign_events_is_isolated_to_its_lane (test_publication_manifest.PublicationManifestTests.test_missing_campaign_events_is_isolated_to_its_lane) ... ok
+2026-11-13T09:46:27.9531041Z test_missing_candidate_attention_fails (test_publication_manifest.PublicationManifestTests.test_missing_candidate_attention_fails) ... ok
+2026-11-13T09:46:28.2716994Z test_missing_candidate_signals_fails (test_publication_manifest.PublicationManifestTests.test_missing_candidate_signals_fails) ... ok
+2026-11-13T09:46:28.6427247Z test_missing_featured_poll_board_fails (test_publication_manifest.PublicationManifestTests.test_missing_featured_poll_board_fails) ... ok
+2026-11-13T09:46:29.2035077Z test_missing_lane_completes_with_warning (test_publication_manifest.PublicationManifestTests.test_missing_lane_completes_with_warning) ... ok
+2026-11-13T09:46:29.4478654Z test_missing_or_malformed_candidacy_registry_fails (test_publication_manifest.PublicationManifestTests.test_missing_or_malformed_candidacy_registry_fails) ... ok
+2026-11-13T09:46:29.9099817Z test_missing_youtube_mapping_fails_closed (test_publication_manifest.PublicationManifestTests.test_missing_youtube_mapping_fails_closed) ... ok
+2026-11-13T09:46:30.6195776Z test_no_cross_lane_timestamp_inference (test_publication_manifest.PublicationManifestTests.test_no_cross_lane_timestamp_inference) ... ok
+2026-11-13T09:46:33.5402873Z test_non_newline_byte_changes_remain_digest_significant (test_publication_manifest.PublicationManifestTests.test_non_newline_byte_changes_remain_digest_significant) ... ok
+2026-11-13T09:46:34.9305943Z test_non_utf8_source_remains_invalid_and_lane_isolated (test_publication_manifest.PublicationManifestTests.test_non_utf8_source_remains_invalid_and_lane_isolated) ... ok
+2026-11-13T09:46:35.3098994Z test_noncontiguous_featured_board_positions_fail (test_publication_manifest.PublicationManifestTests.test_noncontiguous_featured_board_positions_fail) ... ok
+2026-11-13T09:46:36.0349761Z test_null_scrutiny_evidence_date_is_valid (test_publication_manifest.PublicationManifestTests.test_null_scrutiny_evidence_date_is_valid) ... ok
+2026-11-13T09:46:38.4473740Z test_poll_coverage_warns_only_for_unresolved_relevant_notices (test_publication_manifest.PublicationManifestTests.test_poll_coverage_warns_only_for_unresolved_relevant_notices) ... ok
+2026-11-13T09:46:39.1746700Z test_poll_data_as_of_uses_latest_valid_fieldwork_end (test_publication_manifest.PublicationManifestTests.test_poll_data_as_of_uses_latest_valid_fieldwork_end) ... ok
+2026-11-13T09:46:39.8868772Z test_poll_timestamp_is_unknown (test_publication_manifest.PublicationManifestTests.test_poll_timestamp_is_unknown) ... ok
+2026-11-13T09:46:40.6877237Z test_record_level_denominator_mismatch_fails (test_publication_manifest.PublicationManifestTests.test_record_level_denominator_mismatch_fails) ... ok
+2026-11-13T09:46:41.1932004Z test_registry_candidate_signals_parity_is_required (test_publication_manifest.PublicationManifestTests.test_registry_candidate_signals_parity_is_required) ... ok
+2026-11-13T09:46:41.9064308Z test_runoff_data_as_of_uses_latest_valid_fieldwork_end (test_publication_manifest.PublicationManifestTests.test_runoff_data_as_of_uses_latest_valid_fieldwork_end) ... ok
+2026-11-13T09:46:43.1385185Z test_snapshot_id_is_independent_of_published_at (test_publication_manifest.PublicationManifestTests.test_snapshot_id_is_independent_of_published_at) ... ok
+2026-11-13T09:46:43.8818977Z test_source_health_aggregate_remains_operationally_distinct (test_publication_manifest.PublicationManifestTests.test_source_health_aggregate_remains_operationally_distinct) ... ok
+2026-11-13T09:46:44.7354473Z test_source_network_metrics_remain_separate (test_publication_manifest.PublicationManifestTests.test_source_network_metrics_remain_separate) ... ok
+2026-11-13T09:46:45.6952385Z test_tracked_campaign_events_lane_metadata (test_publication_manifest.PublicationManifestTests.test_tracked_campaign_events_lane_metadata) ... ok
+2026-11-13T09:46:47.5406300Z test_tracked_legacy_bundle_remains_buildable_without_rewriting_manifest (test_publication_manifest.PublicationManifestTests.test_tracked_legacy_bundle_remains_buildable_without_rewriting_manifest) ... ok
+2026-11-13T09:46:47.9085709Z test_unknown_candidate_signals_top_level_key_still_fails (test_publication_manifest.PublicationManifestTests.test_unknown_candidate_signals_top_level_key_still_fails) ... ok
+2026-11-13T09:46:48.2840962Z test_unknown_featured_board_candidate_id_fails (test_publication_manifest.PublicationManifestTests.test_unknown_featured_board_candidate_id_fails) ... ok
+2026-11-13T09:46:49.9028900Z test_valid_active_projection_change_changes_snapshot_id (test_publication_manifest.PublicationManifestTests.test_valid_active_projection_change_changes_snapshot_id) ... ok
+2026-11-13T09:46:50.6236956Z test_valid_complete_inputs (test_publication_manifest.PublicationManifestTests.test_valid_complete_inputs) ... ok
+2026-11-13T09:46:50.8815981Z test_valid_featured_poll_board_is_accepted (test_publication_manifest.PublicationManifestTests.test_valid_featured_poll_board_is_accepted) ... ok
+2026-11-13T09:46:52.1288174Z test_valid_registry_and_projection_change_changes_snapshot_id (test_publication_manifest.PublicationManifestTests.test_valid_registry_and_projection_change_changes_snapshot_id) ... ok
+2026-11-13T09:46:52.5975089Z test_youtube_registry_coverage_is_required (test_publication_manifest.PublicationManifestTests.test_youtube_registry_coverage_is_required) ... ok
+2026-11-13T09:46:52.6068025Z test_active_field_quality_remains_authoritative_for_frontend_rendering (test_frontend_facts.FrontendPublicationFactsTests.test_active_field_quality_remains_authoritative_for_frontend_rendering) ... ok
+2026-11-13T09:46:52.6070653Z test_comparison_requires_same_round_and_scenario (test_frontend_facts.FrontendPublicationFactsTests.test_comparison_requires_same_round_and_scenario) ... ok
+2026-11-13T09:46:52.6072831Z test_context_summary_is_independent_of_ranked_latest_package (test_frontend_facts.FrontendPublicationFactsTests.test_context_summary_is_independent_of_ranked_latest_package) ... ok
+2026-11-13T09:46:52.6082474Z test_harris_pollster_icon_alias_is_present_in_both_shells (test_frontend_facts.FrontendPublicationFactsTests.test_harris_pollster_icon_alias_is_present_in_both_shells) ... ok
+2026-11-13T09:46:52.6392360Z test_hud_poll_count_uses_full_poll_package_corpus (test_frontend_facts.FrontendPublicationFactsTests.test_hud_poll_count_uses_full_poll_package_corpus) ... ok
+2026-11-13T09:46:52.7185576Z test_latest_fieldwork_keeps_tied_pollster_with_weaker_comparison_coverage (test_frontend_facts.FrontendPublicationFactsTests.test_latest_fieldwork_keeps_tied_pollster_with_weaker_comparison_coverage) ... ok
+2026-11-13T09:46:52.7203715Z test_masthead_uses_snapshot_publication_language (test_frontend_facts.FrontendPublicationFactsTests.test_masthead_uses_snapshot_publication_language) ... ok
+2026-11-13T09:46:52.7551185Z test_partial_disclosure_is_gated_to_valid_partial_events (test_frontend_facts.FrontendPublicationFactsTests.test_partial_disclosure_is_gated_to_valid_partial_events) ... ok
+2026-11-13T09:46:52.7556291Z test_poll_coverage_remains_six_month_distinct_pollster_metric (test_frontend_facts.FrontendPublicationFactsTests.test_poll_coverage_remains_six_month_distinct_pollster_metric) ... ok
+2026-11-13T09:46:52.7569858Z test_poll_semantic_labels_and_comparison_tooltip_are_updated (test_frontend_facts.FrontendPublicationFactsTests.test_poll_semantic_labels_and_comparison_tooltip_are_updated) ... ok
+2026-11-13T09:46:52.7638140Z test_publication_facts_version_active_field_snapshot (test_frontend_facts.FrontendPublicationFactsTests.test_publication_facts_version_active_field_snapshot) ... ok
+2026-11-13T09:46:52.7690782Z test_publication_manifest_exposes_visibility_history_lane (test_frontend_facts.FrontendPublicationFactsTests.test_publication_manifest_exposes_visibility_history_lane) ... ok
+2026-11-13T09:46:52.7702780Z test_publication_manifest_is_loaded_with_dashboard_data (test_frontend_facts.FrontendPublicationFactsTests.test_publication_manifest_is_loaded_with_dashboard_data) ... ok
+2026-11-13T09:46:52.8079912Z test_race_previous_poll_difference_handles_remaining_edge_cases (test_frontend_facts.FrontendPublicationFactsTests.test_race_previous_poll_difference_handles_remaining_edge_cases) ... ok
+2026-11-13T09:46:52.8402210Z test_race_previous_poll_difference_is_universal_and_separate (test_frontend_facts.FrontendPublicationFactsTests.test_race_previous_poll_difference_is_universal_and_separate) ... ok
+2026-11-13T09:46:52.8405115Z test_recent_changes_check_is_not_global_dashboard_freshness (test_frontend_facts.FrontendPublicationFactsTests.test_recent_changes_check_is_not_global_dashboard_freshness) ... ok
+2026-11-13T09:46:52.8680919Z test_recent_changes_source_universe_matches_loaded_news (test_frontend_facts.FrontendPublicationFactsTests.test_recent_changes_source_universe_matches_loaded_news) ... ok
+2026-11-13T09:46:52.8685688Z test_render_bars_passes_selected_event_to_comparison (test_frontend_facts.FrontendPublicationFactsTests.test_render_bars_passes_selected_event_to_comparison) ... ok
+2026-11-13T09:46:52.9009282Z test_selected_event_is_anchor_and_cross_pollster_is_unavailable (test_frontend_facts.FrontendPublicationFactsTests.test_selected_event_is_anchor_and_cross_pollster_is_unavailable) ... ok
+2026-11-13T09:46:52.9073782Z test_source_network_metrics_keep_distinct_labels (test_frontend_facts.FrontendPublicationFactsTests.test_source_network_metrics_keep_distinct_labels) ... ok
+2026-11-13T09:46:52.9074685Z 
+2026-11-13T09:46:52.9074971Z ======================================================================
+2026-11-13T09:46:52.9079274Z FAIL: test_executed_promotion_matches_promoted_source (test_live_projections.LiveWorkflowTests.test_executed_promotion_matches_promoted_source)
+2026-11-13T09:46:52.9081112Z ----------------------------------------------------------------------
+2026-11-13T09:46:52.9082354Z Traceback (most recent call last):
+2026-11-13T09:46:52.9093090Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 241, in test_executed_promotion_matches_promoted_source
+2026-11-13T09:46:52.9095268Z     def test_executed_promotion_matches_promoted_source(self): self.run_promotion(semantic_change=True)
+2026-11-13T09:46:52.9096709Z                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-13T09:46:52.9098531Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 229, in run_promotion
+2026-11-13T09:46:52.9100116Z     self.assertEqual(result.returncode, 0, result.stderr)
+2026-11-13T09:46:52.9101147Z AssertionError: 1 != 0 : Traceback (most recent call last):
+2026-11-13T09:46:52.9102119Z   File "<string>", line 108, in <module>
+2026-11-13T09:46:52.9103538Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/fetch_news_wire.py", line 9165, in validate_output
+2026-11-13T09:46:52.9104915Z     raise RuntimeError(
+2026-11-13T09:46:52.9105814Z RuntimeError: feed_coverage publisher-site schedule count is invalid
+2026-11-13T09:46:52.9106551Z 
+2026-11-13T09:46:52.9106561Z 
+2026-11-13T09:46:52.9106890Z ======================================================================
+2026-11-13T09:46:52.9108816Z FAIL: test_executed_semantic_noop_has_zero_projection_churn (test_live_projections.LiveWorkflowTests.test_executed_semantic_noop_has_zero_projection_churn)
+2026-11-13T09:46:52.9110605Z ----------------------------------------------------------------------
+2026-11-13T09:46:52.9111460Z Traceback (most recent call last):
+2026-11-13T09:46:52.9113189Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 242, in test_executed_semantic_noop_has_zero_projection_churn
+2026-11-13T09:46:52.9115632Z     def test_executed_semantic_noop_has_zero_projection_churn(self): self.run_promotion()
+2026-11-13T09:46:52.9116784Z                                                                      ^^^^^^^^^^^^^^^^^^^^
+2026-11-13T09:46:52.9118492Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 229, in run_promotion
+2026-11-13T09:46:52.9120020Z     self.assertEqual(result.returncode, 0, result.stderr)
+2026-11-13T09:46:52.9120975Z AssertionError: 1 != 0 : Traceback (most recent call last):
+2026-11-13T09:46:52.9122076Z   File "<string>", line 108, in <module>
+2026-11-13T09:46:52.9123493Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/fetch_news_wire.py", line 9165, in validate_output
+2026-11-13T09:46:52.9124952Z     raise RuntimeError(
+2026-11-13T09:46:52.9125770Z RuntimeError: feed_coverage publisher-site schedule count is invalid
+2026-11-13T09:46:52.9126501Z 
+2026-11-13T09:46:52.9126529Z 
+2026-11-13T09:46:52.9126831Z ======================================================================
+2026-11-13T09:46:52.9128699Z FAIL: test_executed_stale_artifact_repair_uses_committed_source (test_live_projections.LiveWorkflowTests.test_executed_stale_artifact_repair_uses_committed_source)
+2026-11-13T09:46:52.9130713Z ----------------------------------------------------------------------
+2026-11-13T09:46:52.9131618Z Traceback (most recent call last):
+2026-11-13T09:46:52.9133490Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 245, in test_executed_stale_artifact_repair_uses_committed_source
+2026-11-13T09:46:52.9135756Z     def test_executed_stale_artifact_repair_uses_committed_source(self): self.run_promotion(missing=True)
+2026-11-13T09:46:52.9137161Z                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-13T09:46:52.9138937Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 229, in run_promotion
+2026-11-13T09:46:52.9140530Z     self.assertEqual(result.returncode, 0, result.stderr)
+2026-11-13T09:46:52.9141745Z AssertionError: 1 != 0 : Traceback (most recent call last):
+2026-11-13T09:46:52.9142697Z   File "<string>", line 108, in <module>
+2026-11-13T09:46:52.9144136Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/fetch_news_wire.py", line 9165, in validate_output
+2026-11-13T09:46:52.9145561Z     raise RuntimeError(
+2026-11-13T09:46:52.9146426Z RuntimeError: feed_coverage publisher-site schedule count is invalid
+2026-11-13T09:46:52.9147089Z 
+2026-11-13T09:46:52.9147098Z 
+2026-11-13T09:46:52.9147456Z ======================================================================
+2026-11-13T09:46:52.9149561Z FAIL: test_inventory_bookkeeping_and_stale_repair_preserve_public_snapshot (test_live_projections.LiveWorkflowTests.test_inventory_bookkeeping_and_stale_repair_preserve_public_snapshot)
+2026-11-13T09:46:52.9151655Z ----------------------------------------------------------------------
+2026-11-13T09:46:52.9152511Z Traceback (most recent call last):
+2026-11-13T09:46:52.9154471Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 244, in test_inventory_bookkeeping_and_stale_repair_preserve_public_snapshot
+2026-11-13T09:46:52.9157130Z     def test_inventory_bookkeeping_and_stale_repair_preserve_public_snapshot(self): self.run_promotion(inventory_bookkeeping=True, missing=True)
+2026-11-13T09:46:52.9159095Z                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-13T09:46:52.9160869Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 229, in run_promotion
+2026-11-13T09:46:52.9162369Z     self.assertEqual(result.returncode, 0, result.stderr)
+2026-11-13T09:46:52.9163429Z AssertionError: 1 != 0 : Traceback (most recent call last):
+2026-11-13T09:46:52.9164583Z   File "<string>", line 108, in <module>
+2026-11-13T09:46:52.9165945Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/fetch_news_wire.py", line 9165, in validate_output
+2026-11-13T09:46:52.9167394Z     raise RuntimeError(
+2026-11-13T09:46:52.9168353Z RuntimeError: feed_coverage publisher-site schedule count is invalid
+2026-11-13T09:46:52.9169062Z 
+2026-11-13T09:46:52.9169070Z 
+2026-11-13T09:46:52.9169440Z ======================================================================
+2026-11-13T09:46:52.9171219Z FAIL: test_inventory_bookkeeping_preserves_public_snapshot (test_live_projections.LiveWorkflowTests.test_inventory_bookkeeping_preserves_public_snapshot)
+2026-11-13T09:46:52.9173014Z ----------------------------------------------------------------------
+2026-11-13T09:46:52.9173957Z Traceback (most recent call last):
+2026-11-13T09:46:52.9175726Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 243, in test_inventory_bookkeeping_preserves_public_snapshot
+2026-11-13T09:46:52.9178304Z     def test_inventory_bookkeeping_preserves_public_snapshot(self): self.run_promotion(inventory_bookkeeping=True)
+2026-11-13T09:46:52.9179898Z                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-13T09:46:52.9181510Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/test_live_projections.py", line 229, in run_promotion
+2026-11-13T09:46:52.9183096Z     self.assertEqual(result.returncode, 0, result.stderr)
+2026-11-13T09:46:52.9184058Z AssertionError: 1 != 0 : Traceback (most recent call last):
+2026-11-13T09:46:52.9184983Z   File "<string>", line 108, in <module>
+2026-11-13T09:46:52.9186441Z   File "/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/fetch_news_wire.py", line 9165, in validate_output
+2026-11-13T09:46:52.9187933Z     raise RuntimeError(
+2026-11-13T09:46:52.9188837Z RuntimeError: feed_coverage publisher-site schedule count is invalid
+2026-11-13T09:46:52.9189578Z 
+2026-11-13T09:46:52.9189586Z 
+2026-11-13T09:46:52.9190103Z ----------------------------------------------------------------------
+2026-11-13T09:46:52.9191006Z Ran 473 tests in 126.294s
+2026-11-13T09:46:52.9191413Z 
+2026-11-13T09:46:52.9191721Z FAILED (failures=5)
+2026-11-13T09:46:52.9192622Z RETAINED Historical Publisher: assets/source-icons/historical-publisher.png
+2026-11-13T09:46:52.9193714Z FAILED  Broken: RuntimeError: blocked
+2026-11-13T09:46:52.9194489Z FETCHED Working: assets/source-icons/working.png
+2026-11-13T09:46:52.9195393Z CACHED  Example: assets/source-icons/example.png
+2026-11-13T09:46:52.9196366Z UNRESOLVED Disabled Publisher: no enabled publisher-policy match
+2026-11-13T09:46:52.9197466Z UNRESOLVED Unknown Publisher: no enabled publisher-policy match
+2026-11-13T09:46:52.9198602Z UNCHANGED source-icons manifest
+2026-11-13T09:46:52.9199811Z validated publication_manifest.json (snapshot 500cda88fd6197b15a35c97c39b44421f25bf6aec03b25d49df58fad73b0d898)
+2026-11-13T09:46:53.2813795Z ##[error]Process completed with exit code 1.
+2026-11-13T09:46:53.3022370Z Post job cleanup.
+2026-11-13T09:46:53.3912186Z [command]/usr/bin/git version
+2026-11-13T09:46:53.3953040Z git version 2.56.0
+2026-11-13T09:46:53.3986571Z Temporarily overriding HOME='/home/runner/work/_temp/b8cfc779-88f8-4121-8122-dca380cfa774' before making global git config changes
+2026-11-13T09:46:53.3988173Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-13T09:46:53.3993582Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/france-2027-signal-lab/france-2027-signal-lab
+2026-11-13T09:46:53.4028345Z Removing SSH command configuration
+2026-11-13T09:46:53.4034712Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-13T09:46:53.4071086Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-13T09:46:53.4315195Z Removing HTTP extra header
+2026-11-13T09:46:53.4321055Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-13T09:46:53.4353117Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-13T09:46:53.4633477Z Removing includeIf entries pointing to credentials config files
+2026-11-13T09:46:53.4658152Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-13T09:46:53.4673329Z includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git.path
+2026-11-13T09:46:53.4674055Z includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/worktrees/*.path
+2026-11-13T09:46:53.4674744Z includeif.gitdir:/github/workspace/.git.path
+2026-11-13T09:46:53.4675212Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-13T09:46:53.4684439Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git.path
+2026-11-13T09:46:53.4707072Z /home/runner/work/_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config
+2026-11-13T09:46:53.4723191Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-9026bd58\-f5ed\-4cdc\-81e5\-cd1f9b262a6c\.config
+2026-11-13T09:46:53.4771923Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/worktrees/*.path
+2026-11-13T09:46:53.4819399Z /home/runner/work/_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config
+2026-11-13T09:46:53.4830234Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/france-2027-signal-lab/france-2027-signal-lab/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-9026bd58\-f5ed\-4cdc\-81e5\-cd1f9b262a6c\.config
+2026-11-13T09:46:53.4869043Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-13T09:46:53.4894495Z /github/runner_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config
+2026-11-13T09:46:53.4905081Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-9026bd58\-f5ed\-4cdc\-81e5\-cd1f9b262a6c\.config
+2026-11-13T09:46:53.4940143Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-13T09:46:53.4959959Z /github/runner_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config
+2026-11-13T09:46:53.4965750Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-9026bd58\-f5ed\-4cdc\-81e5\-cd1f9b262a6c\.config
+2026-11-13T09:46:53.5003278Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-13T09:46:53.5242643Z Removing credentials config '/home/runner/work/_temp/git-credentials-9026bd58-f5ed-4cdc-81e5-cd1f9b262a6c.config'
+2026-11-13T09:46:53.5418103Z Cleaning up orphan processes

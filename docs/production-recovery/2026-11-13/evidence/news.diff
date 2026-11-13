@@ -1,0 +1,74 @@
+diff --git a/test_live_projections.py b/test_live_projections.py
+index 0ee40db45..95d420b39 100644
+--- a/test_live_projections.py
++++ b/test_live_projections.py
+@@ -9,6 +9,7 @@ import shutil
+ import subprocess
+ import tempfile
+ import unittest
++from datetime import datetime, timedelta
+ from unittest.mock import patch
+ 
+ from live_projection_contract import (
+@@ -30,11 +31,47 @@ def load(name):
+     return json.loads((ROOT / name).read_text(encoding="utf-8"))
+ 
+ 
++def synthetic_fetch_snapshot(current, stamp):
++    """Advance fetch bookkeeping without inventing publisher-site successes."""
++    from fetch_news_wire import generate_publisher_site_feeds, publisher_site_feed_due
++
++    wire = copy.deepcopy(current)
++    wire["generated_at"] = stamp.isoformat().replace("+00:00", "Z")
++    coverage = wire["feed_coverage"]
++    coverage["feeds_successful_this_run"] -= coverage["publisher_site_feeds_successful"]
++    coverage["publisher_site_feeds_successful"] = 0
++    coverage["publisher_site_feeds_due"] = sum(
++        publisher_site_feed_due(feed, stamp) for feed in generate_publisher_site_feeds()
++    )
++    coverage["feeds_due_this_run"] = (
++        coverage["direct_feeds"] + coverage["shared_discovery_feeds"]
++        + coverage["publisher_site_feeds_due"]
++    )
++    return wire
++
++
+ class LiveProjectionTests(unittest.TestCase):
+     @classmethod
+     def setUpClass(cls):
+         cls.news = load("news_wire.json")
+ 
++    def test_synthetic_fetch_bookkeeping_at_utc_schedule_boundaries(self):
++        from fetch_news_wire import generate_publisher_site_feeds, publisher_site_feed_due, validate_output
++
++        before = copy.deepcopy(self.news)
++        anchor = datetime.fromisoformat(self.news["generated_at"].replace("Z", "+00:00"))
++        for hour in (2, 6, 12, 18):
++            boundary = anchor.replace(hour=hour, minute=0, second=0, microsecond=0)
++            for stamp in (boundary - timedelta(seconds=1), boundary, boundary + timedelta(seconds=1)):
++                with self.subTest(stamp=stamp):
++                    wire = synthetic_fetch_snapshot(self.news, stamp)
++                    validate_output(wire)
++                    self.assertEqual(wire["feed_coverage"]["publisher_site_feeds_due"], sum(
++                        publisher_site_feed_due(feed, stamp) for feed in generate_publisher_site_feeds()))
++                    self.assertEqual(wire["feed_coverage"]["publisher_site_feeds_successful"], 0)
++                    self.assertEqual(wire["sources"], self.news["sources"])
++        self.assertEqual(self.news, before)
++
+     def test_deterministic_source_identity_canonical_membership_and_no_mutation(self):
+         before = copy.deepcopy(self.news)
+         for family, builder in BUILDERS:
+@@ -195,11 +232,9 @@ class LiveWorkflowTests(unittest.TestCase):
+             for name in ("news_sources.json", "candidate_candidacy_status.json"):
+                 shutil.copyfile(ROOT / name, root / name)
+             current = load("news_wire.json")
+-            wire = copy.deepcopy(current)
+             # A fetch-only time change must not cause projection churn.
+-            from datetime import datetime, timedelta
+-            stamp = datetime.fromisoformat(wire["generated_at"].replace("Z", "+00:00")) + timedelta(seconds=1)
+-            wire["generated_at"] = stamp.isoformat().replace("+00:00", "Z")
++            stamp = datetime.fromisoformat(current["generated_at"].replace("Z", "+00:00")) + timedelta(seconds=1)
++            wire = synthetic_fetch_snapshot(current, stamp)
+             if semantic_change:
+                 source = next(s for s in wire["sources"] if s["status"] == "ok")
+                 source["status"] = "error"

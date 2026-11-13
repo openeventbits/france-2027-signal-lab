@@ -1,0 +1,19 @@
+test_previously_supported_snapshots_preserve_their_authenticated_corpora (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_previously_supported_snapshots_preserve_their_authenticated_corpora) ... FAIL
+
+======================================================================
+FAIL: test_previously_supported_snapshots_preserve_their_authenticated_corpora (test_reviewed_cluster17_source_retention.Cluster17SourceRetentionTests.test_previously_supported_snapshots_preserve_their_authenticated_corpora)
+----------------------------------------------------------------------
+rehearse_fr_poll_migration.SourceDriftError: widespread first_round extraction loss: 284 rows; expected at least 90% of 316
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Tanya\.codex\worktrees\recovery-polls-nov13\france-2027-signal-lab\test_reviewed_cluster17_source_retention.py", line 101, in test_previously_supported_snapshots_preserve_their_authenticated_corpora
+    with self.assertRaisesRegex(ValueError, "widespread second_round extraction loss"):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "widespread second_round extraction loss" does not match "widespread first_round extraction loss: 284 rows; expected at least 90% of 316"
+
+----------------------------------------------------------------------
+Ran 1 test in 18.732s
+
+FAILED (failures=1)
