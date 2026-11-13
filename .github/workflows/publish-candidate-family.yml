@@ -54,6 +54,7 @@ on:
       - "news_wire.json"
       - "publication_manifest.json"
       - "build_candidate_reference.py"
+      - "test_candidate_reference_date.py"
       - "candidate_candidacy_status.py"
       - "candidate_page_contract.py"
       - "candidate_hub.py"
@@ -387,6 +388,9 @@ jobs:
 
           effective_date="$(date -u +'%Y-%m-%d')"
           echo "effective_date=$effective_date" >> "$GITHUB_OUTPUT"
+          event_reference_date="$(python -B -c 'from build_candidate_reference import _event_reference_date; print(_event_reference_date().isoformat())')"
+          echo "event_reference_date=$event_reference_date" >> "$GITHUB_OUTPUT"
+          export CANDIDATE_EVENT_REFERENCE_DATE="$event_reference_date"
 
           publication_time="${{ steps.bluesky.outputs.published_at || steps.youtube.outputs.published_at || steps.polymarket.outputs.published_at }}"
           if [[ -z "$publication_time" ]]; then
@@ -430,6 +434,7 @@ jobs:
             test_publication_manifest \
             test_candidate_page_contract \
             test_candidate_reference \
+            test_candidate_reference_date \
             test_candidate_poll_links \
             test_candidate_hub \
             test_candidate_family_publication \
@@ -477,6 +482,7 @@ jobs:
         env:
           ROUTE_EFFECTIVE_DATE: ${{ steps.build.outputs.effective_date }}
           PUBLICATION_TIME: ${{ steps.build.outputs.publication_time }}
+          CANDIDATE_EVENT_REFERENCE_DATE: ${{ steps.build.outputs.event_reference_date }}
         shell: bash
         run: |
           set -euo pipefail
