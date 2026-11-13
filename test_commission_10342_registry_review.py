@@ -26,6 +26,22 @@ PDF_SHA256 = "08dd618195a23f1523099488a224440efd87c7f6dc96176e32a32c21f888bc3d"
 RECORD_SHA256 = "6e636e49c9ecf15cfcd010d055b6adb876581aeb2580d37e71c40d5a407ac1a8"
 
 
+# Complete published inputs from accepted PR #334, fd7091515849dcc83bee56d620fdc938141ca5b8.
+# See the adjacent fixture provenance note. No current-data filtering or pin update.
+HISTORICAL_POLLING_FIXTURE = ROOT / "test_fixtures/fr27_polling/commission_353_108.json.gz"
+HISTORICAL_POLLING_SHA256 = "d33745280a060212c65168bbf89b322bde40462533aa5e093314caac31a1ab8c"
+
+
+def historical_polling_inputs(path=HISTORICAL_POLLING_FIXTURE):
+    raw = gzip.decompress(Path(path).read_bytes())
+    if hashlib.sha256(raw).hexdigest() != HISTORICAL_POLLING_SHA256:
+        raise ValueError("353/108 historical polling fixture changed")
+    payload = json.loads(raw)
+    first, second = payload["polls.json"], payload["second_round_polls.json"]["events"]
+    _authenticate_historical_polling_corpus(first, second)
+    return first, second
+
+
 class Commission10342RegistryReviewTests(unittest.TestCase):
     def setUp(self):
         self.review = reconciliation._load_10342_registry_review()
@@ -265,8 +281,7 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
         self.assertEqual((self.summary["relevant"], self.summary["reconciled"]), (43, 35))
         self.assertEqual(self.summary["unresolved_notice_ids"], ["commission:10333", "commission:10327", "commission:10319", "commission:10264", "commission:10260"])
         self.assertEqual(len(coverage.coverage_warnings(self.registry)), 5)
-        first = json.loads((ROOT / "polls.json").read_bytes())
-        second = json.loads((ROOT / "second_round_polls.json").read_bytes())["events"]
+        first, second = historical_polling_inputs()
         before = copy.deepcopy(first + second)
         _authenticate_historical_polling_corpus(first, second)
         # Prior 349 plus four individually authenticated Ifop additions.
@@ -280,8 +295,16 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
         self.assertEqual(records, [self.record])
         self.assertNotIn(NOTICE_ID, [n["notice_id"] for n in discovery.registry_event_notices(current)])
         current_summary = coverage.coverage_summary(current)
-        self.assertEqual(current_summary["unresolved_notice_ids"], self.summary["unresolved_notice_ids"])
-        self.assertEqual(coverage.coverage_warnings(current), coverage.coverage_warnings(self.registry))
+        # Operational consistency is not documentary admission of later polls.
+        # The historical five remain immutable; 10362 is separately still pending.
+        pending_records = [n for n in current["notices"] if n["notice_id"] == "commission:10362"]
+        self.assertEqual(len(pending_records), 1)
+        pending = pending_records[0]
+        self.assertEqual(pending["classification"], "unsupported")
+        self.assertNotIn("parser", pending)
+        self.assertEqual(pending["coverage"], coverage.unresolved_coverage("no_exact_published_wave"))
+        self.assertEqual(set(current_summary["unresolved_notice_ids"]),
+                         {"commission:10362", *self.summary["unresolved_notice_ids"]})
         self.assertTrue(lane["valid"])
         self.assertEqual(lane["warnings"], coverage.coverage_warnings(current))
         # New reconciled notices may change current counts, never archival pins.
@@ -320,6 +343,81 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
             changed["warnings"].remove(warning)
             with self.subTest(warning=warning), self.assertRaises(AssertionError):
                 self.assert_current_publication_coverage(current, changed)
+
+    def test_historical_polling_fixture_rejects_missing_truncated_or_changed_bytes(self):
+        raw = gzip.decompress(HISTORICAL_POLLING_FIXTURE.read_bytes())
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "historical.json.gz"
+            with self.assertRaises(FileNotFoundError):
+                historical_polling_inputs(path)
+            path.write_bytes(HISTORICAL_POLLING_FIXTURE.read_bytes()[:20])
+            with self.assertRaises((EOFError, gzip.BadGzipFile)):
+                historical_polling_inputs(path)
+            changed = json.loads(raw)
+            changed["polls.json"][0]["candidates"][0]["score"] += .5
+            for content in (raw + b"\n", json.dumps(changed).encode()):
+                path.write_bytes(gzip.compress(content, mtime=0))
+                with self.assertRaisesRegex(ValueError, "historical polling fixture changed"):
+                    historical_polling_inputs(path)
+
+    def test_expanded_current_polling_remains_outside_historical_admission(self):
+        first = json.loads((ROOT / "polls.json").read_bytes())
+        second = json.loads((ROOT / "second_round_polls.json").read_bytes())["events"]
+        before = copy.deepcopy((first, second))
+        with self.assertRaisesRegex(ValueError, "Historical polling objects"):
+            _authenticate_historical_polling_corpus(first, second)
+        self.assertEqual((first, second), before)
+
+    def test_current_10362_is_operationally_unresolved_without_polling_admission(self):
+        current, _ = self.current_publication_inputs()
+        pending = copy.deepcopy(next(n for n in current["notices"] if n["notice_id"] == "commission:10362"))
+        before = copy.deepcopy(pending)
+        first = json.loads((ROOT / "polls.json").read_bytes())
+        second = json.loads((ROOT / "second_round_polls.json").read_bytes())["events"]
+        events_before = copy.deepcopy((first, second))
+        summary = coverage.reconcile_commission_notices(
+            {"notices": [pending]}, first, reviewed_events=first + second)
+        self.assertEqual(pending, before)
+        self.assertEqual(summary["unresolved_notice_ids"], ["commission:10362"])
+        self.assertEqual((first, second), events_before)
+
+    def test_current_publication_rejects_altered_extra_and_stale_warnings(self):
+        current, lane = self.current_publication_inputs()
+        for warnings in ([lane["warnings"][0] + " altered", *lane["warnings"][1:]],
+                         [*lane["warnings"], "poll coverage: unreviewed extra warning"],
+                         coverage.coverage_warnings(self.registry)):
+            changed = copy.deepcopy(lane)
+            changed["warnings"] = warnings
+            with self.subTest(warnings=warnings), self.assertRaises(AssertionError):
+                self.assert_current_publication_coverage(current, changed)
+
+    def test_current_publication_rejects_changed_pending_scope_even_with_matching_manifest(self):
+        current, lane = self.current_publication_inputs()
+        for notice_id in ("commission:10362", *self.summary["unresolved_notice_ids"]):
+            changed = copy.deepcopy(current)
+            changed["notices"] = [n for n in changed["notices"] if n["notice_id"] != notice_id]
+            discovery.validate_registry(changed)
+            updated = copy.deepcopy(lane)
+            updated["warnings"] = coverage.coverage_warnings(changed)
+            updated["commission_notice_coverage"] = coverage.coverage_summary(changed)
+            with self.subTest(missing=notice_id), self.assertRaises(AssertionError):
+                self.assert_current_publication_coverage(changed, updated)
+        for mutation in ("parsed", "reconciled", "excluded", "extra"):
+            changed = copy.deepcopy(current)
+            pending = next(n for n in changed["notices"] if n["notice_id"] == "commission:10362")
+            if mutation == "extra":
+                changed["notices"].insert(0, dict(copy.deepcopy(pending), notice_id="commission:99999"))
+            elif mutation == "excluded":
+                pending["classification"] = "excluded_non_voting"
+                pending.pop("coverage")
+            else:
+                pending["coverage"] = {"state": mutation, "method": "unreviewed", "matched_event_ids": ["f" * 64]}
+            discovery.validate_registry(changed)
+            updated = copy.deepcopy(lane)
+            updated["warnings"] = coverage.coverage_warnings(changed)
+            updated["commission_notice_coverage"] = coverage.coverage_summary(changed)
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                self.assert_current_publication_coverage(changed, updated)
 
     def test_current_publication_rejects_stale_or_invalid_manifest_coverage(self):
         current, lane = self.current_publication_inputs()
