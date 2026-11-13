@@ -2688,6 +2688,30 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             "31–33.5% · 5 hypotheses",
         )
 
+    def test_english_poll_range_bounds_and_hypothesis_counts(self):
+        for french, english in (
+            ("31–33% · 5 hypothèses", "31–33% · 5 hypotheses"),
+            ("30,5–30,5% · 1 hypothèse", "30.5–30.5% · 1 hypothesis"),
+            ("30,5–31% · 2 hypothèses", "30.5–31% · 2 hypotheses"),
+            ("31–33,5% · 5 hypothèses", "31–33.5% · 5 hypotheses"),
+        ):
+            with self.subTest(label=french):
+                self.assertEqual(reference._candidate_product_ui_en(french), english)
+
+    def test_decimal_localization_is_bounded_to_compositional_labels(self):
+        for evidence in ("30,5–31%", "Le sondage indique 30,5%.",
+                         "https://example.org/30,5", "30,5–31% · source"):
+            with self.subTest(evidence=evidence):
+                self.assertIsNone(reference._candidate_product_ui_en(evidence))
+
+    def test_poll_range_localization_preserves_projection_and_french_render(self):
+        projection = copy.deepcopy(self.projection)
+        french = reference.render_html(projection, self.hud_metrics, lang="fr")
+        english = reference.render_html(projection, self.hud_metrics, lang="en")
+        self.assertEqual(projection, self.projection)
+        self.assertEqual(french.decode("utf-8"), self.fr)
+        self.assertEqual(english.decode("utf-8"), self.en)
+
     def test_english_generated_compositional_ui_is_localized(self):
         current_poll = self.projection["polling"]["current"]
 
