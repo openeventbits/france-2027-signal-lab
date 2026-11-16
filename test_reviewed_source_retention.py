@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from fetch_polls import integrate_french_migration_source, load_poll_wave_overrides
 from poll_migration import exact_factual_key, parse_french_frozen_fixture
+from run_update_polls_contract_tests import historical_inputs
 from reviewed_polling_accuracy import (
     load_source_retention_review, reviewed_source_retention,
 )
@@ -22,8 +23,11 @@ class ReviewedSourceRetentionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.review = load_source_retention_review()
-        cls.first = json.loads((ROOT / "polls.json").read_text(encoding="utf-8"))
-        cls.second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        # Revision 240570516 replays the authenticated 337/102 review corpus.
+        # Later production additions are outside this archived source's scope.
+        historical = historical_inputs()
+        cls.first = historical["polls.json"]
+        cls.second = historical["second_round_polls.json"]["events"]
         cls.parsed = json.loads(gzip.decompress(
             (ROOT / "test_fixtures/fr27_polling/fr_mediawiki_240570516.json.gz").read_bytes()
         ))
