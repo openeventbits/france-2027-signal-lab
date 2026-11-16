@@ -185,18 +185,26 @@ class PollScopeTests(unittest.TestCase):
 
     def test_fresh_ingestion_replays_keep_scope_without_raw_metadata(self):
         from fetch_polls import integrate_french_migration_source, load_poll_wave_overrides
+        from run_update_polls_contract_tests import historical_inputs
+
         source = json.loads(gzip.decompress((ROOT / "test_fixtures/fr27_polling/fr_mediawiki_240570516.json.gz").read_bytes()))
-        first = copy.deepcopy(self.polls)
-        second = json.loads((ROOT / "second_round_polls.json").read_text(encoding="utf-8"))["events"]
+        # Only this archived replay uses 337/102; class fixtures remain current
+        # for the production-corpus scope assertions in the other tests.
+        historical = historical_inputs()
+        expected_first = historical["polls.json"]
+        expected_second = historical["second_round_polls.json"]["events"]
+        expected_payload = explorer.build_poll_explorer(expected_first)
+        first, second = copy.deepcopy((expected_first, expected_second))
         overrides = load_poll_wave_overrides(ROOT / "poll_wave_overrides.json")
         for _ in range(2):
             first, second, _, _ = integrate_french_migration_source(
                 source, first, second, [], overrides, retain_published_history=True)
-            self.assertEqual(first, self.polls)
+            self.assertEqual(first, expected_first)
+            self.assertEqual(second, expected_second)
             scope.validate_scope_registry(self.registry, first)
             self.assertEqual({e["event_id"] for e in first if not scope.default_2027_eligible(e)}, set(PINS))
-            self.assertTrue(all("election_scope" not in e for e in first))
-            self.assertEqual(explorer.build_poll_explorer(first), self.payload)
+            self.assertTrue(all("election_scope" not in e for e in first + second))
+            self.assertEqual(explorer.build_poll_explorer(first), expected_payload)
 
 
 if __name__ == "__main__":
