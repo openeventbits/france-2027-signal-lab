@@ -296,15 +296,16 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
         self.assertNotIn(NOTICE_ID, [n["notice_id"] for n in discovery.registry_event_notices(current)])
         current_summary = coverage.coverage_summary(current)
         # Operational consistency is not documentary admission of later polls.
-        # The historical five remain immutable; 10362 is separately still pending.
-        pending_records = [n for n in current["notices"] if n["notice_id"] == "commission:10362"]
-        self.assertEqual(len(pending_records), 1)
-        pending = pending_records[0]
-        self.assertEqual(pending["classification"], "unsupported")
-        self.assertNotIn("parser", pending)
-        self.assertEqual(pending["coverage"], coverage.unresolved_coverage("no_exact_published_wave"))
+        # The historical five remain immutable; 10362 and 10371 remain pending.
+        for notice_id in ("commission:10362", "commission:10371"):
+            pending_records = [n for n in current["notices"] if n["notice_id"] == notice_id]
+            self.assertEqual(len(pending_records), 1)
+            pending = pending_records[0]
+            self.assertEqual(pending["classification"], "unsupported")
+            self.assertNotIn("parser", pending)
+            self.assertEqual(pending["coverage"], coverage.unresolved_coverage("no_exact_published_wave"))
         self.assertEqual(set(current_summary["unresolved_notice_ids"]),
-                         {"commission:10362", *self.summary["unresolved_notice_ids"]})
+                         {"commission:10362", "commission:10371", *self.summary["unresolved_notice_ids"]})
         self.assertTrue(lane["valid"])
         self.assertEqual(lane["warnings"], coverage.coverage_warnings(current))
         # New reconciled notices may change current counts, never archival pins.
@@ -368,18 +369,20 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
             _authenticate_historical_polling_corpus(first, second)
         self.assertEqual((first, second), before)
 
-    def test_current_10362_is_operationally_unresolved_without_polling_admission(self):
+    def test_current_10362_and_10371_remain_unresolved_without_polling_admission(self):
         current, _ = self.current_publication_inputs()
-        pending = copy.deepcopy(next(n for n in current["notices"] if n["notice_id"] == "commission:10362"))
-        before = copy.deepcopy(pending)
         first = json.loads((ROOT / "polls.json").read_bytes())
         second = json.loads((ROOT / "second_round_polls.json").read_bytes())["events"]
         events_before = copy.deepcopy((first, second))
-        summary = coverage.reconcile_commission_notices(
-            {"notices": [pending]}, first, reviewed_events=first + second)
-        self.assertEqual(pending, before)
-        self.assertEqual(summary["unresolved_notice_ids"], ["commission:10362"])
-        self.assertEqual((first, second), events_before)
+        for notice_id in ("commission:10362", "commission:10371"):
+            with self.subTest(notice_id=notice_id):
+                pending = copy.deepcopy(next(n for n in current["notices"] if n["notice_id"] == notice_id))
+                before = copy.deepcopy(pending)
+                summary = coverage.reconcile_commission_notices(
+                    {"notices": [pending]}, first, reviewed_events=first + second)
+                self.assertEqual(pending, before)
+                self.assertEqual(summary["unresolved_notice_ids"], [notice_id])
+                self.assertEqual((first, second), events_before)
 
     def test_current_publication_rejects_altered_extra_and_stale_warnings(self):
         current, lane = self.current_publication_inputs()
@@ -393,7 +396,7 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
 
     def test_current_publication_rejects_changed_pending_scope_even_with_matching_manifest(self):
         current, lane = self.current_publication_inputs()
-        for notice_id in ("commission:10362", *self.summary["unresolved_notice_ids"]):
+        for notice_id in ("commission:10362", "commission:10371", *self.summary["unresolved_notice_ids"]):
             changed = copy.deepcopy(current)
             changed["notices"] = [n for n in changed["notices"] if n["notice_id"] != notice_id]
             discovery.validate_registry(changed)
@@ -402,22 +405,23 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
             updated["commission_notice_coverage"] = coverage.coverage_summary(changed)
             with self.subTest(missing=notice_id), self.assertRaises(AssertionError):
                 self.assert_current_publication_coverage(changed, updated)
-        for mutation in ("parsed", "reconciled", "excluded", "extra"):
-            changed = copy.deepcopy(current)
-            pending = next(n for n in changed["notices"] if n["notice_id"] == "commission:10362")
-            if mutation == "extra":
-                changed["notices"].insert(0, dict(copy.deepcopy(pending), notice_id="commission:99999"))
-            elif mutation == "excluded":
-                pending["classification"] = "excluded_non_voting"
-                pending.pop("coverage")
-            else:
-                pending["coverage"] = {"state": mutation, "method": "unreviewed", "matched_event_ids": ["f" * 64]}
-            discovery.validate_registry(changed)
-            updated = copy.deepcopy(lane)
-            updated["warnings"] = coverage.coverage_warnings(changed)
-            updated["commission_notice_coverage"] = coverage.coverage_summary(changed)
-            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
-                self.assert_current_publication_coverage(changed, updated)
+        for notice_id in ("commission:10362", "commission:10371"):
+            for mutation in ("parsed", "reconciled", "excluded", "extra"):
+                changed = copy.deepcopy(current)
+                pending = next(n for n in changed["notices"] if n["notice_id"] == notice_id)
+                if mutation == "extra":
+                    changed["notices"].insert(0, dict(copy.deepcopy(pending), notice_id="commission:99999"))
+                elif mutation == "excluded":
+                    pending["classification"] = "excluded_non_voting"
+                    pending.pop("coverage")
+                else:
+                    pending["coverage"] = {"state": mutation, "method": "unreviewed", "matched_event_ids": ["f" * 64]}
+                discovery.validate_registry(changed)
+                updated = copy.deepcopy(lane)
+                updated["warnings"] = coverage.coverage_warnings(changed)
+                updated["commission_notice_coverage"] = coverage.coverage_summary(changed)
+                with self.subTest(notice_id=notice_id, mutation=mutation), self.assertRaises(AssertionError):
+                    self.assert_current_publication_coverage(changed, updated)
 
     def test_current_publication_rejects_stale_or_invalid_manifest_coverage(self):
         current, lane = self.current_publication_inputs()

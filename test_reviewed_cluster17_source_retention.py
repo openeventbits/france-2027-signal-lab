@@ -103,8 +103,15 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
                     [e for e in first if e.get("official_notice_id")],
                     retain_published_history=True)
                 self.assertEqual(typed_json(result[:2]), typed_json((first, second)))
-        self.assertEqual(typed_json(self.integrate(source(240570516))[:2]),
-                         typed_json((self.first, self.second)))
+        from run_update_polls_contract_tests import historical_inputs
+
+        # This later archived source belongs to the authenticated 337/102 base;
+        # keep self.first/self.second current for the extraction-loss controls.
+        historical = historical_inputs()
+        first, second = historical["polls.json"], historical["second_round_polls.json"]["events"]
+        result = integrate_french_migration_source(source(240570516), first, second,
+            [], self.overrides, retain_published_history=True)
+        self.assertEqual(typed_json(result[:2]), typed_json((first, second)))
 
     def test_old_snapshots_reject_extraction_loss_against_the_current_corpus(self):
         # Current additions belong in this negative control, not in the

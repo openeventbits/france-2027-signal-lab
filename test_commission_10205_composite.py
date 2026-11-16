@@ -217,13 +217,23 @@ class CompositeRnTests(unittest.TestCase):
         self.assertEqual(strict.events, self.first)
 
     def test_live_boundary_repeats_and_never_reactivates_predecessors(self):
+        from run_update_polls_contract_tests import historical_inputs
+
+        # Replay this archived source against its authenticated review base,
+        # reversing only the three already-authenticated 10205 successors.
+        historical = historical_inputs()
+        predecessors = {d["canonical_event"]["event_id"]: d["previous_event"]
+                        for d in self.review["decisions"]}
+        previous = [copy.deepcopy(predecessors.get(e["event_id"], e))
+                    for e in historical["polls.json"]]
+        previous_second = historical["second_round_polls.json"]["events"]
         first, second, report, _ = integrate_french_migration_source(
-            self.parsed, self.first, self.second, [], retain_published_history=True)
+            self.parsed, previous, previous_second, [], retain_published_history=True)
         again, runoff, repeat, _ = integrate_french_migration_source(
             self.parsed, first, second, [], retain_published_history=True)
         self.assertEqual(first, again)
         self.assertEqual(second, runoff)
-        self.assertEqual(second, self.second)
+        self.assertEqual(second, previous_second)
         self.assertFalse(self.old_ids & {e["event_id"] for e in again})
         self.assertEqual(report["commission_10205_composite"]["applied"], 3)
         self.assertEqual(repeat["commission_10205_composite"]["already_applied"], 3)
