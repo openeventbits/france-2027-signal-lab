@@ -393,7 +393,27 @@ def find_likely_duplicates(
             and event.get("event_type") == proposed_event.get("event_type")
             and _participant_identity(event) == proposed_participants
         ):
-            reasons.append("same date, type, and participants")
+            # Preserve conservative duplicate protection when either event
+            # lacks a precise schedule or locality. Separately announced
+            # appearances in different cities AND at different times are
+            # not duplicates merely because the candidate and type match.
+            existing_time = event.get("time")
+            proposed_time = proposed_event.get("time")
+            existing_city = event.get("locality")
+            proposed_city = proposed_event.get("locality")
+            independently_distinct = (
+                isinstance(existing_time, str)
+                and isinstance(proposed_time, str)
+                and existing_time != proposed_time
+                and isinstance(existing_city, str)
+                and isinstance(proposed_city, str)
+                and bool(existing_city.strip())
+                and bool(proposed_city.strip())
+                and normalize_human_text(existing_city, "locality").casefold()
+                != normalize_human_text(proposed_city, "locality").casefold()
+            )
+            if not independently_distinct:
+                reasons.append("same date, type, and participants")
         if reasons:
             matches.append(
                 DuplicateMatch(
