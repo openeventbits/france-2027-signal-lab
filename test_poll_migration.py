@@ -30,10 +30,12 @@ from poll_migration import (
     FRENCH_FIXTURE,
     POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR,
     POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR,
+    _candidate_from_link,
     _french_first_round_table_plan,
     _header_candidate,
     _header_value,
     _matching_candidate_colspan_groups,
+    _read_french_first_round_table,
     _row_candidate,
     _reviewed_ineligible_first_round_table,
     _preceding_heading,
@@ -1141,6 +1143,60 @@ class FrozenFixtureTests(unittest.TestCase):
 
         self.assertEqual(_header_candidate(pandas_2_header), (None, True))
         self.assertEqual(_header_candidate(pandas_3_header), (None, True))
+
+    @staticmethod
+    def _portrait_header_frame(file_href: str, label_html: str) -> pd.DataFrame:
+        # Inline portrait, article, and party markup from revision 241460275.
+        table = lxml_html.fromstring(f"""
+            <table><tbody>
+            <tr><th rowspan="2">Sondeur</th><th rowspan="2">Date</th>
+            <th rowspan="2">Échantillon</th><th scope="col">
+            <span typeof="mw:File"><a href="{file_href}"
+            class="mw-file-description"><img alt="Nathalie Arthaud"
+            class="mw-file-element"></a></span><br>{label_html}</th></tr>
+            <tr><td></td></tr>
+            <tr><td>Example</td><td>12 novembre</td><td>952</td><td>1</td></tr>
+            </tbody></table>
+        """)
+        return _read_french_first_round_table(table)
+
+    def test_inline_portraits_keep_reviewed_candidate_article_links(self) -> None:
+        arthaud_file = "/wiki/Fichier:Nathalie_Arthaud_(LO)_19-05-2024.jpg"
+        flat_header = ("Arthaud (LO)", arthaud_file)
+        self.assertEqual(_header_value(flat_header), flat_header)
+        self.assertEqual(_header_candidate(flat_header), ("Nathalie Arthaud", False))
+        self.assertIsNone(_candidate_from_link(arthaud_file))
+
+        cases = (
+            (arthaud_file, "/wiki/Nathalie_Arthaud", "Nathalie Arthaud",
+             'Arthaud</a><br><small>(<a href="/wiki/Lutte_ouvri%C3%A8re">LO</a>)</small>'),
+            ("/wiki/Fichier:1720448398743_20240708_GLUCKSMANN_Raphael_FR_006.jpg",
+             "/wiki/Rapha%C3%ABl_Glucksmann", "Raphaël Glucksmann",
+             'Glucksmann</a><sup class="reference"><a href="#cite_note-SaufPrécision-8">[c]</a></sup>'
+             '<br><small>(<a href="/wiki/Place_publique_(parti_politique)">PP</a>)</small>'
+             '<sup class="reference"><a href="#cite_note-SaufPrécision-8">[c]</a></sup>'),
+        )
+        for file_href, article_href, name, label_html in cases:
+            with self.subTest(candidate=name):
+                frame = self._portrait_header_frame(
+                    file_href, f'<a href="{article_href}">{label_html}',
+                )
+                self.assertEqual(_header_value(frame.columns[3])[1], article_href)
+                self.assertEqual(_header_candidate(frame.columns[3]), (name, False))
+                _validate_first_round_candidate_headers(frame, table_label="inline portrait")
+
+    def test_portrait_filenames_cannot_identify_score_bearing_headers(self) -> None:
+        for file_href in (
+            "/wiki/Fichier:Unknown_person.jpg",
+            "/wiki/Fichier:Nathalie_Arthaud.jpg%ZZ",
+            "/wiki/Fichier:Nathalie_Arthaud_(LO)_19-05-2024.jpg",
+            "/wiki/Fichier:Nathalie_Arthaud_et_Jordan_Bardella.jpg",
+        ):
+            with self.subTest(file_href=file_href):
+                self.assertIsNone(_candidate_from_link(file_href))
+                frame = self._portrait_header_frame(file_href, "Portrait sans nom")
+                with self.assertRaisesRegex(ValueError, "unknown identity"):
+                    _validate_first_round_candidate_headers(frame, table_label="inline portrait")
 
     def test_named_column_row_link_overrides_header_candidate(self) -> None:
         substitutions = (

@@ -3347,6 +3347,11 @@ def _candidate_product_ui_en(value: str) -> str | None:
     if match:
         return f"{match.group(1)} upcoming · {match.group(2)} recent"
 
+    match = re.fullmatch(r"(\d+) (à venir|récents?)", value)
+    if match:
+        label = "upcoming" if match.group(2) == "à venir" else "recent"
+        return f"{match.group(1)} {label}"
+
     if value.startswith("Période : "):
         period = _candidate_period_en(value.removeprefix("Période : "))
         if period is not None:

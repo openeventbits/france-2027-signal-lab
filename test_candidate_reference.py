@@ -7,7 +7,9 @@ import copy
 import json
 import re
 import unittest
+from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 import build_candidate_reference as reference
 
@@ -2816,6 +2818,56 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             self.assertIn(latest_news[0]["headline"], self.en)
         else:
             self.assertIn("No recent coverage", self.en)
+
+    def test_event_count_localization_across_calendar_transitions(self):
+        events = [
+            {
+                "event_id": f"test-event-{day}",
+                "candidate_ids": ["marine-le-pen"],
+                "event_type": "meeting",
+                "title": f"Réunion publique {day}",
+                "scheduled_start": f"2026-11-{day:02d}",
+                "time_precision": "date",
+                "timezone": "Europe/Paris",
+                "status": "scheduled",
+                "evidence_status": "verified",
+            }
+            for day in range(1, 6)
+        ]
+        cases = (
+            (5, 1, "5 à venir", "5 upcoming"),
+            (5, 2, "4 à venir · 1 récent", "4 upcoming · 1 recent"),
+            (5, 3, "3 à venir · 2 récents", "3 upcoming · 2 recent"),
+            (5, 6, "5 récents", "5 recent"),
+            (1, 2, "1 récent", "1 recent"),
+        )
+        for event_count, day, french, english in cases:
+            with self.subTest(event_count=event_count, day=day):
+                sources = {
+                    **self.sources,
+                    "campaign_events": {
+                        "campaign_events": events[:event_count],
+                        "institutional_milestones": [],
+                        "event_watch": [],
+                    },
+                }
+                with patch.object(
+                    reference, "_event_reference_date", return_value=date(2026, 11, day),
+                ):
+                    projection = reference.build_projection(sources, ROOT, _sources_validated=True)
+
+                for lang, heading, count in (
+                    ("fr", "ÉVÉNEMENTS", french),
+                    ("en", "EVENTS", english),
+                ):
+                    document = reference.render_html(
+                        projection, self.hud_metrics, lang=lang,
+                    ).decode("utf-8")
+                    self.assertIn(
+                        '<article class="candidate-panel candidate-actualite-events">'
+                        f'<div class="candidate-panel-head"><h3>{heading}</h3><span>{count}</span>',
+                        document,
+                    )
 
     def test_english_route_has_no_remaining_compositional_locale_leaks(self):
         current_poll = self.projection["polling"]["current"]
