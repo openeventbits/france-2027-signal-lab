@@ -1126,6 +1126,17 @@ def _decode_pandas_duplicate_linked_header(
 
 
 def _header_value(column: object) -> tuple[str, str | None]:
+    # pandas can expose a single linked header as a flat (text, href) pair.
+    if (
+        isinstance(column, tuple)
+        and len(column) == 2
+        and isinstance(column[0], str)
+        and column[0].strip()
+        and isinstance(column[1], str)
+        and column[1].startswith(("/", "#", "https://", "http://"))
+    ):
+        return cell_text(column), cell_link(column)
+
     levels = column if isinstance(column, tuple) else (column,)
     for level in reversed(levels):
         decoded = _decode_pandas_duplicate_linked_header(level)
@@ -1854,6 +1865,32 @@ def _apply_reviewed_ifop_10314_arthaud_zero_correction(
     )
 
 
+def _read_french_first_round_table(table: object) -> pd.DataFrame:
+    table = copy.deepcopy(table)
+    for header in table.xpath(".//th[span[@typeof='mw:File']]"):
+        links = header.xpath(".//a[@href]")
+        if len(links) < 2:
+            continue
+        portrait, article = links[:2]
+        if (
+            portrait.getparent().get("typeof") == "mw:File"
+            and portrait.get("class") == "mw-file-description"
+            and portrait.get("href").startswith("/wiki/Fichier:")
+            and portrait.find("img") is not None
+            and not portrait.text_content().strip()
+            and header.xpath("./a[@href]") == [article]
+            and article.get("href").startswith("/wiki/")
+            and _candidate_from_link(article.get("href"))
+        ):
+            # pandas retains only the first href in a cell. Expose the article
+            # link when MediaWiki has placed a decorative portrait before it.
+            del portrait.attrib["href"]
+    return pd.read_html(
+        io.StringIO(lxml_html.tostring(table, encoding="unicode")),
+        extract_links="all",
+    )[0]
+
+
 def parse_french_frozen_fixture(
     parsed: dict[str, Any], *, allow_reviewed_polony: bool = False,
     allow_reviewed_bouamrane: bool = False,
@@ -1867,10 +1904,7 @@ def parse_french_frozen_fixture(
     rejected: list[dict[str, Any]] = []
 
     for table_index, table in enumerate(_french_first_round_table_plan(tables)):
-        frame = pd.read_html(
-            io.StringIO(lxml_html.tostring(table, encoding="unicode")),
-            extract_links="all",
-        )[0]
+        frame = _read_french_first_round_table(table)
         table_label = f"French first-round table {table_index} ({_preceding_heading(table)})"
         _validate_french_core_columns(
             frame,
