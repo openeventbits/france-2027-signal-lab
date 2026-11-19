@@ -1,7 +1,7 @@
 {
   "schema_version": "1.5",
-  "snapshot_id": "e4a94f032f87259365504b5e4b0d1fe656405288db9eebe250caf49e6cf7dfb3",
-  "published_at": "2026-11-19T03:45:34Z",
+  "snapshot_id": "2c1752c6bb6c0812d82d42dfa5a1af50315884f292a2f08c54e81b8d0ecd8e40",
+  "published_at": "2026-11-19T07:30:48Z",
   "lanes": {
     "campaign_events": {
       "file": "campaign_events.json",
@@ -154,7 +154,7 @@
       "file": "candidate_signals.json",
       "available": true,
       "valid": true,
-      "sha256": "6aac833ba982c5291734cd9048389fecbb85c11eb0df8dbf2578135f7f805b13",
+      "sha256": "98df0a12b653b18b9b181b974fdbd214977bdc116db264ea3734a057d9bfb431",
       "schema_version": "1.5",
       "data_as_of": "2026-11-19",
       "timestamp_status": "unknown",
@@ -247,11 +247,12 @@
       "file": "polls.json",
       "available": true,
       "valid": true,
-      "sha256": "632032929f196e82232cb15b52114ab9f77ac4cd26ebec187fac1c9a494e8ec7",
+      "sha256": "317bbf564f2df994eb16eaff585710e782406538fe18f7524d64aff4eae5472a",
       "schema_version": null,
-      "data_as_of": "2026-11-13",
+      "data_as_of": "2026-11-17",
       "timestamp_status": "unknown",
       "warnings": [
+        "poll coverage: unresolved relevant Commission notice commission:10381 (10381 Pres participation 2nd tour JL Melenchon M Le Pen IFOP Franc Tireur 18 novembre)",
         "poll coverage: unresolved relevant Commission notice commission:10371 (10371 Pres IV OPINIONWAY Cnews 12 novembre)",
         "poll coverage: unresolved relevant Commission notice commission:10362 (10362 Pres IV TOLUNA HARRIS INTERACTIVE 9 novembre)",
         "poll coverage: unresolved relevant Commission notice commission:10333 (10333 Pres IV OPINIONWAY Cnews 22 octobre)",
@@ -264,15 +265,16 @@
         {
           "file": "commission_notice_registry.json",
           "available": true,
-          "sha256": "f35dc7faadbc31d72a86e567b27d38c83b84807fa28a98df283575d97ca7b8f8"
+          "sha256": "50e1cc0e4a673e43ca01a79660c4bbdbbd52ac2db124ac9eacf81d853aa2c747"
         }
       ],
       "commission_notice_coverage": {
-        "relevant": 49,
+        "relevant": 51,
         "parsed": 3,
-        "reconciled": 39,
-        "unresolved": 7,
+        "reconciled": 40,
+        "unresolved": 8,
         "unresolved_notice_ids": [
+          "commission:10381",
           "commission:10371",
           "commission:10362",
           "commission:10333",
@@ -287,31 +289,31 @@
       "file": "recent_changes.json",
       "available": true,
       "valid": true,
-      "sha256": "c88a6d5fb5798e38299ff16e3b400cc8afbcef08662656a071b74e1b72c2539a",
+      "sha256": "e2399f3fea47c29cd2de9d519f99512a088c94f9bfdd1fa5ff2459dfef91a35a",
       "schema_version": 1,
       "data_as_of": "2026-11-18T23:49:22Z",
       "timestamp_status": "known",
       "warnings": [],
-      "generated_at": "2026-11-19T03:45:19.396526Z",
-      "last_success_at": "2026-11-19T03:45:19.396526Z"
+      "generated_at": "2026-11-19T07:30:40.050263Z",
+      "last_success_at": "2026-11-19T07:30:40.050263Z"
     },
     "runoff": {
       "file": "second_round_polls.json",
       "available": true,
       "valid": true,
-      "sha256": "e8ec36ce87dd508603d2b154eed4fffdcf62e0b08145fb8c1656c324164a869d",
+      "sha256": "7a46a1ee355292378a9c8584bf9fecc4beaa43f53caf0f87e9e759541f0870b5",
       "schema_version": "1.0",
-      "data_as_of": "2026-11-13",
+      "data_as_of": "2026-11-17",
       "timestamp_status": "known",
       "warnings": [],
       "related_files": [
         {
           "file": "closest_tested_runoff.json",
           "available": true,
-          "sha256": "bacf0077eaa2e7695046ccdc08d1e1cc1e954adeaab3cf6db53022dcc5768818"
+          "sha256": "8bc564f82f35978dc5ef2c243749f8610839790503b055eea8bca94a2a0389b0"
         }
       ],
-      "generated_at": "2026-11-17T20:59:50.695777Z"
+      "generated_at": "2026-11-19T07:30:34.307968Z"
     },
     "source_health": {
       "file": "source_health.json",
@@ -344,6 +346,7 @@
     "recovered_routes": 13
   },
   "warnings": [
+    "poll coverage: unresolved relevant Commission notice commission:10381 (10381 Pres participation 2nd tour JL Melenchon M Le Pen IFOP Franc Tireur 18 novembre)",
     "poll coverage: unresolved relevant Commission notice commission:10371 (10371 Pres IV OPINIONWAY Cnews 12 novembre)",
     "poll coverage: unresolved relevant Commission notice commission:10362 (10362 Pres IV TOLUNA HARRIS INTERACTIVE 9 novembre)",
     "poll coverage: unresolved relevant Commission notice commission:10333 (10333 Pres IV OPINIONWAY Cnews 22 octobre)",
