@@ -94,15 +94,15 @@
   "dossier": {
     "polling": {
       "evidence_state": "reported",
-      "range_min": 10.5,
-      "range_max": 14,
-      "hypothesis_count": 6,
+      "range_min": 9,
+      "range_max": 12,
+      "hypothesis_count": 5,
       "fieldwork_start": "2026-11-12",
-      "fieldwork_end": "2026-11-13",
-      "pollster": "Elabe",
-      "sample_size": 1500,
+      "fieldwork_end": "2026-11-17",
+      "pollster": "YouGov",
+      "sample_size": 952,
       "source_urls": [
-        "https://elabe.fr/fichier-pdf/13399-les-francais-et-lelection-presidentielle-2027/"
+        "https://www.huffingtonpost.fr/politique/article/dans-notre-sondage-sur-la-presidentielle-2027-edouard-philippe-atteint-la-cote-d-alerte_360406.html"
       ]
     },
     "media_pulse": {
@@ -254,22 +254,22 @@
   "polling": {
     "current": {
       "evidence_state": "reported",
-      "range_min": 10.5,
-      "range_max": 14,
-      "hypothesis_count": 6,
+      "range_min": 9,
+      "range_max": 12,
+      "hypothesis_count": 5,
       "fieldwork_start": "2026-11-12",
-      "fieldwork_end": "2026-11-13",
-      "pollster": "Elabe",
-      "sample_size": 1500,
+      "fieldwork_end": "2026-11-17",
+      "pollster": "YouGov",
+      "sample_size": 952,
       "source_urls": [
-        "https://elabe.fr/fichier-pdf/13399-les-francais-et-lelection-presidentielle-2027/"
+        "https://www.huffingtonpost.fr/politique/article/dans-notre-sondage-sur-la-presidentielle-2027-edouard-philippe-atteint-la-cote-d-alerte_360406.html"
       ]
     },
     "first_round_history": {
       "evidence_state": "reported",
-      "observation_count": 67,
+      "observation_count": 69,
       "period_start": "2024-07-07",
-      "period_end": "2026-11-13",
+      "period_end": "2026-11-17",
       "observations": [
         {
           "package_key": "[\"Harris Interactive\",\"2024-07-07\",\"2024-07-08\",2496]",
@@ -1224,6 +1224,34 @@
           "source_urls": [
             "https://elabe.fr/fichier-pdf/13399-les-francais-et-lelection-presidentielle-2027/"
           ]
+        },
+        {
+          "package_key": "[\"Ifop\",\"2026-11-13\",\"2026-11-16\",1690]",
+          "pollster": "Ifop",
+          "fieldwork_start": "2026-11-13",
+          "fieldwork_end": "2026-11-16",
+          "sample_size": 1690,
+          "hypothesis_count": 6,
+          "selected_score": 10,
+          "range_min": 8,
+          "range_max": 11.5,
+          "source_urls": [
+            "https://www.ifopgroup.com/wp-content/uploads/2026/11/122919-petit-dejeuner-electoral-intentions-de-vote-et-determinants-du-vote.pdf"
+          ]
+        },
+        {
+          "package_key": "[\"YouGov\",\"2026-11-12\",\"2026-11-17\",952]",
+          "pollster": "YouGov",
+          "fieldwork_start": "2026-11-12",
+          "fieldwork_end": "2026-11-17",
+          "sample_size": 952,
+          "hypothesis_count": 5,
+          "selected_score": 9,
+          "range_min": 9,
+          "range_max": 12,
+          "source_urls": [
+            "https://www.huffingtonpost.fr/politique/article/dans-notre-sondage-sur-la-presidentielle-2027-edouard-philippe-atteint-la-cote-d-alerte_360406.html"
+          ]
         }
       ]
     },
@@ -1232,9 +1260,19 @@
         "opponent_id": "marine-le-pen",
         "opponent": "Marine Le Pen",
         "opponent_portrait_path": "/assets/candidates/lepen.png",
-        "observation_count": 14,
-        "latest_fieldwork_end": "2026-11-13",
+        "observation_count": 15,
+        "latest_fieldwork_end": "2026-11-17",
         "observations": [
+          {
+            "event_id": "89119ed6bb13908b87d76c3ce8cb97257cec574e71a956aa0d65286b038892b7",
+            "pollster": "YouGov",
+            "fieldwork_start": "2026-11-12",
+            "fieldwork_end": "2026-11-17",
+            "sample_size": 952,
+            "candidate_score": 42,
+            "opponent_score": 58,
+            "source_url": "https://www.huffingtonpost.fr/politique/article/dans-notre-sondage-sur-la-presidentielle-2027-edouard-philippe-atteint-la-cote-d-alerte_360406.html"
+          },
           {
             "event_id": "87e1dc676c6d8cf94560256b7bfd27a661e260595662b76df7304b5d41dd2dae",
             "pollster": "Elabe",
@@ -1254,16 +1292,6 @@
             "candidate_score": 42,
             "opponent_score": 58,
             "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/novembre/10371-pres-iv-opinionway-cnews-12-novembre.pdf"
-          },
-          {
-            "event_id": "9d2636f405d01421334514f1455d80635462bf99d79192858f4636333a27d75a",
-            "pollster": "Harris",
-            "fieldwork_start": "2026-11-03",
-            "fieldwork_end": "2026-11-05",
-            "sample_size": 2101,
-            "candidate_score": 40,
-            "opponent_score": 60,
-            "source_url": "https://www.commission-des-sondages.fr/notices/files/notices/2026/novembre/10362-pres-iv-toluna-harris-interactive-9-novembre.pdf"
           }
         ]
       }
@@ -3446,7 +3474,7 @@
   },
   "freshness": {
     "candidate_signal_evidence_dates": {
-      "polling": "2026-11-13",
+      "polling": "2026-11-17",
       "news": "2026-11-19",
       "scrutiny": "2026-11-18"
     },
@@ -3456,9 +3484,9 @@
       "candidate_youtube": "2026-11-17T19:25:56.505784Z",
       "candidate_bluesky": "2026-11-17T19:26:52.574531Z",
       "claims_under_scrutiny": "2026-11-18T13:06:12Z",
-      "recent_changes": "2026-11-19T03:45:19.396526Z",
+      "recent_changes": "2026-11-19T07:30:40.050263Z",
       "campaign_events": "2026-11-17T21:49:55Z",
-      "second_round_polls": "2026-11-17T20:59:50.695777Z",
+      "second_round_polls": "2026-11-19T07:30:34.307968Z",
       "news_wire": "2026-11-19T03:44:20.600295Z"
     },
     "media_period_end": "2026-11-18",
