@@ -12,9 +12,16 @@ from fetch_polls import integrate_french_migration_source, load_poll_wave_overri
 from poll_migration import exact_factual_key, parse_french_frozen_fixture
 import poll_studies as studies
 import reviewed_polling_accuracy as retention
+from rehearse_fr_poll_migration import SourceDriftError
 
 ROOT = Path(__file__).resolve().parent
 FIXTURES = ROOT / "test_fixtures/fr27_polling"
+# Both source revisions were reviewed against the same published corpus at
+# 47e7f1f2c458a16e70067929f1d8558779391122 (merged in PR #313).
+# The fixture contains typed_json({"first_round": polls, "second_round": runoff["events"]})
+# from that commit's polls.json and second_round_polls.json, in publication order.
+CLUSTER17_REPLAY_CORPUS = FIXTURES / "cluster17_10339_published_349_108.json.gz"
+CLUSTER17_REPLAY_SHA256 = "679999c68f9846b75414baf46a7e8abea34d739b1dcadfafd1a028b8946c073c"
 SOURCE_PINS = {
     240766888: "15ad17a8e7a9fa67b90aef8008a8358da219e568d79fc0208d217087471bef2b",
     240741132: "4647dd31da34d5d6eec400aee09e3d13feacfbc3470bda83d38208b92e6376e5",
@@ -44,6 +51,12 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.first = json.loads((ROOT / "polls.json").read_bytes())
         cls.second = json.loads((ROOT / "second_round_polls.json").read_bytes())["events"]
+        raw = gzip.decompress(CLUSTER17_REPLAY_CORPUS.read_bytes())
+        if hashlib.sha256(raw).hexdigest() != CLUSTER17_REPLAY_SHA256:
+            raise AssertionError("10339 historical polling corpus changed")
+        replay = json.loads(raw)
+        cls.replay_first = replay["first_round"]
+        cls.replay_second = replay["second_round"]
         cls.binding = studies.load_binding()
         cls.review = retention.load_cluster17_source_retention_review()
         cls.ids = {m["event_id"] for m in cls.binding["members"]}
@@ -55,9 +68,9 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
             raise AssertionError("10339 must contain all three documentary hypotheses")
         cls.overrides = load_poll_wave_overrides(ROOT / "poll_wave_overrides.json")
 
-    def integrate(self, parsed=None):
+    def integrate_cluster17_replay(self, parsed=None):
         return integrate_french_migration_source(
-            self.parsed if parsed is None else parsed, self.first, self.second,
+            self.parsed if parsed is None else parsed, self.replay_first, self.replay_second,
             [], self.overrides, retain_published_history=True,
         )
 
@@ -71,15 +84,15 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
     def test_original_guard_still_rejects_the_unregistered_representation(self):
         with patch.object(retention, "_cluster17_source_retention", return_value=({}, [])):
             with self.assertRaisesRegex(ValueError, "unregistered French row shares a review anchor"):
-                self.integrate()
+                self.integrate_cluster17_replay()
 
     def test_current_and_parent_real_integration_preserve_all_typed_objects_and_order(self):
-        before = typed_json((self.first, self.second, self.parsed))
+        before = typed_json((self.replay_first, self.replay_second, self.parsed))
         for revision, sample in ((240766888, 2817), (240741132, 3000)):
             with self.subTest(revision=revision):
-                first, second, report, _ = self.integrate(source(revision))
-                self.assertEqual(typed_json(first), typed_json(self.first))
-                self.assertEqual(typed_json(second), typed_json(self.second))
+                first, second, report, _ = self.integrate_cluster17_replay(source(revision))
+                self.assertEqual(typed_json(first), typed_json(self.replay_first))
+                self.assertEqual(typed_json(second), typed_json(self.replay_second))
                 handled = [r for r in report["reviewed_source_retention"]
                            if r["review_id"] == self.review["review_id"]]
                 self.assertEqual(len(handled), 3)
@@ -91,7 +104,7 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
                 repeated = integrate_french_migration_source(source(revision), first, second, [],
                     self.overrides, retain_published_history=True)
                 self.assertEqual(typed_json(repeated[:2]), typed_json((first, second)))
-        self.assertEqual(typed_json((self.first, self.second, self.parsed)), before)
+        self.assertEqual(typed_json((self.replay_first, self.replay_second, self.parsed)), before)
 
     def test_previously_supported_snapshots_preserve_their_authenticated_corpora(self):
         historical = json.loads(gzip.decompress(
@@ -119,8 +132,11 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
         # guard now fires before the runoff guard; neither guard is relaxed.
         for revision in (240490172, 240498648, 240522402):
             with self.subTest(revision=revision):
-                with self.assertRaisesRegex(ValueError, "widespread first_round extraction loss"):
-                    self.integrate(source(revision))
+                with self.assertRaisesRegex(SourceDriftError, "widespread first_round extraction loss"):
+                    integrate_french_migration_source(
+                        source(revision), self.first, self.second, [], self.overrides,
+                        retain_published_history=True,
+                    )
 
     def test_old_snapshots_still_reject_runoff_extraction_loss_independently(self):
         from run_update_polls_contract_tests import historical_inputs
@@ -130,7 +146,7 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
         first = historical_inputs()["polls.json"]
         for revision in (240490172, 240498648, 240522402):
             with self.subTest(revision=revision):
-                with self.assertRaisesRegex(ValueError, "widespread second_round extraction loss"):
+                with self.assertRaisesRegex(SourceDriftError, "widespread second_round extraction loss"):
                     integrate_french_migration_source(source(revision), first, self.second,
                         [e for e in first if e.get("official_notice_id")],
                         retain_published_history=True)
@@ -152,7 +168,8 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
     def test_revision_and_locator_alone_never_authorize_different_facts(self):
         moved = copy.deepcopy(self.parsed)
         moved["revid"] = 240999999
-        self.assertEqual(typed_json(self.integrate(moved)[:2]), typed_json((self.first, self.second)))
+        self.assertEqual(typed_json(self.integrate_cluster17_replay(moved)[:2]),
+                         typed_json((self.replay_first, self.replay_second)))
         rows = self.changed_rows(lambda r: r.update(source_locator="another-location", sample_size=2818))
         with self.assertRaises(ValueError):
             retention._cluster17_source_retention(rows, self.first)
@@ -255,7 +272,7 @@ class Cluster17SourceRetentionTests(unittest.TestCase):
         self.assertNotIn(("first_round", self.variants[0]["source_locator"]), handled)
         with patch("rehearse_fr_poll_migration._assert_production_source_structure", return_value=rows):
             with self.assertRaisesRegex(ValueError, "unregistered French row shares a review anchor"):
-                self.integrate()
+                self.integrate_cluster17_replay()
 
     def test_independent_retention_decisions_cannot_overlap(self):
         handled, report = retention._cluster17_source_retention(self.rows, self.first)
