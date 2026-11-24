@@ -15,6 +15,7 @@ from poll_contract import FIRST_ROUND, normalize_identity
 
 COVERAGE_STATES = {"parsed", "reconciled", "unresolved"}
 RELEVANT_CLASSIFICATIONS = {"eligible", "unsupported"}
+MISSING_VOTING_INTENTION_LANGUAGE = "voting-intention language"
 BAROMETER_NOTICE_IDS = frozenset({"commission:10327", "commission:10284"})
 BAROMETER_REVIEW = Path(__file__).with_name("fr27_commission_barometer_review.json")
 BAROMETER_REVIEW_SHA256 = "f22afa82eb0bf8ecefae56e382d804a30715c71346b00ea445b0d6d1d61fe439"
@@ -363,10 +364,11 @@ def reconcile_commission_notices(
 
     Direct Commission provenance is recognized only through ``official_notice_id``.
     External-source reconciliation requires exact pollster, exact fieldwork window,
-    and a compatible first-round event. Optional metadata only disambiguates
-    multiple otherwise-plausible published waves. ``reviewed_events`` supplies
-    the complete two-round corpus only to the scoped 26 October review; ordinary
-    matching retains its existing filtered evidence view.
+    and a compatible first-round event. A document found to lack candidate
+    voting-intention language cannot use this match. Optional metadata only
+    disambiguates multiple otherwise-plausible published waves.
+    ``reviewed_events`` supplies the complete two-round corpus only to the scoped
+    26 October review. Ordinary matching retains its filtered evidence view.
     """
     published = list(events)
     reviewed_published = published if reviewed_events is None else list(reviewed_events)
@@ -395,6 +397,17 @@ def reconcile_commission_notices(
                 "matched_event_ids": _representative_event_ids(direct),
                 "method": "official_notice_id",
             }
+            continue
+
+        # Older unsupported records may carry round mentions and fieldwork
+        # even when discovery explicitly found no voting-intention evidence.
+        reason = str(notice.get("classification_reason", "")).rpartition("; ")[2]
+        if reason.startswith("document lacks ") and reason.endswith(
+            MISSING_VOTING_INTENTION_LANGUAGE
+        ):
+            notice["coverage"] = unresolved_coverage(
+                "missing_voting_intention_evidence"
+            )
             continue
 
         metadata = _survey_metadata(notice)
