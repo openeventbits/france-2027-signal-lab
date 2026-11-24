@@ -26,6 +26,7 @@ from urllib.request import (
 )
 
 from commission_notice_coverage import (
+    MISSING_VOTING_INTENTION_LANGUAGE,
     CommissionCoverageError,
     synchronize_notice_coverage,
     validate_notice_coverage,
@@ -139,6 +140,9 @@ POSITIVE_LISTING_PATTERNS = (
     r"\bpr\s*2027\b",
     r"\bpresitrack\b",
     r"\biv\b",
+)
+
+ROUND_LISTING_PATTERNS = (
     r"\b1er\s+tour\b",
     r"\bpremier\s+tour\b",
     r"\b2(?:e|eme|nd)\s+tour\b",
@@ -552,6 +556,13 @@ def classify_listing(record: dict[str, Any]) -> ListingDecision:
             True,
         )
 
+    if any(re.search(pattern, title) for pattern in ROUND_LISTING_PATTERNS):
+        return ListingDecision(
+            "ambiguous",
+            "listing names a round and requires document confirmation",
+            True,
+        )
+
     negative = [
         pattern
         for pattern in NEGATIVE_LISTING_PATTERNS
@@ -609,7 +620,8 @@ def confirm_document_eligibility(text: str) -> tuple[bool, list[str], str]:
         re.search(r"\bintentions?\s+de\s+vote\b", normalized)
         or re.search(
             r"\bsi\s+le\s+(?:1er|premier|2e|2eme|2nd|second)\s+tour\b"
-            r".{0,180}\b(?:voteriez|vote)\b",
+            r".{0,180}\bpour\s+(?:qui|quel(?:le)?\s+candidat(?:e)?"
+            r"|lequel\s+des\s+candidats)\b.{0,100}\b(?:voteriez|votiez|vote)\b",
             normalized,
         )
     )
@@ -629,7 +641,7 @@ def confirm_document_eligibility(text: str) -> tuple[bool, list[str], str]:
     if not year_evidence:
         missing.append("2027 presidential context")
     if not voting_evidence:
-        missing.append("voting-intention language")
+        missing.append(MISSING_VOTING_INTENTION_LANGUAGE)
     return False, rounds, "document lacks " + " and ".join(missing)
 
 

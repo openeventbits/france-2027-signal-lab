@@ -11,6 +11,7 @@ from commission_notice_coverage import (
     coverage_summary,
     coverage_warnings,
     reconcile_commission_notices,
+    unresolved_coverage,
     validate_notice_coverage,
 )
 
@@ -191,6 +192,44 @@ class CommissionNoticeCoverageTests(unittest.TestCase):
 
         self.assertEqual(item["coverage"]["state"], "reconciled")
         self.assertEqual(coverage_warnings(payload), [])
+
+    def test_metadata_cannot_reconcile_a_notice_without_candidate_voting_intentions(self):
+        voting_notice = notice("commission:20001", sample_size=1834)
+        voting_notice["classification_reason"] = (
+            "document confirms 2027 presidential voting intentions (first_round)"
+        )
+        turnout_notice = notice(
+            "commission:20000", sample_size=1834,
+            confirmed_rounds=["first_round", "second_round"],
+        )
+        published = event("candidate-choice", sample_size=1834)
+        for reason in (
+            "document lacks voting-intention language",
+            "document lacks 2027 presidential context and voting-intention language",
+        ):
+            with self.subTest(reason=reason):
+                # Legacy discovery kept round mentions even for a turnout question.
+                turnout_notice["classification_reason"] = (
+                    "listing has voting-intention marker; " + reason
+                )
+                turnout_notice["coverage"] = {
+                    "state": "reconciled",
+                    "method": "exact_pollster_fieldwork_round",
+                    "matched_event_ids": [published["event_id"]],
+                }
+                summary = reconcile_commission_notices(
+                    registry(turnout_notice, voting_notice), [published],
+                )
+                self.assertEqual(
+                    turnout_notice["coverage"],
+                    unresolved_coverage("missing_voting_intention_evidence"),
+                )
+                self.assertEqual(summary["unresolved_notice_ids"], ["commission:20000"])
+                self.assertEqual(voting_notice["coverage"], {
+                    "state": "reconciled",
+                    "method": "exact_pollster_fieldwork_round",
+                    "matched_event_ids": [published["event_id"]],
+                })
 
     def test_unmatched_relevant_notice_is_unresolved_and_warns(self):
         item = notice()

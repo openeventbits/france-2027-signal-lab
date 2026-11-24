@@ -22,7 +22,24 @@ from test_commission_notice_discovery import index_html
 
 ROOT = Path(__file__).parent
 NOTICE_ID = "commission:10342"
-CURRENT_PENDING_NOTICE_IDS = ("commission:10362", "commission:10371", "commission:10381")
+CURRENT_PENDING_NOTICE_METHODS = {
+    "commission:10362": "no_exact_published_wave",
+    "commission:10371": "no_exact_published_wave",
+    "commission:10382": "missing_structured_metadata",
+    "commission:10393": "no_exact_published_wave",
+}
+CURRENT_PENDING_DOCUMENT_SHA256 = {
+    "commission:10382": "b6f93bfa317307bb063f37b0baffe153d6fa4c48d0383c433a6cf6fe8b5de3a3",
+    "commission:10393": "1c2100e959efa837f898e4b2963c14494a34b3bacef4fa7ec115c33d246e2619",
+}
+TURNOUT_NOTICE_ID = "commission:10381"
+SUD_RADIO_NOTICE_ID = "commission:10392"
+SUD_RADIO_EVENT_IDS = {
+    "4b5284f46605201037bb1050cb726b3343975317018cbe03ced78a1a37fafdf3",
+    "65a51508949d45be7c35d7aaa2ea0f87238f51d7c6c7cc9d95e3c18c323ab6ba",
+    "9d591d92fedf313abda3e0976deeb95213a54e80f9cea190ccd76f955e9b506f",
+    "f6d5659fe148795ff6e5dcc79e73d1976ef3cc60ad449f1e231bf170c49b1a11",
+}
 PDF_SHA256 = "08dd618195a23f1523099488a224440efd87c7f6dc96176e32a32c21f888bc3d"
 RECORD_SHA256 = "6e636e49c9ecf15cfcd010d055b6adb876581aeb2580d37e71c40d5a407ac1a8"
 
@@ -295,17 +312,25 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
         records = [n for n in current["notices"] if n["notice_id"] == NOTICE_ID]
         self.assertEqual(records, [self.record])
         self.assertNotIn(NOTICE_ID, [n["notice_id"] for n in discovery.registry_event_notices(current)])
+        turnout = next((n for n in current["notices"] if n["notice_id"] == TURNOUT_NOTICE_ID), None)
+        self.assertIsNotNone(turnout)
+        self.assertEqual(turnout["classification"], "excluded_non_voting")
+        self.assertEqual(turnout["classification_reason"], "document lacks voting-intention language")
+        self.assertEqual(turnout["content_sha256"],
+                         "3c23709951d424e7d0e3848b335b8b3275472679ff72b21c803ec070436bf151")
+        self.assertTrue({"coverage", "parser"}.isdisjoint(turnout))
         current_summary = coverage.coverage_summary(current)
-        # Extend the current inventory with the explicitly pending production notices.
-        for notice_id in CURRENT_PENDING_NOTICE_IDS:
+        for notice_id, method in CURRENT_PENDING_NOTICE_METHODS.items():
             pending_records = [n for n in current["notices"] if n["notice_id"] == notice_id]
             self.assertEqual(len(pending_records), 1)
             pending = pending_records[0]
             self.assertEqual(pending["classification"], "unsupported")
             self.assertNotIn("parser", pending)
-            self.assertEqual(pending["coverage"], coverage.unresolved_coverage("no_exact_published_wave"))
+            self.assertEqual(pending["coverage"], coverage.unresolved_coverage(method))
+            if notice_id in CURRENT_PENDING_DOCUMENT_SHA256:
+                self.assertEqual(pending["content_sha256"], CURRENT_PENDING_DOCUMENT_SHA256[notice_id])
         self.assertEqual(set(current_summary["unresolved_notice_ids"]),
-                         {*CURRENT_PENDING_NOTICE_IDS, *self.summary["unresolved_notice_ids"]})
+                         {*CURRENT_PENDING_NOTICE_METHODS, *self.summary["unresolved_notice_ids"]})
         self.assertTrue(lane["valid"])
         self.assertEqual(lane["warnings"], coverage.coverage_warnings(current))
         # New reconciled notices may change current counts, never archival pins.
@@ -374,7 +399,7 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
         first = json.loads((ROOT / "polls.json").read_bytes())
         second = json.loads((ROOT / "second_round_polls.json").read_bytes())["events"]
         events_before = json.dumps((first, second), allow_nan=False)
-        for notice_id in CURRENT_PENDING_NOTICE_IDS:
+        for notice_id in CURRENT_PENDING_NOTICE_METHODS:
             with self.subTest(notice_id=notice_id):
                 pending = copy.deepcopy(next(n for n in current["notices"] if n["notice_id"] == notice_id))
                 before = copy.deepcopy(pending)
@@ -383,7 +408,29 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
                     {"notices": [pending]}, first, reviewed_events=first + second)
                 self.assertEqual(pending, before)
                 self.assertEqual(summary["unresolved_notice_ids"], [notice_id])
-                self.assertEqual(json.dumps((first, second), allow_nan=False), events_before)
+        turnout = copy.deepcopy(next(n for n in current["notices"] if n["notice_id"] == TURNOUT_NOTICE_ID))
+        sud_radio = copy.deepcopy(next(n for n in current["notices"] if n["notice_id"] == SUD_RADIO_NOTICE_ID))
+        self.assertFalse(any(e.get("official_notice_id") == TURNOUT_NOTICE_ID for e in first + second))
+        source_url = sud_radio["resolved_url"].replace("http://", "https://", 1)
+        source_events = [event for event in first if event["source_url"] == source_url]
+        self.assertEqual({event["event_id"] for event in source_events}, SUD_RADIO_EVENT_IDS)
+        expected_sud_radio_coverage = {
+            "state": "reconciled",
+            "method": "exact_pollster_fieldwork_round",
+            "matched_event_ids": ["4b5284f46605201037bb1050cb726b3343975317018cbe03ced78a1a37fafdf3"],
+        }
+        self.assertEqual(sud_radio["coverage"], expected_sud_radio_coverage)
+        turnout_before = copy.deepcopy(turnout)
+        summary = coverage.reconcile_commission_notices(
+            {"notices": [turnout, sud_radio]}, first, reviewed_events=first + second,
+        )
+        self.assertEqual(summary, {
+            "relevant": 1, "parsed": 0, "reconciled": 1,
+            "unresolved": 0, "unresolved_notice_ids": [],
+        })
+        self.assertEqual(turnout, turnout_before)
+        self.assertEqual(sud_radio["coverage"], expected_sud_radio_coverage)
+        self.assertEqual(json.dumps((first, second), allow_nan=False), events_before)
 
     def test_current_publication_rejects_altered_extra_and_stale_warnings(self):
         current, lane = self.current_publication_inputs()
@@ -401,7 +448,7 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
 
     def test_current_publication_rejects_changed_pending_scope_even_with_matching_manifest(self):
         current, lane = self.current_publication_inputs()
-        for notice_id in (*CURRENT_PENDING_NOTICE_IDS, *self.summary["unresolved_notice_ids"]):
+        for notice_id in (TURNOUT_NOTICE_ID, *CURRENT_PENDING_NOTICE_METHODS, *self.summary["unresolved_notice_ids"]):
             changed = copy.deepcopy(current)
             changed["notices"] = [n for n in changed["notices"] if n["notice_id"] != notice_id]
             discovery.validate_registry(changed)
@@ -410,7 +457,16 @@ class Commission10342RegistryReviewTests(unittest.TestCase):
             updated["commission_notice_coverage"] = coverage.coverage_summary(changed)
             with self.subTest(missing=notice_id), self.assertRaises(AssertionError):
                 self.assert_current_publication_coverage(changed, updated)
-        for notice_id in CURRENT_PENDING_NOTICE_IDS:
+        changed = copy.deepcopy(current)
+        turnout = next(n for n in changed["notices"] if n["notice_id"] == TURNOUT_NOTICE_ID)
+        sud_radio = next(n for n in changed["notices"] if n["notice_id"] == SUD_RADIO_NOTICE_ID)
+        turnout.update(classification="unsupported", coverage=copy.deepcopy(sud_radio["coverage"]))
+        discovery.validate_registry(changed)
+        updated = dict(lane, warnings=coverage.coverage_warnings(changed),
+                       commission_notice_coverage=coverage.coverage_summary(changed))
+        with self.assertRaises(AssertionError):
+            self.assert_current_publication_coverage(changed, updated)
+        for notice_id in CURRENT_PENDING_NOTICE_METHODS:
             for mutation in ("parsed", "reconciled", "excluded", "extra"):
                 changed = copy.deepcopy(current)
                 pending = next(n for n in changed["notices"] if n["notice_id"] == notice_id)
