@@ -165,6 +165,27 @@ class EligibilityTests(unittest.TestCase):
         self.assertTrue(ambiguous.inspect_document)
         self.assertEqual(municipal.classification, "excluded_non_voting")
 
+    def test_round_only_listing_requires_confirmation_of_candidate_choice(self):
+        decision = classify_listing(
+            self.record("20000 Pres participation 2nd tour IFOP")
+        )
+        self.assertEqual(decision.classification, "ambiguous")
+        self.assertTrue(decision.inspect_document)
+        self.assertFalse(decision.strongly_eligible)
+
+        turnout = ("Election présidentielle de 2027. Si le second tour opposait "
+                   "Alpha et Bêta, participeriez-vous au vote ?")
+        eligible, rounds, reason = confirm_document_eligibility(turnout)
+        self.assertFalse(eligible)
+        self.assertEqual(rounds, ["second_round"])
+        self.assertEqual(reason, "document lacks voting-intention language")
+
+        choice = ("Election présidentielle de 2027. Si le second tour opposait "
+                  "Alpha et Bêta, pour qui voteriez-vous ?")
+        eligible, rounds, _ = confirm_document_eligibility(choice)
+        self.assertTrue(eligible)
+        self.assertEqual(rounds, ["second_round"])
+
     def test_document_confirmation_preserves_first_and_second_rounds(self):
         eligible, rounds, reason = confirm_document_eligibility(
             """
