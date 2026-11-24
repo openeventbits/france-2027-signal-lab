@@ -332,20 +332,50 @@ class CandidateCandidacyStatusTests(unittest.TestCase):
         validate_candidate_candidacy_status(changed)
 
     def test_arbitrary_semantic_tier_counts_are_accepted(self):
-        changed = copy.deepcopy(self.payload)
-        changed["candidates"] = [
-            candidate
-            for candidate in changed["candidates"]
-            if candidate["candidate_id"]
-            in {
-                "bruno-retailleau",
-                "dominique-de-villepin",
-                "sarah-knafo",
-            }
-        ]
-        validate_candidate_candidacy_status(changed)
+        # Synthetic registry for this test only.
+        status_as_of = "2026-08-01"
+        source = {
+            "publisher": "French Wikipedia",
+            "page_title": "Synthetic candidate registry",
+            "page_url": "https://fr.wikipedia.org/wiki/Synthetic_candidate_registry",
+            "revision_id": 1,
+            "revision_timestamp": f"{status_as_of}T00:00:00Z",
+            "revision_url": "https://fr.wikipedia.org/w/index.php?title=Synthetic+candidate+registry&oldid=1",
+        }
+        fixture = {
+            "schema_version": "2.0",
+            "status_as_of": status_as_of,
+            "source": source,
+            "candidates": [
+                {
+                    "candidate_id": candidate_id,
+                    "candidate_name": name,
+                    "status": status,
+                    "display_tier": tier,
+                    "status_as_of": status_as_of,
+                    "source_date": status_as_of,
+                    "source_url": source["revision_url"],
+                    "source_title": source["page_title"],
+                    "source_publisher": source["publisher"],
+                    "status_note": "Synthetic status for this test only.",
+                    "upstream_presence": "present",
+                    "wikipedia_article": None,
+                    "previous_names": [],
+                }
+                for candidate_id, name, status, tier in (
+                    ("alice-declared", "Alice Declared", "declared", "main"),
+                    ("bruno-potential", "Bruno Potential", "active_potential", "secondary"),
+                    ("claire-withdrawn", "Claire Withdrawn", "withdrawn", "hidden"),
+                )
+            ],
+        }
+        validate_candidate_candidacy_status(fixture)
+        projection = project_display_tiers(fixture)
+        self.assertEqual(projection["main"], ["alice-declared"])
+        self.assertEqual(projection["secondary"], ["bruno-potential"])
+        self.assertEqual(projection["hidden"], ["claire-withdrawn"])
         self.assertEqual(
-            project_display_tiers(changed)["counts"],
+            projection["counts"],
             {
                 "main": 1,
                 "secondary": 1,
