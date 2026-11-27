@@ -11,6 +11,8 @@ from datetime import date
 from pathlib import Path
 from unittest.mock import patch
 
+from lxml import html
+
 import build_candidate_reference as reference
 
 
@@ -2601,28 +2603,87 @@ class CandidateBilingualReferenceTests(unittest.TestCase):
             toggle,
         )
 
-    def test_nested_english_route_preserves_candidate_images_and_brand_mark(self):
-        import re
+    def assert_projected_portrait(self, elements, path):
+        self.assertEqual(len(elements), 1)
+        portrait = elements[0]
+        images = [portrait] if portrait.tag == "img" else portrait.findall(".//img")
+        if path is None:
+            self.assertEqual(images, [])
+            self.assertTrue(portrait.text_content().strip())
+            return
 
-        for document in (self.fr, self.en):
-            self.assertNotIn(
-                "../../assets/candidates/",
-                document,
+        self.assertTrue(path.startswith("/assets/candidates/"), path)
+        self.assertTrue((ROOT / path.removeprefix("/")).is_file(), path)
+        self.assertEqual([image.get("src") for image in images], [path])
+
+    def assert_candidate_portraits(self, projection, document, lang):
+        self.assertNotIn("../../assets/candidates/", document)
+        page = html.fromstring(document)
+        for src in page.xpath("//img/@src"):
+            if "assets/candidates/" in src:
+                self.assertTrue(src.startswith("/assets/candidates/"), src)
+
+        with self.subTest(lang=lang, candidate=projection["candidate_id"]):
+            self.assert_projected_portrait(
+                page.find_class("candidate-portrait"),
+                projection["candidate"]["portrait_path"],
             )
 
-            for portrait in (
-                "philippe.png",
-                "melenchon.png",
-                "attal.png",
-                "glucksmann.png",
-                "hollande.png",
-                "retailleau.png",
-                "ruffin.png",
-            ):
-                self.assertIn(
-                    f'/assets/candidates/{portrait}',
-                    document,
+        related_cards = page.find_class("candidate-related-card")
+        for candidate in projection["related_candidates"]:
+            route = candidate["routes"][lang]
+            with self.subTest(lang=lang, related_candidate=route):
+                cards = [card for card in related_cards if card.get("href") == route]
+                self.assertEqual(len(cards), 1)
+                self.assert_projected_portrait(
+                    cards[0].find_class("candidate-related-portrait"),
+                    candidate["portrait_path"],
                 )
+
+        runoff_groups = page.find_class("candidate-runoff-group")
+        for matchup in projection["polling"]["tested_runoffs"]:
+            opponent_id = matchup["opponent_id"]
+            with self.subTest(lang=lang, runoff_opponent=opponent_id):
+                groups = [
+                    group for group in runoff_groups
+                    if group.get("data-opponent-id") == opponent_id
+                ]
+                self.assertEqual(len(groups), 1)
+                self.assert_projected_portrait(
+                    groups[0].find_class("candidate-runoff-opponent-portrait"),
+                    matchup["opponent_portrait_path"],
+                )
+
+    def test_nested_english_route_preserves_candidate_images_and_brand_mark(self):
+        # Exercise both related-card portrait branches independently of the live selection.
+        portrait_examples = (
+            ("francois-ruffin", "François Ruffin", "/assets/candidates/ruffin.png"),
+            ("example-candidate", "Example Candidate", None),
+        )
+        controlled_projection = {
+            **self.projection,
+            "related_candidates": [
+                {
+                    "candidate_id": candidate_id,
+                    "candidate_name": name,
+                    "status": "declared",
+                    "routes": {
+                        "fr": f"/candidates/{candidate_id}/",
+                        "en": f"/en/candidates/{candidate_id}/",
+                    },
+                    "portrait_path": path,
+                }
+                for candidate_id, name, path in portrait_examples
+            ],
+        }
+        for lang, document in (("fr", self.fr), ("en", self.en)):
+            with self.subTest(projection="live"):
+                self.assert_candidate_portraits(self.projection, document, lang)
+            with self.subTest(projection="controlled"):
+                rendered = reference.render_html(
+                    controlled_projection, self.hud_metrics, lang=lang,
+                ).decode("utf-8")
+                self.assert_candidate_portraits(controlled_projection, rendered, lang)
 
         mark_pattern = re.compile(
             r'<button class="candidate-mark fr27-section-launcher-trigger"[^>]*>.*?(<svg\b.*?</svg>)',
