@@ -66,6 +66,8 @@ POST_AUDIT_HOLLANDE_LE_PEN_HEADING = "hypothese hollande le pen"
 POST_AUDIT_HOLLANDE_LE_PEN_LOCATOR = "FR-POST-HOLLANDE-LE-PEN"
 POST_AUDIT_PHILIPPE_MELENCHON_HEADING = "hypothese philippe melenchon"
 POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR = "FR-POST-PHILIPPE-MELENCHON"
+POST_AUDIT_LISNARD_LE_PEN_HEADING = "hypothese lisnard le pen"
+POST_AUDIT_LISNARD_LE_PEN_LOCATOR = "FR-POST-LISNARD-LE-PEN"
 REVIEWED_FRENCH_RUNOFF_HEADING_ALIASES = {
     "hypothese melenchon philippe": POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
 }
@@ -78,9 +80,24 @@ POST_AUDIT_FRENCH_RUNOFF_FAMILIES = (
         POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
         POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR,
     ),
+    (POST_AUDIT_LISNARD_LE_PEN_HEADING, POST_AUDIT_LISNARD_LE_PEN_LOCATOR),
 )
 FRENCH_FIRST_ROUND_SECTION = "sondages concernant le premier tour"
 FRENCH_SECOND_ROUND_SECTION = "sondages concernant le second tour"
+
+
+# Commission notice 10400, published columns on pages 13–16.
+_OPINIONWAY_10400_REVISION = 241704906
+_OPINIONWAY_10400_URL = (
+    "https://www.commission-des-sondages.fr/notices/files/notices/2026/"
+    "novembre/10400-pres-iv-vague-5-opinionway-26-novembre.pdf"
+)
+_OPINIONWAY_10400_RUNOFFS = {
+    "FR-R2": ("Raphaël Glucksmann", 42, 58),
+    "FR-R3": ("Jean-Luc Mélenchon", 31, 69),
+    "FR-R4": ("Édouard Philippe", 41, 59),
+    POST_AUDIT_LISNARD_LE_PEN_LOCATOR: ("David Lisnard", 45, 55),
+}
 
 
 def canonical_french_runoff_heading(heading: str) -> str:
@@ -1891,6 +1908,49 @@ def _read_french_first_round_table(table: object) -> pd.DataFrame:
     )[0]
 
 
+def _review_opinionway_10400_wave(
+    revision: int, first_round: list[dict], second_round: list[dict], rejected: list[dict]
+) -> None:
+    """Check the published wave and correct its source-specific pollster typo."""
+    def matches_metadata(record: dict) -> bool:
+        return (
+            record["pollster"] in {"OpinionWay", "OpinonWay"}
+            and record["fieldwork_start"] == "2026-11-25"
+            and record["fieldwork_end"] == "2026-11-26"
+            and record["sample_size"] == 912
+        )
+
+    matchups = set()
+    for record in second_round:
+        if record["source_url"] != _OPINIONWAY_10400_URL:
+            continue
+        locator = record["source_locator"]
+        family = locator.rsplit("r", 1)[0]
+        expected = _OPINIONWAY_10400_RUNOFFS.get(family)
+        scores = {candidate["name"]: candidate["score"] for candidate in record["candidates"]}
+        if (
+            expected is None or family in matchups or not matches_metadata(record)
+            or scores != {expected[0]: expected[1], "Marine Le Pen": expected[2]}
+        ):
+            raise ValueError(f"{locator}: French runoff contradicts Commission notice 10400")
+        matchups.add(family)
+        record["pollster"] = "OpinionWay"
+
+    if any(record["source_url"] == _OPINIONWAY_10400_URL for record in first_round):
+        raise ValueError("Commission notice 10400 first-round score is censored")
+    if revision >= _OPINIONWAY_10400_REVISION:
+        missing = sorted(_OPINIONWAY_10400_RUNOFFS.keys() - matchups)
+        if missing:
+            raise ValueError(f"French source lacks reviewed notice 10400 runoffs: {missing}")
+        censored = [record for record in rejected if record["source_url"] == _OPINIONWAY_10400_URL]
+        if (
+            len(censored) != 1
+            or not matches_metadata(censored[0])
+            or censored[0]["reason_code"] != "censored_score"
+        ):
+            raise ValueError("French source lacks the reviewed censored notice 10400 first round")
+
+
 def parse_french_frozen_fixture(
     parsed: dict[str, Any], *, allow_reviewed_polony: bool = False,
     allow_reviewed_bouamrane: bool = False,
@@ -2063,6 +2123,14 @@ def parse_french_frozen_fixture(
             )
 
     for family_locator, table in _french_runoff_table_plan(tables):
+        if family_locator == POST_AUDIT_LISNARD_LE_PEN_LOCATOR:
+            headings = [
+                heading for heading in document.xpath("//h3 | //h4 | //h5 | //h6")
+                if _section_heading(heading) == FRENCH_SECOND_ROUND_SECTION
+                and normalize_identity(heading.text_content()) == POST_AUDIT_LISNARD_LE_PEN_HEADING
+            ]
+            if len(headings) != 1:
+                raise ValueError("French Lisnard–Le Pen runoff family exposes duplicate headings")
         frame = pd.read_html(
             io.StringIO(lxml_html.tostring(table, encoding="unicode")),
             extract_links="all",
@@ -2081,6 +2149,15 @@ def parse_french_frozen_fixture(
             raise ValueError(
                 f"French runoff table {family_locator} has ambiguous headers"
             )
+        if family_locator == POST_AUDIT_LISNARD_LE_PEN_LOCATOR:
+            header_labels = [
+                reviewed_candidate_name(candidate_name(_header_value(column)[0]))
+                for column in frame.columns[3:]
+            ]
+            if header_labels != resolved_headers or set(resolved_headers) != {
+                "David Lisnard", "Marine Le Pen",
+            }:
+                raise ValueError("French Lisnard–Le Pen runoff table has contradictory candidate identities")
         for row_index, row in frame.iterrows():
             locator = f"{family_locator}r{row_index}"
             pollster = cell_text(row.iloc[0])
@@ -2120,6 +2197,7 @@ def parse_french_frozen_fixture(
                 )
             )
 
+    _review_opinionway_10400_wave(parsed["revid"], first_round, second_round, rejected)
     return {
         "revision_id": parsed["revid"],
         "first_round": first_round,
