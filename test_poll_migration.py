@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import gzip
 import hashlib
 import io
 import json
@@ -20,6 +21,7 @@ import pandas as pd
 from lxml import html as lxml_html
 from fetch_polls import (
     SECOND_ROUND,
+    integrate_french_migration_source,
     make_event_id,
     make_scenario_key,
     validate_second_round_event,
@@ -32,6 +34,7 @@ from poll_migration import (
     POST_AUDIT_PHILIPPE_MELENCHON_LOCATOR,
     _candidate_from_link,
     _french_first_round_table_plan,
+    _french_runoff_table_plan,
     _header_candidate,
     _header_value,
     _matching_candidate_colspan_groups,
@@ -43,6 +46,7 @@ from poll_migration import (
     _validate_first_round_candidate_headers,
     apply_wave_scoped_pollster_alias,
     candidate_identity,
+    canonical_french_runoff_heading,
     exact_factual_key,
     load_mediawiki_fixture,
     load_migration_registry,
@@ -72,6 +76,10 @@ from rehearse_fr_poll_migration import (
 
 
 ROOT = Path(__file__).parent
+NOTICE_10400_URL = (
+    "https://www.commission-des-sondages.fr/notices/files/notices/2026/"
+    "novembre/10400-pres-iv-vague-5-opinionway-26-novembre.pdf"
+)
 PRE_CUTOVER_FIRST_ROUND = (
     ROOT / "test_fixtures/fr27_polling/pre_cutover_first_round_203.json"
 )
@@ -2080,6 +2088,207 @@ class FrozenFixtureTests(unittest.TestCase):
             if event.get("migration_source_locator") == new_locator
         ]
         self.assertEqual(len(added), 1)
+
+    def test_notice_10400_extracts_documented_wave_and_preserves_family_locators(self):
+        source = self.notice_10400_source()
+        self.assertEqual(source["revid"], 241704906)
+        self.assertEqual(source["pageid"], 15568607)
+
+        def families(parsed):
+            tables = lxml_html.fromstring(parsed["text"]).xpath("//table")
+            return {
+                locator: canonical_french_runoff_heading(_preceding_heading(table))
+                for locator, table in _french_runoff_table_plan(tables)
+            }
+
+        previous = families(self.fr)
+        current = families(source)
+        self.assertEqual({locator: current[locator] for locator in previous}, previous)
+        self.assertEqual(
+            {locator: heading for locator, heading in current.items()
+             if locator not in previous},
+            {
+                "FR-POST-HOLLANDE-LE-PEN": "hypothese hollande le pen",
+                "FR-POST-PHILIPPE-MELENCHON": "hypothese philippe melenchon",
+                "FR-POST-LISNARD-LE-PEN": "hypothese lisnard le pen",
+            },
+        )
+        rows = _assert_production_source_structure(source)
+        runoffs = [row for row in rows[SECOND_ROUND] if row["source_url"] == NOTICE_10400_URL]
+        self.assertEqual(len(runoffs), 4)
+        self.assertEqual(
+            {row["source_locator"]: {c["name"]: c["score"] for c in row["candidates"]}
+             for row in runoffs},
+            {
+                "FR-POST-LISNARD-LE-PENr1": {"David Lisnard": 45, "Marine Le Pen": 55},
+                "FR-R2r1": {"Raphaël Glucksmann": 42, "Marine Le Pen": 58},
+                "FR-R3r1": {"Jean-Luc Mélenchon": 31, "Marine Le Pen": 69},
+                "FR-R4r1": {"Édouard Philippe": 41, "Marine Le Pen": 59},
+            },
+        )
+        for row in runoffs:
+            self.assertEqual(
+                (row["pollster"], row["fieldwork_start"], row["fieldwork_end"],
+                 row["sample_size"], row["sample_scope"]),
+                ("OpinionWay", "2026-11-25", "2026-11-26", 912, "reported"),
+            )
+        self.assertFalse(any(row["source_url"] == NOTICE_10400_URL for row in rows[FIRST_ROUND]))
+        self.assertEqual(
+            [row for row in rows["rejected"] if row["source_url"] == NOTICE_10400_URL],
+            [{
+                "source_locator": "FR-T0R1", "reason_code": "censored_score",
+                "pollster": "OpinonWay", "fieldwork_start": "2026-11-25",
+                "fieldwork_end": "2026-11-26", "sample_size": 912,
+                "source_url": NOTICE_10400_URL,
+            }],
+        )
+
+    def test_notice_10400_replay_preserves_all_previous_objects_and_is_deterministic(self):
+        source = self.notice_10400_source()
+        previous_first, previous_second = self.notice_10400_previous()
+
+        def integrate(first, second):
+            return integrate_french_migration_source(
+                source, first, second, [], retain_published_history=True,
+            )
+
+        replay = integrate(previous_first, previous_second)
+        self.assertEqual(integrate(previous_first, previous_second), replay)
+        first, second, report, _counts = replay
+        self.assertEqual(report["unexplained_historical_losses"], 0)
+        self.assertEqual(report["normal_post_audit_additions"], {FIRST_ROUND: 0, SECOND_ROUND: 4})
+        self.assertEqual((len(first), len(second)), (387, 127))
+        self.assertCountEqual(
+            [event["event_id"] for event in first],
+            [event["event_id"] for event in previous_first],
+        )
+        for before, after in ((previous_first, first), (previous_second, second)):
+            by_id = {event["event_id"]: event for event in after}
+            self.assertEqual(len(by_id), len(after))
+            self.assertEqual([by_id[event["event_id"]] for event in before], before)
+        old_ids = {event["event_id"] for event in previous_second}
+        self.assertEqual(
+            {event["migration_source_locator"]: event["event_id"]
+             for event in second if event["event_id"] not in old_ids},
+            {
+                "FR-POST-LISNARD-LE-PENr1": "79b589c857b147047c5fb742b61abfbc60d96cb8c393a6202d471abfe72b1fda",
+                "FR-R2r1": "fae9a4da1e518bfa8b84fd4ffe73e1d127ce64837933f19f290c2032d62596e6",
+                "FR-R3r1": "49bc30a98a9d4d5d55c14f3d3ff35b9f29b1bdb31552ca5d311ffaa96c04e25e",
+                "FR-R4r1": "ab8f43fbb5436da370e6f2f9421e199d5f22f7b4fa4cfda69e51e72b1fcf3dbd",
+            },
+        )
+        self.assertEqual(integrate(first, second)[:2], (first, second))
+
+    def test_notice_10400_runoff_structure_and_evidence_mutations_fail_closed(self):
+        for mutation, error in (
+            ("unknown family", "unreviewed French runoff family"),
+            ("duplicate heading", "duplicate headings"),
+            ("duplicate table", "exposes multiple tables"),
+            ("wrong candidate link", "contradictory candidate identities"),
+            ("wrong scores", "contradicts Commission notice 10400"),
+            ("different source", "lacks reviewed notice 10400 runoffs"),
+            ("wrong pollster", "contradicts Commission notice 10400"),
+            ("wrong sample", "contradicts Commission notice 10400"),
+            ("wrong fieldwork", "contradicts Commission notice 10400"),
+            ("missing score", "missing runoff score"),
+            ("missing row", "lacks reviewed notice 10400 runoffs"),
+            ("missing family", "lacks reviewed notice 10400 runoffs"),
+        ):
+            with self.subTest(mutation=mutation):
+                source = self.notice_10400_source()
+                document = lxml_html.fromstring(source["text"])
+                heading = document.get_element_by_id("Hypothèse_Lisnard_–_Le_Pen")
+                table = next(
+                    element for element in document.xpath("//table")
+                    if _preceding_heading(element) == "hypothese lisnard le pen"
+                )
+                source_link = table.xpath(".//a[@href=$source]", source=NOTICE_10400_URL)[0]
+                row = source_link.xpath("ancestor::tr[1]")[0]
+                cells = row.xpath("./th | ./td")
+                if mutation == "unknown family":
+                    heading.text = "Hypothèse Lisnard – Attal"
+                elif mutation == "duplicate heading":
+                    heading.addprevious(copy.deepcopy(heading))
+                elif mutation == "duplicate table":
+                    table.addnext(copy.deepcopy(table))
+                elif mutation == "wrong candidate link":
+                    link = table.xpath(".//th//a[contains(@href, 'David_Lisnard')]")[-1]
+                    link.set("href", "/wiki/Gabriel_Attal")
+                elif mutation == "wrong scores":
+                    cells[3].text, cells[4].text = "46", "54"
+                elif mutation == "different source":
+                    source_link.set("href", "https://example.com/another-survey.pdf")
+                elif mutation == "wrong pollster":
+                    source_link.text = "Elabe"
+                elif mutation == "wrong sample":
+                    cells[2].text = "913"
+                elif mutation == "wrong fieldwork":
+                    cells[1].text = "24-26 novembre 2026"
+                elif mutation == "missing score":
+                    cells[3].text = "—"
+                elif mutation == "missing row":
+                    row.getparent().remove(row)
+                else:
+                    table.getparent().remove(table)
+                source["text"] = lxml_html.tostring(document, encoding="unicode")
+                with self.assertRaisesRegex(SourceDriftError, error):
+                    _assert_production_source_structure(source)
+
+    def test_notice_10400_censored_first_round_cannot_be_replaced_by_exact_scores(self):
+        source = self.notice_10400_source()
+        document = lxml_html.fromstring(source["text"])
+        row = next(
+            link.xpath("ancestor::tr[1]")[0]
+            for link in document.xpath("//a[@href=$source]", source=NOTICE_10400_URL)
+            if _section_heading(link) == "sondages concernant le premier tour"
+        )
+        others = row.xpath("./td")[-1]
+        others.clear()
+        others.text = "2 Riner"
+        source["text"] = lxml_html.tostring(document, encoding="unicode")
+        with self.assertRaisesRegex(SourceDriftError, "first-round score is censored"):
+            _assert_production_source_structure(source)
+
+    def test_notice_10400_does_not_admit_a_changed_historical_runoff(self):
+        source = self.notice_10400_source()
+        document = lxml_html.fromstring(source["text"])
+        historical = document.xpath("//a[contains(@href, '10393-pres-iv-vague-10')]")
+        row = next(
+            link.xpath("ancestor::tr[1]")[0] for link in historical
+            if _preceding_heading(link) == "hypothese melenchon le pen"
+        )
+        cells = row.xpath("./td")
+        for cell, score in zip(cells[3:5], ("36", "64"), strict=True):
+            cell.clear(keep_tail=True)
+            cell.text = score
+        source["text"] = lxml_html.tostring(document, encoding="unicode")
+        previous_first, previous_second = self.notice_10400_previous()
+        with self.assertRaisesRegex(
+            RehearsalError, "unregistered French row shares a review anchor",
+        ):
+            integrate_french_migration_source(
+                source, previous_first, previous_second, [], retain_published_history=True,
+            )
+
+    @staticmethod
+    def read_notice_10400_fixture(name, sha256):
+        raw = gzip.decompress((ROOT / "test_fixtures/fr27_polling" / name).read_bytes())
+        if hashlib.sha256(raw).hexdigest() != sha256:
+            raise AssertionError(f"Frozen notice 10400 evidence changed: {name}")
+        return json.loads(raw)
+
+    def notice_10400_source(self):
+        return self.read_notice_10400_fixture(
+            "fr_mediawiki_241704906.json.gz",
+            "e76862e67512e915c040b1fe5940b06cce7738ca260a593c22ed3f61c4501a5e",
+        )["parse"]
+
+    def notice_10400_previous(self):
+        baseline = self.read_notice_10400_fixture(
+            "notice_10400_previous_387_123.json.gz",
+            "71f9ef2046eabc889b18ac49efd41a4e72357e7d5d30e6f4cfbff73d39dc05c6",
+        )
+        return baseline["first_round"], baseline["second_round"]
 
     def test_known_philippe_melenchon_family_is_a_normal_post_audit_addition(
         self,

@@ -2408,8 +2408,7 @@ def main() -> None:
             )
             from poll_migration import (
                 AUDITED_FRENCH_RUNOFF_HEADINGS,
-                POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
-                POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
+                POST_AUDIT_FRENCH_RUNOFF_FAMILIES,
                 canonical_french_runoff_heading,
                 load_mediawiki_fixture,
             )
@@ -2456,8 +2455,7 @@ def main() -> None:
                 heading in current_headings
                 for heading in (
                     *AUDITED_FRENCH_RUNOFF_HEADINGS,
-                    POST_AUDIT_HOLLANDE_LE_PEN_HEADING,
-                    POST_AUDIT_PHILIPPE_MELENCHON_HEADING,
+                    *(heading for heading, _ in POST_AUDIT_FRENCH_RUNOFF_FAMILIES),
                 )
             )
         except (
